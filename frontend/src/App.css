@@ -1,0 +1,150 @@
+:root {
+  --ground: #14181C;
+  --surface: #1E2530;
+  --surface-hover: #242C38;
+  --ink: #EDEFF2;
+  --ink-dim: #8A93A1;
+  --stamp-red: #C1503B;
+  --hairline: rgba(237, 239, 242, 0.09);
+  --font-mono: 'Courier New', 'Courier', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+
+.app {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 44px 20px;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 3px double var(--ink-dim);
+  padding-bottom: 14px;
+  margin-bottom: 30px;
+}
+
+.case-number {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+.app-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.app-meta {
+  text-align: right;
+  font-size: 10px;
+  color: var(--ink-dim);
+  line-height: 1.8;
+}
+
+.capture {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 18px 20px 16px;
+  margin-bottom: 40px;
+}
+
+.capture-label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 8px;
+}
+
+.capture textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+  min-height: 46px;
+  outline: none;
+}
+
+.capture-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--hairline);
+}
+
+.capture-hint {
+  font-size: 10px;
+  color: var(--ink-dim);
+}
+
+.save-btn {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--stamp-red);
+  color: var(--ink);
+  border: none;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.section-label {
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 14px;
+}
+
+.empty-state {
+  font-size: 12px;
+  color: var(--ink-dim);
+  padding: 20px 0;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.entry {
+  display: flex;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-left: 3px solid var(--hairline);
+}
+
+.entry-stamp {
+  font-size: 10px;
+  color: var(--ink-dim);
+  min-width: 46px;
+}
+
+.entry-title {
+  font-size: 15px;
+  font-weight: 700;
+}
