@@ -148,3 +148,13 @@ body {
   font-size: 15px;
   font-weight: 700;
 }
+
+.error-banner {
+  background: rgba(193, 80, 59, 0.15);
+  border: 1px solid var(--stamp-red);
+  color: var(--stamp-red);
+  padding: 10px 14px;
+  font-size: 12px;
+  border-radius: 3px;
+  margin-bottom: 20px;
+}
