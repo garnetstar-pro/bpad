@@ -1,27 +1,65 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 interface Note {
   id: string
   content: string
-  createdAt: Date
+  url: string | null
+  created_at: string
 }
+
+const API_URL = import.meta.env.DEV 
+  ? 'http://localhost:7071/api/notes' 
+  : '/api/notes'
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([])
   const [draft, setDraft] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSave = () => {
+  // Načíst poznámky při startu appky
+  useEffect(() => {
+    fetchNotes()
+  }, [])
+
+  const fetchNotes = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch(API_URL)
+      if (!res.ok) throw new Error('Nepodařilo se načíst poznámky')
+      const data: Note[] = await res.json()
+      setNotes(data)
+      setError(null)
+    } catch (err) {
+      setError('Nepodařilo se spojit s backendem. Běží func start?')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
     if (!draft.trim()) return
 
-    const newNote: Note = {
-      id: crypto.randomUUID(),
-      content: draft,
-      createdAt: new Date(),
-    }
+    try {
+      setSaving(true)
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: draft }),
+      })
+      if (!res.ok) throw new Error('Uložení selhalo')
 
-    setNotes([newNote, ...notes])
-    setDraft('')
+      const newNote: Note = await res.json()
+      setNotes([newNote, ...notes])
+      setDraft('')
+      setError(null)
+    } catch (err) {
+      setError('Uložení se nepovedlo. Zkus to znovu.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -45,6 +83,8 @@ function App() {
         </div>
       </header>
 
+      {error && <div className="error-banner">{error}</div>}
+
       <div className="capture">
         <div className="capture-label">new entry</div>
         <textarea
@@ -52,10 +92,13 @@ function App() {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Write a thought or paste a link…"
+          disabled={saving}
         />
         <div className="capture-footer">
-          <span className="capture-hint">enter = save</span>
-          <button className="save-btn" onClick={handleSave}>
+          <span className="capture-hint">
+            {saving ? 'saving…' : 'enter = save'}
+          </span>
+          <button className="save-btn" onClick={handleSave} disabled={saving}>
             File it
           </button>
         </div>
@@ -64,13 +107,14 @@ function App() {
       <div className="section-label">recent entries</div>
 
       <div className="entries">
-        {notes.length === 0 && (
+        {loading && <div className="empty-state">loading…</div>}
+        {!loading && notes.length === 0 && (
           <div className="empty-state">no entries yet</div>
         )}
         {notes.map((note) => (
           <div className="entry" key={note.id}>
             <div className="entry-stamp">
-              {note.createdAt.toLocaleTimeString([], {
+              {new Date(note.created_at).toLocaleTimeString([], {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
