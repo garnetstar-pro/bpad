@@ -269,8 +269,13 @@ body {
   color: var(--ink);
 }
 
-.note-detail {
+/* Detail se drží čitelné šířky a je vycentrovaný (seznam zůstává přes celou šířku) */
+.detail-page {
   max-width: 72ch;
+  margin: 0 auto;
+}
+
+.note-detail {
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: 3px;
