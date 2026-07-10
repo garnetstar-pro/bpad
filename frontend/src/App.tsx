@@ -1,17 +1,24 @@
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import './App.css'
 
 
 interface Note {
   id: string
+  title: string
   content: string
   url: string | null
   created_at: string
 }
 
-const API_URL = import.meta.env.DEV 
-  ? 'http://localhost:7071/api/notes' 
+const API_URL = import.meta.env.DEV
+  ? 'http://localhost:7071/api/notes'
   : '/api/notes'
+
+// Konfigurace: do kolika řádků textarea poroste s obsahem.
+// Po překročení tohoto limitu se výška zafixuje a objeví se posuvník.
+const MAX_TEXTAREA_ROWS = 12
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([])
@@ -19,6 +26,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mode, setMode] = useState<'write' | 'preview'>('write')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Načíst poznámky při startu appky
@@ -27,10 +35,36 @@ function App() {
     textareaRef.current?.focus()
   }, [])
 
-  // Vrátit fokus do textarey, jakmile se znovu povolí po uložení
+  // Vrátit fokus do textarey, jakmile se znovu povolí po uložení (jen v režimu psaní)
   useEffect(() => {
-    if (!saving) textareaRef.current?.focus()
-  }, [saving])
+    if (!saving && mode === 'write') textareaRef.current?.focus()
+  }, [saving, mode])
+
+  // Přizpůsobit výšku textarey obsahu (roste do MAX_TEXTAREA_ROWS, pak posuvník)
+  const autoResize = () => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const cs = getComputedStyle(ta)
+    const lineHeight = parseFloat(cs.lineHeight)
+    const padding = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom)
+    const border = parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)
+    const maxHeight = lineHeight * MAX_TEXTAREA_ROWS + padding + border
+
+    ta.style.height = 'auto'
+    const needed = ta.scrollHeight + border
+    if (needed > maxHeight) {
+      ta.style.height = `${maxHeight}px`
+      ta.style.overflowY = 'auto'
+    } else {
+      ta.style.height = `${needed}px`
+      ta.style.overflowY = 'hidden'
+    }
+  }
+
+  // Přepočítat výšku při změně obsahu i po návratu z náhledu do editoru
+  useEffect(() => {
+    autoResize()
+  }, [draft, mode])
 
   const fetchNotes = async () => {
     try {
@@ -62,6 +96,7 @@ function App() {
       const newNote: Note = await res.json()
       setNotes([newNote, ...notes])
       setDraft('')
+      setMode('write')
       setError(null)
     } catch (err) {
       setError('Uložení se nepovedlo. Zkus to znovu.')
@@ -71,7 +106,8 @@ function App() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Ctrl+Enter (nebo Cmd+Enter na Macu) uloží; samotný Enter dělá nový řádek
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       handleSave()
     }
@@ -94,18 +130,45 @@ function App() {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="capture">
-        <div className="capture-label">new entry</div>
-        <textarea
-          ref={textareaRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Write a thought or paste a link…"
-          disabled={saving}
-        />
+        <div className="capture-tabs">
+          <button
+            className={`capture-tab ${mode === 'write' ? 'is-active' : ''}`}
+            onClick={() => setMode('write')}
+            type="button"
+          >
+            Write
+          </button>
+          <button
+            className={`capture-tab ${mode === 'preview' ? 'is-active' : ''}`}
+            onClick={() => setMode('preview')}
+            type="button"
+          >
+            Preview
+          </button>
+        </div>
+
+        {mode === 'write' ? (
+          <textarea
+            ref={textareaRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Write a thought or paste a link…"
+            disabled={saving}
+          />
+        ) : (
+          <div className="capture-preview markdown-body">
+            {draft.trim() ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{draft}</ReactMarkdown>
+            ) : (
+              <div className="empty-state">nothing to preview</div>
+            )}
+          </div>
+        )}
+
         <div className="capture-footer">
           <span className="capture-hint">
-            {saving ? 'saving…' : 'enter = save'}
+            {saving ? 'saving…' : 'ctrl+enter or click “File it”'}
           </span>
           <button className="save-btn" onClick={handleSave} disabled={saving}>
             File it
@@ -129,7 +192,7 @@ function App() {
               })}
             </div>
             <div className="entry-body">
-              <div className="entry-title">{note.content}</div>
+              <div className="entry-title">{note.title}</div>
             </div>
           </div>
         ))}

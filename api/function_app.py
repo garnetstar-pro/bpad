@@ -2,6 +2,7 @@ import azure.functions as func
 import json
 import logging
 from models import Note, NoteCreate
+from titles import extract_title
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -31,7 +32,8 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
             headers={"Access-Control-Allow-Origin": "*"}
         )
 
-    new_note = Note(content=note_data.content, url=note_data.url)
+    title = extract_title(note_data.content)
+    new_note = Note(title=title, content=note_data.content, url=note_data.url)
     notes_store.append(new_note)
 
     return func.HttpResponse(

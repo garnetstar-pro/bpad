@@ -5,6 +5,7 @@ import uuid
 
 class Note(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
     content: str
     url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
