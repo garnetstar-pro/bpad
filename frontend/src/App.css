@@ -135,10 +135,20 @@ body {
 
 .entry {
   display: flex;
+  align-items: center;
   gap: 16px;
   padding: 14px 16px;
   background: var(--surface);
   border-left: 3px solid var(--hairline);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.entry:hover {
+  background: var(--surface-hover);
+  border-left-color: var(--stamp-red);
 }
 
 .entry-stamp {
@@ -147,9 +157,90 @@ body {
   min-width: 46px;
 }
 
+.entry-body {
+  flex: 1;
+  min-width: 0;
+}
+
 .entry-title {
   font-size: 15px;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-chevron {
+  color: var(--ink-dim);
+  font-size: 18px;
+}
+
+/* Odkaz v hlavičce na seznam */
+.app-brand {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Detail poznámky */
+.back-link {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  text-decoration: none;
+  margin-bottom: 20px;
+}
+
+.back-link:hover {
+  color: var(--ink);
+}
+
+.note-detail {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 22px 24px;
+}
+
+.note-detail-stamp {
+  font-size: 10px;
+  color: var(--ink-dim);
+  margin-bottom: 14px;
+}
+
+.note-detail-actions,
+.capture-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.note-detail-actions {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--hairline);
+}
+
+.ghost-btn {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: transparent;
+  color: var(--ink-dim);
+  border: 1px solid var(--hairline);
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.ghost-btn:hover {
+  color: var(--ink);
+}
+
+.ghost-btn.danger:hover {
+  color: var(--stamp-red);
+  border-color: var(--stamp-red);
 }
 
 .error-banner {
