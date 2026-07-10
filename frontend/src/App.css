@@ -118,7 +118,62 @@ body {
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--ink-dim);
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-count {
+  font-size: 10px;
+  color: var(--ink-dim);
+}
+
+.search {
+  position: relative;
   margin-bottom: 14px;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 9px 32px 9px 12px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--ink-dim);
+}
+
+.search-input::placeholder {
+  color: var(--ink-dim);
+}
+
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.search-clear:hover {
+  color: var(--ink);
 }
 
 .empty-state {
