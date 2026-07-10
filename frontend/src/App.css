@@ -278,6 +278,11 @@ body {
   padding: 22px 24px;
 }
 
+/* Karta je široká jako seznam, ale text článku se drží čitelné šířky */
+.note-detail .markdown-body {
+  max-width: 72ch;
+}
+
 .note-detail-stamp {
   font-size: 10px;
   color: var(--ink-dim);
