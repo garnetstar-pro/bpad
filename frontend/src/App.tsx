@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
+
 
 interface Note {
   id: string
@@ -18,11 +19,18 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Načíst poznámky při startu appky
   useEffect(() => {
     fetchNotes()
+    textareaRef.current?.focus()
   }, [])
+
+  // Vrátit fokus do textarey, jakmile se znovu povolí po uložení
+  useEffect(() => {
+    if (!saving) textareaRef.current?.focus()
+  }, [saving])
 
   const fetchNotes = async () => {
     try {
@@ -88,6 +96,7 @@ function App() {
       <div className="capture">
         <div className="capture-label">new entry</div>
         <textarea
+          ref={textareaRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
