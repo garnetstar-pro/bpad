@@ -15,7 +15,7 @@ function App() {
     <div className="app">
       <header className="app-header">
         <Link to="/" className="app-brand">
-          <BpadMark size={48} />
+          <BpadMark size={40} />
           <div>
             <div className="case-number">blank pad · encrypted</div>
             <div className="app-title">bpad</div>

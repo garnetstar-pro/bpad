@@ -1,7 +1,7 @@
 // Značka bpad: zápisník (modré panely) se zámkem a zelenou záložkou.
 export default function BpadMark({ size = 28 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+    <svg width={size} height={size} viewBox="11 16 42 42" aria-hidden="true">
       <path d="M12 18 L32 23.5 L32 48 L12 42.5 Z" fill="#3A63B0" />
       <path d="M52 18 L32 23.5 L32 48 L52 42.5 Z" fill="#274B90" />
       <path d="M27 46 L37 46 L32 55 Z" fill="#22B183" />

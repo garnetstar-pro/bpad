@@ -11,7 +11,7 @@ function Shell({ meta, children }: { meta: string; children: ReactNode }) {
       <div className="auth-card">
         <div className="auth-head">
           <div className="brand-wrap">
-            <BpadMark size={40} />
+            <BpadMark size={34} />
             <div>
               <div className="brand-kicker">blank pad · encrypted</div>
               <div className="brand">bpad</div>
