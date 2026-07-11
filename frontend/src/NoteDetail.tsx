@@ -75,6 +75,7 @@ function NoteDetail() {
           <div className="note-detail-stamp">
             {new Date(note.created_at).toLocaleString()}
           </div>
+          <h1 className="note-detail-title">{note.title}</h1>
           <div className="markdown-body">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
           </div>
