@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { enroll, declineBiometric } from './biometric'
+import { isUnsupportedError, friendlyError } from './webauthn'
 
 // Nabídka po přihlášení: zapnout odemykání otiskem na tomto zařízení.
 export default function BiometricEnrollPrompt({
@@ -19,7 +20,13 @@ export default function BiometricEnrollPrompt({
       await enroll(username)
       onDone()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Zapnutí se nepovedlo')
+      // Když to prohlížeč neumí (cert/nepodporováno), tiše přestaň nabízet.
+      if (isUnsupportedError(err)) {
+        declineBiometric()
+        onDone()
+        return
+      }
+      setError(friendlyError(err))
       setBusy(false)
     }
   }

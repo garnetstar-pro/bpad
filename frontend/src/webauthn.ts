@@ -11,6 +11,26 @@ function ab(u: Uint8Array): ArrayBuffer {
   return b
 }
 
+// WebAuthn v tomto kontextu nefunguje (nepodporováno, chyba certifikátu, …).
+// Odlišujeme od NotAllowedError (uživatel zrušil / timeout).
+export function isUnsupportedError(err: unknown): boolean {
+  const name = (err as { name?: string } | null)?.name ?? ''
+  const msg = (err as { message?: string } | null)?.message ?? ''
+  return (
+    name === 'SecurityError' ||
+    name === 'NotSupportedError' ||
+    name === 'InvalidStateError' ||
+    /not supported|certificate|secure context/i.test(msg)
+  )
+}
+
+export function friendlyError(err: unknown): string {
+  if (isUnsupportedError(err)) {
+    return 'Biometrika v tomto prohlížeči nefunguje (nejspíš kvůli certifikátu). Přihlas se heslem.'
+  }
+  return 'Ověření se nepovedlo. Zkus to znovu nebo použij heslo.'
+}
+
 export async function isBiometricAvailable(): Promise<boolean> {
   if (typeof window === 'undefined' || !window.PublicKeyCredential) return false
   try {
