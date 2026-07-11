@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Note } from './types'
 import { getNote, updateNote, deleteNote } from './api'
+import { contentWithoutTitleHeading } from './noteContent'
 import Editor from './Editor'
 
 function NoteDetail() {
@@ -77,7 +78,9 @@ function NoteDetail() {
           </div>
           <h1 className="note-detail-title">{note.title}</h1>
           <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {contentWithoutTitleHeading(note.content, note.title)}
+            </ReactMarkdown>
           </div>
           <div className="note-detail-actions">
             <button className="save-btn" onClick={() => setEditing(true)} type="button">
