@@ -13,6 +13,7 @@ import {
 } from './crypto'
 import { setSession, getToken } from './session'
 import { cacheAuth, getCachedAuth } from './offlineCache'
+import { solvePow } from './pow'
 
 const AUTH_URL = import.meta.env.DEV ? 'http://localhost:7071/api/auth' : '/api/auth'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -38,6 +39,7 @@ export async function register(
   username: string,
   email: string,
   password: string,
+  onSolving?: () => void,
 ): Promise<string> {
   const salt = generateSalt()
   const recoverySalt = generateSalt()
@@ -48,6 +50,15 @@ export async function register(
   const dataKey = generateDataKey()
   const wrappedDataKeyPw = await wrapDataKey(dataKey, keys.encKey)
 
+  // Proof-of-work: vyzvedni výzvu a vyřeš ji (brzda proti hromadné registraci).
+  const powRes = await fetch(
+    `${AUTH_URL}/pow-challenge?username=${encodeURIComponent(username)}`,
+  )
+  if (!powRes.ok) throw new Error('Registrace se nepovedla')
+  const { challenge, difficulty } = await powRes.json()
+  onSolving?.()
+  const powNonce = await solvePow(challenge, difficulty)
+
   const res = await postJson('register', {
     username,
     email,
@@ -57,6 +68,8 @@ export async function register(
     recAuthVerifier: toBase64(recKeys.authKey),
     wrappedDataKeyPw,
     wrappedDataKeyRec: await wrapDataKey(dataKey, recKeys.encKey),
+    powChallenge: challenge,
+    powNonce,
   })
   if (res.status === 409) {
     const body = await res.json().catch(() => ({}))

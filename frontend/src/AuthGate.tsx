@@ -141,6 +141,7 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
+  const [solving, setSolving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null)
 
@@ -152,10 +153,13 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
     setBusy(true)
     setError(null)
     try {
-      const code = await authApi.register(username.trim(), email.trim(), password)
+      const code = await authApi.register(
+        username.trim(), email.trim(), password, () => setSolving(true),
+      )
       setRecoveryCode(code)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registrace se nepovedla')
+      setSolving(false)
       setBusy(false)
     }
   }
@@ -175,7 +179,7 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
         <Field label="heslo" type="password" value={password} onChange={setPassword} placeholder="zvol silné heslo" disabled={busy} />
         <Field label="heslo znovu" type="password" value={confirm} onChange={setConfirm} placeholder="zopakuj heslo" disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
-          {busy ? 'zakládám trezor…' : 'Create account'}
+          {solving ? 'ověřuji, že nejsi robot…' : busy ? 'zakládám trezor…' : 'Create account'}
         </button>
       </form>
       <div className="auth-links">
