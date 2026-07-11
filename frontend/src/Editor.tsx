@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { markdownComponents } from './markdown'
 
 // Konfigurace: do kolika řádků textarea poroste s obsahem.
 // Po překročení tohoto limitu se výška zafixuje a objeví se posuvník.
@@ -139,7 +140,7 @@ function Editor({
       ) : (
         <div className="capture-preview markdown-body">
           {draft.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{draft}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{draft}</ReactMarkdown>
           ) : (
             <div className="empty-state">nothing to preview</div>
           )}

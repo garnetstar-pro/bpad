@@ -1,6 +1,7 @@
 import { Routes, Route, Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import AuthGate from './AuthGate'
+import BpadMark from './BpadMark'
 import Home from './Home'
 import NoteDetail from './NoteDetail'
 import './App.css'
@@ -14,8 +15,11 @@ function App() {
     <div className="app">
       <header className="app-header">
         <Link to="/" className="app-brand">
-          <div className="case-number">case file · bpad.pro</div>
-          <div className="app-title">bpad</div>
+          <BpadMark size={40} />
+          <div>
+            <div className="case-number">blank pad · encrypted</div>
+            <div className="app-title">bpad</div>
+          </div>
         </Link>
         <div className="app-meta">
           {username}
