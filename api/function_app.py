@@ -3,11 +3,11 @@ import json
 import logging
 from models import Note, NoteCreate
 from titles import extract_title
-from store import find_note
+from repository import get_repository
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
-notes_store: list[Note] = []
+repo = get_repository()
 
 _CORS = {"Access-Control-Allow-Origin": "*"}
 
@@ -28,7 +28,7 @@ def _error(message: str, status_code: int) -> func.HttpResponse:
 @app.route(route="notes", methods=["GET"])
 def get_notes(req: func.HttpRequest) -> func.HttpResponse:
     logging.info("Vracím seznam poznámek")
-    return _json([note.model_dump(mode="json") for note in notes_store], 200)
+    return _json([note.model_dump(mode="json") for note in repo.list_notes()], 200)
 
 
 @app.route(route="notes", methods=["POST"])
@@ -43,13 +43,13 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         content=note_data.content,
         url=note_data.url,
     )
-    notes_store.append(new_note)
+    repo.save_note(new_note)
     return _json(new_note.model_dump(mode="json"), 201)
 
 
 @app.route(route="notes/{id}", methods=["GET"])
 def get_note(req: func.HttpRequest) -> func.HttpResponse:
-    note = find_note(notes_store, req.route_params.get("id"))
+    note = repo.get_note(req.route_params.get("id"))
     if note is None:
         return _error("Poznámka nenalezena", 404)
     return _json(note.model_dump(mode="json"), 200)
@@ -57,7 +57,7 @@ def get_note(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="notes/{id}", methods=["PUT"])
 def update_note(req: func.HttpRequest) -> func.HttpResponse:
-    note = find_note(notes_store, req.route_params.get("id"))
+    note = repo.get_note(req.route_params.get("id"))
     if note is None:
         return _error("Poznámka nenalezena", 404)
 
@@ -69,14 +69,12 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
     note.content = note_data.content
     note.title = extract_title(note_data.content)
     note.url = note_data.url
+    repo.save_note(note)
     return _json(note.model_dump(mode="json"), 200)
 
 
 @app.route(route="notes/{id}", methods=["DELETE"])
 def delete_note(req: func.HttpRequest) -> func.HttpResponse:
-    note = find_note(notes_store, req.route_params.get("id"))
-    if note is None:
+    if not repo.delete_note(req.route_params.get("id")):
         return _error("Poznámka nenalezena", 404)
-
-    notes_store.remove(note)
     return func.HttpResponse(status_code=204, headers=_CORS)
