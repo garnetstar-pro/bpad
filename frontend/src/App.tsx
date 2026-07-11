@@ -15,6 +15,7 @@ function App() {
   const [usePassword, setUsePassword] = useState(false)
   const [bioAvailable, setBioAvailable] = useState(false)
   const [enrollDone, setEnrollDone] = useState(false)
+  const [forceEnroll, setForceEnroll] = useState(false)
 
   useEffect(() => {
     isBiometricAvailable().then(setBioAvailable)
@@ -27,7 +28,9 @@ function App() {
     return <AuthGate />
   }
 
-  const offerEnroll = bioAvailable && !hasEnrollment() && !declinedBiometric() && !enrollDone
+  const canOfferBio = bioAvailable && !hasEnrollment()
+  const showEnroll =
+    !!username && canOfferBio && (forceEnroll || (!declinedBiometric() && !enrollDone))
 
   return (
     <div className="app">
@@ -42,6 +45,21 @@ function App() {
         <div className="app-meta">
           {username}
           <br />
+          {canOfferBio && (
+            <>
+              <button
+                className="logout-link"
+                onClick={() => {
+                  setForceEnroll(true)
+                  setEnrollDone(false)
+                }}
+                type="button"
+              >
+                odemykat otiskem
+              </button>
+              <br />
+            </>
+          )}
           <button className="logout-link" onClick={logout} type="button">log out</button>
         </div>
       </header>
@@ -51,8 +69,14 @@ function App() {
         <Route path="/notes/:id" element={<NoteDetail />} />
       </Routes>
 
-      {offerEnroll && username && (
-        <BiometricEnrollPrompt username={username} onDone={() => setEnrollDone(true)} />
+      {showEnroll && username && (
+        <BiometricEnrollPrompt
+          username={username}
+          onDone={() => {
+            setEnrollDone(true)
+            setForceEnroll(false)
+          }}
+        />
       )}
     </div>
   )

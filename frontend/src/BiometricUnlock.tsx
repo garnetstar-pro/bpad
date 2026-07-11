@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import BpadMark from './BpadMark'
 import { getEnrollment, unlock, forget } from './biometric'
+import { friendlyError } from './webauthn'
 
 export default function BiometricUnlock({
   onUnlocked,
@@ -20,7 +21,7 @@ export default function BiometricUnlock({
       const username = await unlock()
       onUnlocked(username)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Odemčení se nepovedlo')
+      setError(friendlyError(err))
       setBusy(false)
     }
   }
