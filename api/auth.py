@@ -47,13 +47,14 @@ def verify_verifier(verifier: str, stored: str) -> bool:
 
 def _signing_key() -> str:
     key = os.environ.get("SESSION_SIGNING_KEY")
-    if not key:
-        logging.warning(
-            "SESSION_SIGNING_KEY není nastaven – používám vývojový klíč "
-            "(NEPOUŽÍVAT v produkci)."
-        )
-        key = "dev-only-insecure-signing-key-change-me-in-prod"
-    return key
+    if key:
+        return key
+    # Bez nastaveného klíče selži v produkci (jinak by šly padělat tokeny).
+    # Vývojový fallback jen lokálně, kde Functions runtime hlásí "Development".
+    if os.environ.get("AZURE_FUNCTIONS_ENVIRONMENT") == "Development":
+        logging.warning("SESSION_SIGNING_KEY není nastaven – vývojový fallback.")
+        return "dev-only-insecure-signing-key-change-me-in-prod"
+    raise RuntimeError("SESSION_SIGNING_KEY musí být nastaven (podepisování session tokenů)")
 
 
 def create_token(username: str, ttl_seconds: int = _TOKEN_TTL_SECONDS) -> str:
