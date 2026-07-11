@@ -23,4 +23,9 @@ describe('findNonce', () => {
     const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', buf))
     expect(countLeadingZeroBits(digest)).toBeGreaterThanOrEqual(difficulty)
   })
+
+  it('gives up after maxAttempts instead of looping forever', async () => {
+    // 64 bitů je v 500 pokusech prakticky nesplnitelných → musí to vzdát chybou
+    await expect(findNonce('x', 64, 500)).rejects.toThrow(/moc dlouho|zkus to znovu/i)
+  })
 })
