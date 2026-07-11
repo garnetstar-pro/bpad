@@ -3,7 +3,7 @@ from repository import InMemoryNotesRepository, InMemoryUsersRepository
 
 
 def _note(user_id="alice", **kw):
-    defaults = dict(user_id=user_id, title="t", content="c")
+    defaults = dict(user_id=user_id, iv="iv", ct="ct")
     defaults.update(kw)
     return Note(**defaults)
 
@@ -25,7 +25,7 @@ def _user(username="alice"):
 
 def test_save_then_get_returns_note_for_owner():
     repo = InMemoryNotesRepository()
-    n = _note(content="hello")
+    n = _note()
     repo.save_note(n)
     assert repo.get_note("alice", n.id) is n
 
@@ -39,8 +39,8 @@ def test_get_note_isolated_between_users():
 
 def test_list_only_returns_own_notes():
     repo = InMemoryNotesRepository()
-    repo.save_note(_note(user_id="alice", content="a"))
-    repo.save_note(_note(user_id="bob", content="b"))
+    repo.save_note(_note(user_id="alice"))
+    repo.save_note(_note(user_id="bob"))
     listed = repo.list_notes("alice")
     assert len(listed) == 1 and listed[0].user_id == "alice"
 

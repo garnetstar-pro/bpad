@@ -1,13 +1,4 @@
-// Odstraní inline markdown (tučné, kurzíva, odkazy, kód, přeškrtnutí) → plain text.
-// Musí odpovídat odvození titulku na backendu, aby porovnání sedělo.
-function stripInlineMarkdown(text: string): string {
-  return text
-    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/(\*\*\*|\*\*|\*|___|__|_)(.+?)\1/g, '$2')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/~~(.+?)~~/g, '$1')
-    .trim()
-}
+import { stripInlineMarkdown } from './titles'
 
 const HEADING_RE = /^\s*#{1,6}\s+(.*?)\s*#*\s*$/
 

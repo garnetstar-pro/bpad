@@ -7,7 +7,6 @@ from models import (
     Note, NoteCreate, User,
     RegisterRequest, LoginRequest, RecoverRequest, ChangePasswordRequest,
 )
-from titles import resolve_title
 from repository import get_notes_repository, get_users_repository
 import auth
 
@@ -169,12 +168,7 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         return _error(f"Neplatná data: {str(e)}", 400)
 
-    note = Note(
-        user_id=user,
-        title=resolve_title(data.title, data.content),
-        content=data.content,
-        url=data.url,
-    )
+    note = Note(user_id=user, iv=data.iv, ct=data.ct)
     notes_repo.save_note(note)
     return _json(note.model_dump(mode="json"), 201)
 
@@ -203,9 +197,8 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         return _error(f"Neplatná data: {str(e)}", 400)
 
-    note.content = data.content
-    note.title = resolve_title(data.title, data.content)
-    note.url = data.url
+    note.iv = data.iv
+    note.ct = data.ct
     notes_repo.save_note(note)
     return _json(note.model_dump(mode="json"), 200)
 

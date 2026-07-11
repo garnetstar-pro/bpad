@@ -12,16 +12,15 @@ class Encrypted(BaseModel):
 class Note(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    title: str
-    content: str
-    url: Optional[str] = None
+    # Klientem zašifrovaný payload {title, content, url}. Server obsah nevidí.
+    iv: str
+    ct: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class NoteCreate(BaseModel):
-    content: str
-    title: Optional[str] = None
-    url: Optional[str] = None
+    iv: str
+    ct: str
 
 
 class User(BaseModel):
