@@ -5,6 +5,7 @@ import AuthGate from './AuthGate'
 import BiometricUnlock from './BiometricUnlock'
 import BiometricEnrollPrompt from './BiometricEnrollPrompt'
 import { hasEnrollment, declinedBiometric, isBiometricAvailable } from './biometric'
+import { isOfflineReadOnly } from './session'
 import BpadMark from './BpadMark'
 import Home from './Home'
 import NoteDetail from './NoteDetail'
@@ -63,6 +64,10 @@ function App() {
           <button className="logout-link" onClick={logout} type="button">log out</button>
         </div>
       </header>
+
+      {isOfflineReadOnly() && (
+        <div className="offline-banner">Offline · jen čtení — změny nejdou uložit</div>
+      )}
 
       <Routes>
         <Route path="/" element={<Home />} />

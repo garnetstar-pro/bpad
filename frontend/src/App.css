@@ -519,6 +519,19 @@ body {
   margin-bottom: 20px;
 }
 
+.offline-banner {
+  background: rgba(46, 86, 160, 0.18);
+  border: 1px solid var(--blue);
+  color: var(--ink);
+  padding: 8px 14px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
 /* Editovatelné pole názvu (v editaci) */
 .title-field {
   margin-bottom: 12px;

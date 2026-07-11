@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Note } from './types'
 import { listNotes, createNote } from './api'
 import { filterNotes } from './search'
+import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
 
 function Home() {
@@ -39,7 +40,9 @@ function Home() {
     <>
       {error && <div className="error-banner">{error}</div>}
 
-      <Editor submitLabel="File it" onSubmit={handleCreate} resetOnSuccess />
+      {!isOfflineReadOnly() && (
+        <Editor submitLabel="File it" onSubmit={handleCreate} resetOnSuccess />
+      )}
 
       <div className="section-head">
         <span className="section-label">recent entries</span>

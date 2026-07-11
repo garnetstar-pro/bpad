@@ -6,6 +6,7 @@ import type { Note } from './types'
 import { getNote, updateNote, deleteNote } from './api'
 import { contentWithoutTitleHeading } from './noteContent'
 import { markdownComponents } from './markdown'
+import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
 
 function NoteDetail() {
@@ -83,6 +84,7 @@ function NoteDetail() {
               {contentWithoutTitleHeading(note.content, note.title)}
             </ReactMarkdown>
           </div>
+          {!isOfflineReadOnly() && (
           <div className="note-detail-actions">
             <button className="save-btn" onClick={() => setEditing(true)} type="button">
               Edit
@@ -96,6 +98,7 @@ function NoteDetail() {
               {deleting ? 'deleting…' : 'Delete'}
             </button>
           </div>
+          )}
         </article>
       )}
     </div>
