@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Note } from './types'
 import { getNote, updateNote, deleteNote } from './api'
+import { contentWithoutTitleHeading } from './noteContent'
 import Editor from './Editor'
 
 function NoteDetail() {
@@ -28,9 +29,9 @@ function NoteDetail() {
     }
   }, [id])
 
-  const handleUpdate = async (content: string) => {
+  const handleUpdate = async (content: string, title?: string) => {
     if (!id) return
-    const updated = await updateNote(id, content)
+    const updated = await updateNote(id, content, title)
     setNote(updated)
     setEditing(false)
   }
@@ -66,6 +67,8 @@ function NoteDetail() {
           submitLabel="Save"
           onSubmit={handleUpdate}
           initialContent={note.content}
+          initialTitle={note.title}
+          editableTitle
           onCancel={() => setEditing(false)}
         />
       ) : (
@@ -73,8 +76,11 @@ function NoteDetail() {
           <div className="note-detail-stamp">
             {new Date(note.created_at).toLocaleString()}
           </div>
+          <h1 className="note-detail-title">{note.title}</h1>
           <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {contentWithoutTitleHeading(note.content, note.title)}
+            </ReactMarkdown>
           </div>
           <div className="note-detail-actions">
             <button className="save-btn" onClick={() => setEditing(true)} type="button">

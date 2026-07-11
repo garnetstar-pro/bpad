@@ -8,8 +8,12 @@ const MAX_TEXTAREA_ROWS = 12
 
 interface EditorProps {
   submitLabel: string
-  onSubmit: (content: string) => Promise<void>
+  onSubmit: (content: string, title?: string) => Promise<void>
   initialContent?: string
+  // Zobrazit editovatelné pole názvu (pro editaci); u nové poznámky se název
+  // odvodí z markdownu automaticky, takže pole není potřeba.
+  editableTitle?: boolean
+  initialTitle?: string
   // Po úspěšném uložení vyprázdnit editor (pro novou poznámku); u editace ne.
   resetOnSuccess?: boolean
   onCancel?: () => void
@@ -19,10 +23,13 @@ function Editor({
   submitLabel,
   onSubmit,
   initialContent = '',
+  editableTitle = false,
+  initialTitle = '',
   resetOnSuccess = false,
   onCancel,
 }: EditorProps) {
   const [draft, setDraft] = useState(initialContent)
+  const [title, setTitle] = useState(initialTitle)
   const [mode, setMode] = useState<'write' | 'preview'>('write')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,9 +70,10 @@ function Editor({
     setSubmitting(true)
     setError(null)
     try {
-      await onSubmit(draft)
+      await onSubmit(draft, editableTitle ? title : undefined)
       if (resetOnSuccess) {
         setDraft('')
+        setTitle('')
         setMode('write')
       }
     } catch {
@@ -75,8 +83,9 @@ function Editor({
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Ctrl+Enter (nebo Cmd+Enter na Macu) uloží; samotný Enter dělá nový řádek
+  // Ctrl+Enter (nebo Cmd+Enter na Macu) uloží z kteréhokoli pole formuláře;
+  // samotný Enter dělá v textarei nový řádek
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       submit()
@@ -84,8 +93,23 @@ function Editor({
   }
 
   return (
-    <div className="capture">
+    <div className="capture" onKeyDown={handleKeyDown}>
       {error && <div className="error-banner">{error}</div>}
+
+      {editableTitle && (
+        <div className="title-field">
+          <label className="title-label" htmlFor="note-title">title</label>
+          <input
+            id="note-title"
+            className="title-input"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="odvodí se z markdownu, když necháš prázdné"
+            disabled={submitting}
+          />
+        </div>
+      )}
 
       <div className="capture-tabs">
         <button
@@ -109,7 +133,6 @@ function Editor({
           ref={textareaRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
           placeholder="Write a thought or paste a link…"
           disabled={submitting}
         />

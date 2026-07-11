@@ -2,7 +2,7 @@ import azure.functions as func
 import json
 import logging
 from models import Note, NoteCreate
-from titles import extract_title
+from titles import resolve_title
 from repository import get_repository
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -39,7 +39,7 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         return _error(f"Neplatná data: {str(e)}", 400)
 
     new_note = Note(
-        title=extract_title(note_data.content),
+        title=resolve_title(note_data.title, note_data.content),
         content=note_data.content,
         url=note_data.url,
     )
@@ -67,7 +67,7 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
         return _error(f"Neplatná data: {str(e)}", 400)
 
     note.content = note_data.content
-    note.title = extract_title(note_data.content)
+    note.title = resolve_title(note_data.title, note_data.content)
     note.url = note_data.url
     repo.save_note(note)
     return _json(note.model_dump(mode="json"), 200)

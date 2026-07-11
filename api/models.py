@@ -12,4 +12,5 @@ class Note(BaseModel):
 
 class NoteCreate(BaseModel):
     content: str
+    title: Optional[str] = None
     url: Optional[str] = None
