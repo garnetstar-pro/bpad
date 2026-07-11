@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { markdownComponents } from './markdown'
+import { canAutofocus } from './device'
 
 // Konfigurace: do kolika řádků textarea poroste s obsahem.
 // Po překročení tohoto limitu se výška zafixuje a objeví se posuvník.
@@ -36,9 +37,9 @@ function Editor({
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Fokus do textarey při otevření a po návratu z náhledu / po uložení
+  // Fokus do textarey (jen na počítači – na mobilu by vyskočila klávesnice).
   useEffect(() => {
-    if (!submitting && mode === 'write') textareaRef.current?.focus()
+    if (!submitting && mode === 'write' && canAutofocus()) textareaRef.current?.focus()
   }, [submitting, mode])
 
   // Přizpůsobit výšku textarey obsahu (roste do MAX_TEXTAREA_ROWS, pak posuvník)
