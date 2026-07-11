@@ -17,6 +17,7 @@ import auth
 import mailer
 
 _VERIFY_TTL = timedelta(hours=24)
+_UNVERIFIED_NOTE_LIMIT = 10  # neověřené účty smí max tolik poznámek
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -73,15 +74,14 @@ def _require_user(req: func.HttpRequest) -> Union[str, func.HttpResponse]:
     return username
 
 
-def _issue_and_send_verification(user: User) -> None:
-    """Vygeneruje jednorázový ověřovací token, uloží jeho hash a pošle e-mail."""
+def _prepare_verification(user: User) -> Optional[str]:
+    """Nastaví jednorázový ověřovací token na uživatele; vrátí odkaz k odeslání."""
     if not user.email:
-        return
+        return None
     token = auth.new_verification_token()
     user.verify_token_hash = auth.token_hash(token)
     user.verify_expires = datetime.utcnow() + _VERIFY_TTL
-    link = f"{mailer.base_url()}/verify?user={quote(user.username)}&token={quote(token)}"
-    mailer.send_verification_email(user.email, link)
+    return f"{mailer.base_url()}/verify?user={quote(user.username)}&token={quote(token)}"
 
 
 # ----------------------------------------------------------------- auth
@@ -97,12 +97,16 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         return _error(f"Neplatná data: {str(e)}", 400)
     if not data.username.strip():
         return _error("Chybí uživatelské jméno", 400)
-    if "@" not in data.email or "." not in data.email:
+    email = data.email.strip().lower()
+    if "@" not in email or "." not in email:
         return _error("Neplatný e-mail", 400)
+    # Atomická rezervace e-mailu (create v email_index) – zavře i souběžné registrace.
+    if not users_repo.reserve_email(email, data.username):
+        return _error("E-mail je už registrovaný", 409)
 
     user = User(
         username=data.username,
-        email=data.email.strip().lower(),
+        email=email,
         salt=data.salt,
         recovery_salt=data.recoverySalt,
         auth_hash=auth.hash_verifier(data.authVerifier),
@@ -110,9 +114,12 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         wrapped_data_key_pw=data.wrappedDataKeyPw,
         wrapped_data_key_rec=data.wrappedDataKeyRec,
     )
-    _issue_and_send_verification(user)
+    link = _prepare_verification(user)
     if not users_repo.add_user(user):
+        users_repo.release_email(email)  # rollback rezervace
         return _error("Uživatelské jméno je obsazené", 409)
+    if link:
+        mailer.send_verification_email(user.email, link)
     return _json(
         {"token": auth.create_token(user.username), "emailVerified": user.email_verified},
         201,
@@ -141,6 +148,12 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
     user = users_repo.get_user(data.username)
     if user is None or not auth.verify_verifier(data.authVerifier, user.auth_hash):
         return _error("Špatné jméno nebo heslo", 401)
+    # Backfill email indexu pro účty vytvořené před jeho zavedením (best-effort).
+    if user.email:
+        try:
+            users_repo.index_email(user.email, user.username)
+        except Exception:
+            logging.warning("Backfill email indexu selhal pro %s", user.username)
     return _json(
         {"token": auth.create_token(user.username),
          "wrappedDataKeyPw": user.wrapped_data_key_pw.model_dump(),
@@ -192,8 +205,10 @@ def send_verification(req: func.HttpRequest) -> func.HttpResponse:
         return _error("Není co ověřovat", 400)
     if user.email_verified:
         return _json({"verified": True}, 200)
-    _issue_and_send_verification(user)
+    link = _prepare_verification(user)
     users_repo.save_user(user)
+    if link:
+        mailer.send_verification_email(user.email, link)
     return _json({"sent": True}, 200)
 
 
@@ -273,6 +288,17 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         data = NoteCreate(**req.get_json())
     except Exception as e:
         return _error(f"Neplatná data: {str(e)}", 400)
+
+    # Soft-gate: neověřený účet má strop na počet poznámek (brzda pro boty).
+    account = users_repo.get_user(user)
+    if (
+        account is not None
+        and not account.email_verified
+        and notes_repo.count_notes(user) >= _UNVERIFIED_NOTE_LIMIT
+    ):
+        return _error(
+            f"Ověř svůj e-mail pro víc než {_UNVERIFIED_NOTE_LIMIT} poznámek.", 403
+        )
 
     note = Note(user_id=user, iv=data.iv, ct=data.ct)
     notes_repo.save_note(note)

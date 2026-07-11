@@ -8,10 +8,11 @@ def _note(user_id="alice", **kw):
     return Note(**defaults)
 
 
-def _user(username="alice"):
+def _user(username="alice", email=None):
     enc = Encrypted(iv="i", ct="c")
     return User(
         username=username,
+        email=email,
         salt="s",
         recovery_salt="rs",
         auth_hash="ah",
@@ -54,6 +55,16 @@ def test_list_is_newest_first():
     assert [n.id for n in repo.list_notes("alice")] == [newer.id, older.id]
 
 
+def test_count_notes_per_user():
+    repo = InMemoryNotesRepository()
+    repo.save_note(_note(user_id="alice"))
+    repo.save_note(_note(user_id="alice"))
+    repo.save_note(_note(user_id="bob"))
+    assert repo.count_notes("alice") == 2
+    assert repo.count_notes("bob") == 1
+    assert repo.count_notes("nobody") == 0
+
+
 def test_delete_scoped_to_owner():
     repo = InMemoryNotesRepository()
     n = _note(user_id="alice")
@@ -88,3 +99,27 @@ def test_save_user_updates_in_place():
     updated.salt = "new-salt"
     repo.save_user(updated)
     assert repo.get_user("alice").salt == "new-salt"
+
+
+def test_reserve_email_is_atomic():
+    repo = InMemoryUsersRepository()
+    assert repo.reserve_email("a@example.com", "alice") is True
+    assert repo.email_exists("a@example.com") is True
+    # druhá rezervace stejného e-mailu selže
+    assert repo.reserve_email("a@example.com", "bob") is False
+    assert repo.email_exists("other@example.com") is False
+
+
+def test_release_email_frees_it():
+    repo = InMemoryUsersRepository()
+    repo.reserve_email("a@example.com", "alice")
+    repo.release_email("a@example.com")
+    assert repo.email_exists("a@example.com") is False
+    assert repo.reserve_email("a@example.com", "bob") is True  # zase volný
+
+
+def test_index_email_is_idempotent_backfill():
+    repo = InMemoryUsersRepository()
+    repo.index_email("a@example.com", "alice")
+    repo.index_email("a@example.com", "alice")  # nevadí
+    assert repo.email_exists("a@example.com") is True

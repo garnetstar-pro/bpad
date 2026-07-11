@@ -58,7 +58,10 @@ export async function register(
     wrappedDataKeyPw,
     wrappedDataKeyRec: await wrapDataKey(dataKey, recKeys.encKey),
   })
-  if (res.status === 409) throw new Error('Uživatelské jméno je obsazené')
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || 'Uživatelské jméno nebo e-mail je obsazený')
+  }
   if (res.status === 400) throw new Error('Neplatný e-mail nebo údaje')
   if (!res.ok) throw new Error('Registrace se nepovedla')
 
