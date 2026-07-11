@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useAuth } from './AuthContext'
 import BpadMark from './BpadMark'
+import { canAutofocus } from './device'
 import * as authApi from './authApi'
 
 type Mode = 'login' | 'register' | 'recover'
@@ -85,7 +86,7 @@ function LoginForm({ onMode }: { onMode: (m: Mode) => void }) {
       <p className="auth-sub">Odemkni svůj šifrovaný trezor.</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label="username" value={username} onChange={setUsername} autoFocus disabled={busy} />
+        <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
         <Field label="heslo" type="password" value={password} onChange={setPassword} disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
           {busy ? 'odemykám…' : 'Log in'}
@@ -167,7 +168,7 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
       <p className="auth-sub">Založ si soukromý šifrovaný trezor.</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label="username" value={username} onChange={setUsername} autoFocus disabled={busy} />
+        <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
         <Field label="heslo" type="password" value={password} onChange={setPassword} placeholder="zvol silné heslo" disabled={busy} />
         <Field label="heslo znovu" type="password" value={confirm} onChange={setConfirm} placeholder="zopakuj heslo" disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
@@ -211,7 +212,7 @@ function RecoverForm({ onMode }: { onMode: (m: Mode) => void }) {
       <p className="auth-sub">Zadej recovery kód a nastav nové heslo.</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label="username" value={username} onChange={setUsername} autoFocus disabled={busy} />
+        <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
         <Field label="recovery kód" value={code} onChange={setCode} placeholder="XXXX-XXXX-…" disabled={busy} />
         <Field label="nové heslo" type="password" value={password} onChange={setPassword} placeholder="nové silné heslo" disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !code || !password}>
