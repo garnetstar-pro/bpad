@@ -15,6 +15,7 @@ from repository import get_notes_repository, get_users_repository
 from ratelimit import RateLimiter
 import auth
 import mailer
+import pow
 
 _VERIFY_TTL = timedelta(hours=24)
 _UNVERIFIED_NOTE_LIMIT = 10  # neověřené účty smí max tolik poznámek
@@ -86,6 +87,17 @@ def _prepare_verification(user: User) -> Optional[str]:
 
 # ----------------------------------------------------------------- auth
 
+@app.route(route="auth/pow-challenge", methods=["GET"])
+def pow_challenge(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
+    username = req.params.get("username", "")
+    if not username.strip():
+        return _error("Chybí uživatelské jméno", 400)
+    return _json(pow.issue_challenge(username), 200)
+
+
 @app.route(route="auth/register", methods=["POST"])
 def register(req: func.HttpRequest) -> func.HttpResponse:
     limited = _rate_limited(req)
@@ -97,6 +109,8 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         return _error(f"Neplatná data: {str(e)}", 400)
     if not data.username.strip():
         return _error("Chybí uživatelské jméno", 400)
+    if not pow.verify_solution(data.powChallenge, data.powNonce, data.username):
+        return _error("Ověření proti robotům selhalo, zkus registraci znovu.", 403)
     email = data.email.strip().lower()
     if "@" not in email or "." not in email:
         return _error("Neplatný e-mail", 400)
