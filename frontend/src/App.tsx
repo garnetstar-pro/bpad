@@ -20,7 +20,7 @@ function App() {
   const [bioAvailable, setBioAvailable] = useState(false)
   const [enrollDone, setEnrollDone] = useState(false)
   const [forceEnroll, setForceEnroll] = useState(false)
-  const [resent, setResent] = useState(false)
+  const [verifySend, setVerifySend] = useState<'idle' | 'sent' | 'error'>('idle')
 
   useEffect(() => {
     isBiometricAvailable().then(setBioAvailable)
@@ -78,20 +78,20 @@ function App() {
 
       {getEmailVerified() === false && (
         <div className="verify-banner">
-          <span>Ověř svůj e-mail — poslali jsme ti odkaz.</span>{' '}
-          {resent ? (
-            <span className="verify-sent">Odesláno ✓</span>
+          <span>Ověř svůj e-mail, ať můžeš psát bez omezení.</span>{' '}
+          {verifySend === 'sent' ? (
+            <span className="verify-sent">Odesláno ✓ — mrkni do schránky</span>
           ) : (
             <button
               className="verify-resend"
               type="button"
               onClick={() => {
                 resendVerification()
-                  .then(() => setResent(true))
-                  .catch(() => setResent(true))
+                  .then(() => setVerifySend('sent'))
+                  .catch(() => setVerifySend('error'))
               }}
             >
-              Poslat znovu
+              {verifySend === 'error' ? 'Nepovedlo se, zkus znovu' : 'Poslat ověřovací odkaz'}
             </button>
           )}
         </div>
