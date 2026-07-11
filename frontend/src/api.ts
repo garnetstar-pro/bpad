@@ -31,7 +31,8 @@ function key(): Uint8Array {
 function headers(): Record<string, string> {
   const token = getToken()
   const base: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) base.Authorization = `Bearer ${token}`
+  // Vlastní hlavička – Azure Static Web Apps nepropouští Authorization do API.
+  if (token) base['X-Auth-Token'] = token
   return base
 }
 
