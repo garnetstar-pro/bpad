@@ -1,13 +1,15 @@
 import azure.functions as func
 import json
 import logging
-from typing import Union
+import os
+from typing import Optional, Union
 
 from models import (
     Note, NoteCreate, User,
     RegisterRequest, LoginRequest, RecoverRequest, ChangePasswordRequest,
 )
 from repository import get_notes_repository, get_users_repository
+from ratelimit import RateLimiter
 import auth
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
@@ -15,11 +17,26 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 notes_repo = get_notes_repository()
 users_repo = get_users_repository()
 
+# V produkci nastav ALLOWED_ORIGIN na vlastní doménu; v devu default '*'.
+_ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
 _CORS = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": _ALLOWED_ORIGIN,
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 }
+
+# Best-effort brzda proti brute-force na citlivé auth endpointy.
+_auth_limiter = RateLimiter(max_calls=20, window_seconds=60)
+
+
+def _client_ip(req: func.HttpRequest) -> str:
+    return req.headers.get("X-Forwarded-For", "").split(",")[0].strip() or "unknown"
+
+
+def _rate_limited(req: func.HttpRequest) -> Optional[func.HttpResponse]:
+    if not _auth_limiter.allow(_client_ip(req)):
+        return _error("Příliš mnoho pokusů, zkus to za chvíli", 429)
+    return None
 
 
 def _json(payload, status_code: int) -> func.HttpResponse:
@@ -47,6 +64,9 @@ def _require_user(req: func.HttpRequest) -> Union[str, func.HttpResponse]:
 
 @app.route(route="auth/register", methods=["POST"])
 def register(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
     try:
         data = RegisterRequest(**req.get_json())
     except Exception as e:
@@ -79,6 +99,9 @@ def get_salt(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="auth/login", methods=["POST"])
 def login(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
     try:
         data = LoginRequest(**req.get_json())
     except Exception as e:
@@ -108,6 +131,9 @@ def recovery_material(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="auth/recover", methods=["POST"])
 def recover(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
     try:
         data = RecoverRequest(**req.get_json())
     except Exception as e:
