@@ -11,6 +11,7 @@ class NotesRepository(Protocol):
     def get_note(self, user_id: str, note_id: str) -> Optional[Note]: ...
     def save_note(self, note: Note) -> None: ...
     def delete_note(self, user_id: str, note_id: str) -> bool: ...
+    def count_notes(self, user_id: str) -> int: ...
 
 
 def _newest_first(notes: list[Note]) -> list[Note]:
@@ -38,6 +39,9 @@ class InMemoryNotesRepository:
             return False
         del self._notes[note_id]
         return True
+
+    def count_notes(self, user_id: str) -> int:
+        return sum(1 for n in self._notes.values() if n.user_id == user_id)
 
 
 class CosmosNotesRepository:
@@ -88,6 +92,14 @@ class CosmosNotesRepository:
         except exceptions.CosmosResourceNotFoundError:
             return False
         return True
+
+    def count_notes(self, user_id: str) -> int:
+        rows = self._c().query_items(
+            query="SELECT VALUE COUNT(1) FROM c WHERE c.user_id = @u",
+            parameters=[{"name": "@u", "value": user_id}],
+            partition_key=user_id,
+        )
+        return next(iter(rows), 0)
 
 
 # ---------------------------------------------------------------- users

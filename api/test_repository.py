@@ -55,6 +55,16 @@ def test_list_is_newest_first():
     assert [n.id for n in repo.list_notes("alice")] == [newer.id, older.id]
 
 
+def test_count_notes_per_user():
+    repo = InMemoryNotesRepository()
+    repo.save_note(_note(user_id="alice"))
+    repo.save_note(_note(user_id="alice"))
+    repo.save_note(_note(user_id="bob"))
+    assert repo.count_notes("alice") == 2
+    assert repo.count_notes("bob") == 1
+    assert repo.count_notes("nobody") == 0
+
+
 def test_delete_scoped_to_owner():
     repo = InMemoryNotesRepository()
     n = _note(user_id="alice")

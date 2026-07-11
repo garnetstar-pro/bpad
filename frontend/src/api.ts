@@ -105,7 +105,10 @@ export async function createNote(content: string): Promise<Note> {
     throw new Error(OFFLINE_WRITE)
   }
   checkAuth(res)
-  if (!res.ok) throw new Error('Uložení selhalo')
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || 'Uložení selhalo')
+  }
   const enc: EncryptedNote = await res.json()
   const username = getUsername()
   if (username) upsertCachedNote(username, enc)

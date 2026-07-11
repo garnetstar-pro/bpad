@@ -17,6 +17,7 @@ import auth
 import mailer
 
 _VERIFY_TTL = timedelta(hours=24)
+_UNVERIFIED_NOTE_LIMIT = 10  # neověřené účty smí max tolik poznámek
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -287,6 +288,17 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         data = NoteCreate(**req.get_json())
     except Exception as e:
         return _error(f"Neplatná data: {str(e)}", 400)
+
+    # Soft-gate: neověřený účet má strop na počet poznámek (brzda pro boty).
+    account = users_repo.get_user(user)
+    if (
+        account is not None
+        and not account.email_verified
+        and notes_repo.count_notes(user) >= _UNVERIFIED_NOTE_LIMIT
+    ):
+        return _error(
+            f"Ověř svůj e-mail pro víc než {_UNVERIFIED_NOTE_LIMIT} poznámek.", 403
+        )
 
     note = Note(user_id=user, iv=data.iv, ct=data.ct)
     notes_repo.save_note(note)
