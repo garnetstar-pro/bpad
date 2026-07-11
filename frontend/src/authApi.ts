@@ -12,6 +12,7 @@ import {
   fromBase64,
 } from './crypto'
 import { setSession } from './session'
+import { cacheAuth, getCachedAuth } from './offlineCache'
 
 const AUTH_URL = import.meta.env.DEV ? 'http://localhost:7071/api/auth' : '/api/auth'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -34,6 +35,7 @@ export async function register(username: string, password: string): Promise<stri
   const keys = await deriveKeys(password, salt)
   const recKeys = await deriveKeys(normalizeRecoveryCode(recoveryCode), recoverySalt)
   const dataKey = generateDataKey()
+  const wrappedDataKeyPw = await wrapDataKey(dataKey, keys.encKey)
 
   const res = await postJson('register', {
     username,
@@ -41,19 +43,26 @@ export async function register(username: string, password: string): Promise<stri
     recoverySalt: toBase64(recoverySalt),
     authVerifier: toBase64(keys.authKey),
     recAuthVerifier: toBase64(recKeys.authKey),
-    wrappedDataKeyPw: await wrapDataKey(dataKey, keys.encKey),
+    wrappedDataKeyPw,
     wrappedDataKeyRec: await wrapDataKey(dataKey, recKeys.encKey),
   })
   if (res.status === 409) throw new Error('Uživatelské jméno je obsazené')
   if (!res.ok) throw new Error('Registrace se nepovedla')
 
   const { token } = await res.json()
-  setSession(token, dataKey, keys.authKey)
+  cacheAuth(username, { salt: toBase64(salt), wrappedDataKeyPw })
+  setSession(token, dataKey, keys.authKey, username)
   return recoveryCode
 }
 
 export async function login(username: string, password: string): Promise<void> {
-  const saltRes = await fetch(`${AUTH_URL}/salt?username=${encodeURIComponent(username)}`)
+  // Zkusíme online; když je síť nedostupná, odemkneme z offline cache.
+  let saltRes: Response
+  try {
+    saltRes = await fetch(`${AUTH_URL}/salt?username=${encodeURIComponent(username)}`)
+  } catch {
+    return loginOffline(username, password)
+  }
   if (!saltRes.ok) throw new Error('Přihlášení se nepovedlo')
   const { salt } = await saltRes.json()
 
@@ -64,21 +73,45 @@ export async function login(username: string, password: string): Promise<void> {
 
   const { token, wrappedDataKeyPw } = await res.json()
   const dataKey = await unwrapDataKey(wrappedDataKeyPw, keys.encKey)
-  setSession(token, dataKey, keys.authKey)
+  cacheAuth(username, { salt, wrappedDataKeyPw }) // uložit pro offline přihlášení
+  setSession(token, dataKey, keys.authKey, username)
+}
+
+// Offline přihlášení heslem z lokálně uloženého auth materiálu (bez serveru).
+// Token je null → jen čtení.
+async function loginOffline(username: string, password: string): Promise<void> {
+  const material = getCachedAuth(username)
+  if (!material) {
+    throw new Error('Jsi offline a pro tohoto uživatele nemám uložená data.')
+  }
+  const keys = await deriveKeys(password, fromBase64(material.salt))
+  let dataKey: Uint8Array
+  try {
+    dataKey = await unwrapDataKey(material.wrappedDataKeyPw, keys.encKey)
+  } catch {
+    throw new Error('Špatné jméno nebo heslo')
+  }
+  setSession(null, dataKey, keys.authKey, username)
 }
 
 // Re-login jen s authKey (biometrické odemčení – heslo se nezadává).
-// dataKey už máme z lokálního balíku, wrappedDataKeyPw ze serveru ignorujeme.
+// dataKey už máme z lokálního balíku. Offline → token null (jen čtení).
 export async function loginWithAuthKey(
   username: string,
   authKey: Uint8Array,
   dataKey: Uint8Array,
 ): Promise<void> {
-  const res = await postJson('login', { username, authVerifier: toBase64(authKey) })
+  let res: Response
+  try {
+    res = await postJson('login', { username, authVerifier: toBase64(authKey) })
+  } catch {
+    setSession(null, dataKey, authKey, username) // offline: jen čtení
+    return
+  }
   if (res.status === 401) throw new Error('Uložené přihlášení už neplatí')
   if (!res.ok) throw new Error('Přihlášení se nepovedlo')
   const { token } = await res.json()
-  setSession(token, dataKey, authKey)
+  setSession(token, dataKey, authKey, username)
 }
 
 export async function recover(
@@ -103,16 +136,18 @@ export async function recover(
 
   const newSalt = generateSalt()
   const newKeys = await deriveKeys(newPassword, newSalt)
+  const newWrappedDataKeyPw = await wrapDataKey(dataKey, newKeys.encKey)
   const res = await postJson('recover', {
     username,
     recAuthVerifier: toBase64(recKeys.authKey),
     newSalt: toBase64(newSalt),
     newAuthVerifier: toBase64(newKeys.authKey),
-    newWrappedDataKeyPw: await wrapDataKey(dataKey, newKeys.encKey),
+    newWrappedDataKeyPw,
   })
   if (res.status === 401) throw new Error('Neplatný recovery kód')
   if (!res.ok) throw new Error('Obnova se nepovedla')
 
   const { token } = await res.json()
-  setSession(token, dataKey, newKeys.authKey)
+  cacheAuth(username, { salt: toBase64(newSalt), wrappedDataKeyPw: newWrappedDataKeyPw })
+  setSession(token, dataKey, newKeys.authKey, username)
 }

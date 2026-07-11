@@ -1,19 +1,18 @@
 import type { Note } from './types'
-import { getToken, getDataKey, clearSession } from './session'
+import { getToken, getDataKey, getUsername, clearSession } from './session'
 import { encryptJSON, decryptJSON, type Encrypted } from './crypto'
 import { resolveTitle } from './titles'
+import {
+  cacheNotes,
+  getCachedNotes,
+  upsertCachedNote,
+  removeCachedNote,
+  type EncryptedNote,
+} from './offlineCache'
 
 const API_URL = import.meta.env.DEV
   ? 'http://localhost:7071/api/notes'
   : '/api/notes'
-
-// Tvar, jak poznámka leží na serveru: jen šifra + metadata. Server obsah nevidí.
-interface EncryptedNote {
-  id: string
-  iv: string
-  ct: string
-  created_at: string
-}
 
 // Dešifrovaný payload uvnitř šifry.
 interface NotePayload {
@@ -31,7 +30,6 @@ function key(): Uint8Array {
 function headers(): Record<string, string> {
   const token = getToken()
   const base: Record<string, string> = { 'Content-Type': 'application/json' }
-  // Vlastní hlavička – Azure Static Web Apps nepropouští Authorization do API.
   if (token) base['X-Auth-Token'] = token
   return base
 }
@@ -55,51 +53,93 @@ async function decrypt(enc: EncryptedNote): Promise<Note> {
   }
 }
 
-// Zašifruje {title, content, url}; titulek se odvodí na klientovi.
 async function encryptPayload(content: string, title?: string): Promise<Encrypted> {
   const payload: NotePayload = { title: resolveTitle(title, content), content, url: null }
   return encryptJSON(payload, key())
 }
 
+const OFFLINE_WRITE = 'Jsi offline – změny nejdou uložit.'
+
 export async function listNotes(): Promise<Note[]> {
-  const res = await fetch(API_URL, { headers: headers() })
+  const username = getUsername()
+  let res: Response
+  try {
+    res = await fetch(API_URL, { headers: headers() })
+  } catch {
+    // Síť nedostupná → čti z lokální cache.
+    const cached = username ? getCachedNotes(username) : null
+    if (cached) return Promise.all(cached.map(decrypt))
+    throw new Error('Offline a bez uložených poznámek')
+  }
   checkAuth(res)
   if (!res.ok) throw new Error('Nepodařilo se načíst poznámky')
   const encrypted: EncryptedNote[] = await res.json()
+  if (username) cacheNotes(username, encrypted) // uložit pro offline čtení
   return Promise.all(encrypted.map(decrypt))
 }
 
 export async function getNote(id: string): Promise<Note> {
-  const res = await fetch(`${API_URL}/${id}`, { headers: headers() })
+  const username = getUsername()
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}/${id}`, { headers: headers() })
+  } catch {
+    const found = (username ? getCachedNotes(username) : null)?.find((n) => n.id === id)
+    if (found) return decrypt(found)
+    throw new Error('Poznámka není offline dostupná')
+  }
   checkAuth(res)
   if (!res.ok) throw new Error('Poznámka nenalezena')
   return decrypt(await res.json())
 }
 
 export async function createNote(content: string): Promise<Note> {
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: headers(),
-    body: JSON.stringify(await encryptPayload(content)),
-  })
+  let res: Response
+  try {
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(await encryptPayload(content)),
+    })
+  } catch {
+    throw new Error(OFFLINE_WRITE)
+  }
   checkAuth(res)
   if (!res.ok) throw new Error('Uložení selhalo')
-  return decrypt(await res.json())
+  const enc: EncryptedNote = await res.json()
+  const username = getUsername()
+  if (username) upsertCachedNote(username, enc)
+  return decrypt(enc)
 }
 
 export async function updateNote(id: string, content: string, title?: string): Promise<Note> {
-  const res = await fetch(`${API_URL}/${id}`, {
-    method: 'PUT',
-    headers: headers(),
-    body: JSON.stringify(await encryptPayload(content, title)),
-  })
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(await encryptPayload(content, title)),
+    })
+  } catch {
+    throw new Error(OFFLINE_WRITE)
+  }
   checkAuth(res)
   if (!res.ok) throw new Error('Uložení selhalo')
-  return decrypt(await res.json())
+  const enc: EncryptedNote = await res.json()
+  const username = getUsername()
+  if (username) upsertCachedNote(username, enc)
+  return decrypt(enc)
 }
 
 export async function deleteNote(id: string): Promise<void> {
-  const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE', headers: headers() })
+  let res: Response
+  try {
+    res = await fetch(`${API_URL}/${id}`, { method: 'DELETE', headers: headers() })
+  } catch {
+    throw new Error(OFFLINE_WRITE)
+  }
   checkAuth(res)
   if (!res.ok) throw new Error('Smazání selhalo')
+  const username = getUsername()
+  if (username) removeCachedNote(username, id)
 }

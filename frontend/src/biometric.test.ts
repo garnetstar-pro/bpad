@@ -38,7 +38,7 @@ const DATA = new Uint8Array(32).fill(2)
 beforeEach(() => {
   store.clear()
   loginWithAuthKey.mockClear()
-  setSession('token', DATA, AUTH)
+  setSession('token', DATA, AUTH, 'alice')
 })
 
 describe('biometric enroll + unlock', () => {
