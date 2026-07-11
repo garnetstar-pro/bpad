@@ -37,7 +37,12 @@ def send_verification_email(to_email: str, link: str) -> None:
                 ),
             },
         }
-        client.begin_send(message)
+        poller = client.begin_send(message)
+        result = poller.result()  # počkáme na výsledek, ať víme, jestli to prošlo
+        status = getattr(result, "status", None) or (
+            result.get("status") if isinstance(result, dict) else result
+        )
+        logging.info("Ověřovací e-mail pro %s: status=%s", to_email, status)
     except Exception as e:  # noqa: BLE001 – best-effort, účet se vytvoří i tak
         logging.error("Odeslání ověřovacího e-mailu selhalo: %s", e)
 
