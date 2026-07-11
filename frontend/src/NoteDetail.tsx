@@ -28,9 +28,9 @@ function NoteDetail() {
     }
   }, [id])
 
-  const handleUpdate = async (content: string) => {
+  const handleUpdate = async (content: string, title?: string) => {
     if (!id) return
-    const updated = await updateNote(id, content)
+    const updated = await updateNote(id, content, title)
     setNote(updated)
     setEditing(false)
   }
@@ -66,6 +66,8 @@ function NoteDetail() {
           submitLabel="Save"
           onSubmit={handleUpdate}
           initialContent={note.content}
+          initialTitle={note.title}
+          editableTitle
           onCancel={() => setEditing(false)}
         />
       ) : (

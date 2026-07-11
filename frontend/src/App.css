@@ -333,6 +333,43 @@ body {
   margin-bottom: 20px;
 }
 
+/* Editovatelné pole názvu (v editaci) */
+.title-field {
+  margin-bottom: 12px;
+}
+
+.title-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 6px;
+}
+
+.title-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--ground);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 8px 10px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  outline: none;
+}
+
+.title-input:focus {
+  border-color: var(--ink-dim);
+}
+
+.title-input::placeholder {
+  font-weight: 400;
+  color: var(--ink-dim);
+}
+
 /* Write / Preview tabs */
 .capture-tabs {
   display: flex;

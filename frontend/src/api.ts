@@ -28,11 +28,15 @@ export async function createNote(content: string): Promise<Note> {
   return res.json()
 }
 
-export async function updateNote(id: string, content: string): Promise<Note> {
+export async function updateNote(
+  id: string,
+  content: string,
+  title?: string,
+): Promise<Note> {
   const res = await fetch(`${API_URL}/${id}`, {
     method: 'PUT',
     headers: JSON_HEADERS,
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ content, title }),
   })
   if (!res.ok) throw new Error('Uložení selhalo')
   return res.json()

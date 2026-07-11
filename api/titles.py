@@ -39,3 +39,14 @@ def extract_title(content: str) -> str:
             return _strip_inline_markdown(line)
 
     return "(bez názvu)"
+
+
+def resolve_title(title: str | None, content: str) -> str:
+    """Use the explicitly provided title, or derive one from the content.
+
+    Lets the user override the auto-derived title while guaranteeing a note is
+    never left with a blank title (falls back to ``extract_title``).
+    """
+    if title and title.strip():
+        return title.strip()
+    return extract_title(content)

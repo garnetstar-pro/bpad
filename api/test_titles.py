@@ -1,8 +1,24 @@
-from titles import extract_title
+from titles import extract_title, resolve_title
 
 
 def test_h1_on_first_line():
     assert extract_title("# My Awesome Note\nsome body") == "My Awesome Note"
+
+
+def test_resolve_keeps_explicit_title():
+    assert resolve_title("My Custom Title", "# Heading\nbody") == "My Custom Title"
+
+
+def test_resolve_trims_explicit_title():
+    assert resolve_title("  Spaced  ", "# Heading") == "Spaced"
+
+
+def test_resolve_falls_back_when_title_none():
+    assert resolve_title(None, "# Derived Heading\nbody") == "Derived Heading"
+
+
+def test_resolve_falls_back_when_title_blank():
+    assert resolve_title("   ", "# Derived Heading") == "Derived Heading"
 
 
 def test_first_heading_is_deeper_level():
