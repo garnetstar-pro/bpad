@@ -91,8 +91,25 @@ def test_save_user_updates_in_place():
     assert repo.get_user("alice").salt == "new-salt"
 
 
-def test_email_exists():
+def test_reserve_email_is_atomic():
     repo = InMemoryUsersRepository()
-    repo.add_user(_user("alice", email="a@example.com"))
+    assert repo.reserve_email("a@example.com", "alice") is True
     assert repo.email_exists("a@example.com") is True
+    # druhá rezervace stejného e-mailu selže
+    assert repo.reserve_email("a@example.com", "bob") is False
     assert repo.email_exists("other@example.com") is False
+
+
+def test_release_email_frees_it():
+    repo = InMemoryUsersRepository()
+    repo.reserve_email("a@example.com", "alice")
+    repo.release_email("a@example.com")
+    assert repo.email_exists("a@example.com") is False
+    assert repo.reserve_email("a@example.com", "bob") is True  # zase volný
+
+
+def test_index_email_is_idempotent_backfill():
+    repo = InMemoryUsersRepository()
+    repo.index_email("a@example.com", "alice")
+    repo.index_email("a@example.com", "alice")  # nevadí
+    assert repo.email_exists("a@example.com") is True

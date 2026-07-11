@@ -99,7 +99,8 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
     email = data.email.strip().lower()
     if "@" not in email or "." not in email:
         return _error("Neplatný e-mail", 400)
-    if users_repo.email_exists(email):
+    # Atomická rezervace e-mailu (create v email_index) – zavře i souběžné registrace.
+    if not users_repo.reserve_email(email, data.username):
         return _error("E-mail je už registrovaný", 409)
 
     user = User(
@@ -114,6 +115,7 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
     )
     link = _prepare_verification(user)
     if not users_repo.add_user(user):
+        users_repo.release_email(email)  # rollback rezervace
         return _error("Uživatelské jméno je obsazené", 409)
     if link:
         mailer.send_verification_email(user.email, link)
@@ -145,6 +147,12 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
     user = users_repo.get_user(data.username)
     if user is None or not auth.verify_verifier(data.authVerifier, user.auth_hash):
         return _error("Špatné jméno nebo heslo", 401)
+    # Backfill email indexu pro účty vytvořené před jeho zavedením (best-effort).
+    if user.email:
+        try:
+            users_repo.index_email(user.email, user.username)
+        except Exception:
+            logging.warning("Backfill email indexu selhal pro %s", user.username)
     return _json(
         {"token": auth.create_token(user.username),
          "wrappedDataKeyPw": user.wrapped_data_key_pw.model_dump(),
