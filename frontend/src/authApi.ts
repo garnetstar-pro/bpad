@@ -11,11 +11,18 @@ import {
   toBase64,
   fromBase64,
 } from './crypto'
-import { setSession } from './session'
+import { setSession, getToken } from './session'
 import { cacheAuth, getCachedAuth } from './offlineCache'
 
 const AUTH_URL = import.meta.env.DEV ? 'http://localhost:7071/api/auth' : '/api/auth'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
+
+// Stav ověření e-mailu z posledního loginu/registrace (null = neznámé, např.
+// po biometrickém/offline odemčení). Čte ho App pro banner.
+let emailVerified: boolean | null = null
+export function getEmailVerified(): boolean | null {
+  return emailVerified
+}
 
 async function postJson(path: string, body: unknown): Promise<Response> {
   return fetch(`${AUTH_URL}/${path}`, {
@@ -27,7 +34,11 @@ async function postJson(path: string, body: unknown): Promise<Response> {
 
 // Registrace: vrací jednorázový recovery kód (ukázat uživateli). Session je po
 // úspěchu nastavená (uživatel je fakticky přihlášený).
-export async function register(username: string, password: string): Promise<string> {
+export async function register(
+  username: string,
+  email: string,
+  password: string,
+): Promise<string> {
   const salt = generateSalt()
   const recoverySalt = generateSalt()
   const recoveryCode = generateRecoveryCode()
@@ -39,6 +50,7 @@ export async function register(username: string, password: string): Promise<stri
 
   const res = await postJson('register', {
     username,
+    email,
     salt: toBase64(salt),
     recoverySalt: toBase64(recoverySalt),
     authVerifier: toBase64(keys.authKey),
@@ -47,12 +59,31 @@ export async function register(username: string, password: string): Promise<stri
     wrappedDataKeyRec: await wrapDataKey(dataKey, recKeys.encKey),
   })
   if (res.status === 409) throw new Error('Uživatelské jméno je obsazené')
+  if (res.status === 400) throw new Error('Neplatný e-mail nebo údaje')
   if (!res.ok) throw new Error('Registrace se nepovedla')
 
-  const { token } = await res.json()
+  const { token, emailVerified: verified } = await res.json()
+  emailVerified = verified ?? false
   cacheAuth(username, { salt: toBase64(salt), wrappedDataKeyPw })
   setSession(token, dataKey, keys.authKey, username)
   return recoveryCode
+}
+
+// Znovu poslat ověřovací e-mail (přihlášený uživatel).
+export async function resendVerification(): Promise<void> {
+  const token = getToken()
+  const res = await fetch(`${AUTH_URL}/send-verification`, {
+    method: 'POST',
+    headers: { ...JSON_HEADERS, ...(token ? { 'X-Auth-Token': token } : {}) },
+  })
+  if (!res.ok) throw new Error('Odeslání se nepovedlo')
+}
+
+// Ověřit e-mail z odkazu (public – uživatel nemusí být přihlášený).
+export async function verifyEmail(username: string, verifyToken: string): Promise<void> {
+  const res = await postJson('verify-email', { username, token: verifyToken })
+  if (!res.ok) throw new Error('Odkaz je neplatný nebo vypršel')
+  emailVerified = true
 }
 
 export async function login(username: string, password: string): Promise<void> {
@@ -71,8 +102,9 @@ export async function login(username: string, password: string): Promise<void> {
   if (res.status === 401) throw new Error('Špatné jméno nebo heslo')
   if (!res.ok) throw new Error('Přihlášení se nepovedlo')
 
-  const { token, wrappedDataKeyPw } = await res.json()
+  const { token, wrappedDataKeyPw, emailVerified: verified } = await res.json()
   const dataKey = await unwrapDataKey(wrappedDataKeyPw, keys.encKey)
+  emailVerified = verified ?? null
   cacheAuth(username, { salt, wrappedDataKeyPw }) // uložit pro offline přihlášení
   setSession(token, dataKey, keys.authKey, username)
 }

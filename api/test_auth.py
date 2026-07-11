@@ -37,3 +37,18 @@ def test_verify_token_rejects_tampered_signature():
 def test_verify_token_rejects_expired():
     token = auth.create_token("alice", ttl_seconds=-1)
     assert auth.verify_token(token) is None
+
+
+def test_verification_token_hash_round_trip():
+    token = auth.new_verification_token()
+    stored = auth.token_hash(token)
+    assert auth.verify_token_hash(token, stored) is True
+
+
+def test_verification_token_rejects_wrong():
+    stored = auth.token_hash(auth.new_verification_token())
+    assert auth.verify_token_hash("some-other-token", stored) is False
+
+
+def test_verification_tokens_are_unique():
+    assert auth.new_verification_token() != auth.new_verification_token()

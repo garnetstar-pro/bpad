@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import logging
 import os
+import secrets
 import time
 
 import jwt
@@ -71,6 +72,19 @@ def verify_token(token: str) -> str | None:
         return None
     sub = payload.get("sub")
     return sub if isinstance(sub, str) else None
+
+
+# --- ověřovací e-mailový token (jednorázový, ukládá se jen hash) ---
+def new_verification_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def verify_token_hash(token: str, stored: str) -> bool:
+    return hmac.compare_digest(token_hash(token), stored)
 
 
 # Deterministická „falešná" sůl pro neexistující uživatele (proti enumeraci).

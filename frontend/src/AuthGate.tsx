@@ -137,6 +137,7 @@ function RecoveryCodeScreen({ code, onDone }: { code: string; onDone: () => void
 function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
   const { authenticate } = useAuth()
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
@@ -145,12 +146,13 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setError('Zadej platný e-mail')
     if (password.length < 8) return setError('Heslo musí mít aspoň 8 znaků')
     if (password !== confirm) return setError('Hesla se neshodují')
     setBusy(true)
     setError(null)
     try {
-      const code = await authApi.register(username.trim(), password)
+      const code = await authApi.register(username.trim(), email.trim(), password)
       setRecoveryCode(code)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registrace se nepovedla')
@@ -169,6 +171,7 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
         <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
+        <Field label="e-mail" type="email" value={email} onChange={setEmail} placeholder="pro ověření a obnovu" disabled={busy} />
         <Field label="heslo" type="password" value={password} onChange={setPassword} placeholder="zvol silné heslo" disabled={busy} />
         <Field label="heslo znovu" type="password" value={confirm} onChange={setConfirm} placeholder="zopakuj heslo" disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>

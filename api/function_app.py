@@ -2,15 +2,21 @@ import azure.functions as func
 import json
 import logging
 import os
+from datetime import datetime, timedelta
 from typing import Optional, Union
+from urllib.parse import quote
 
 from models import (
     Note, NoteCreate, User,
     RegisterRequest, LoginRequest, RecoverRequest, ChangePasswordRequest,
+    VerifyEmailRequest,
 )
 from repository import get_notes_repository, get_users_repository
 from ratelimit import RateLimiter
 import auth
+import mailer
+
+_VERIFY_TTL = timedelta(hours=24)
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -67,6 +73,17 @@ def _require_user(req: func.HttpRequest) -> Union[str, func.HttpResponse]:
     return username
 
 
+def _issue_and_send_verification(user: User) -> None:
+    """Vygeneruje jednorázový ověřovací token, uloží jeho hash a pošle e-mail."""
+    if not user.email:
+        return
+    token = auth.new_verification_token()
+    user.verify_token_hash = auth.token_hash(token)
+    user.verify_expires = datetime.utcnow() + _VERIFY_TTL
+    link = f"{mailer.base_url()}/verify?user={quote(user.username)}&token={quote(token)}"
+    mailer.send_verification_email(user.email, link)
+
+
 # ----------------------------------------------------------------- auth
 
 @app.route(route="auth/register", methods=["POST"])
@@ -80,9 +97,12 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         return _error(f"Neplatná data: {str(e)}", 400)
     if not data.username.strip():
         return _error("Chybí uživatelské jméno", 400)
+    if "@" not in data.email or "." not in data.email:
+        return _error("Neplatný e-mail", 400)
 
     user = User(
         username=data.username,
+        email=data.email.strip().lower(),
         salt=data.salt,
         recovery_salt=data.recoverySalt,
         auth_hash=auth.hash_verifier(data.authVerifier),
@@ -90,9 +110,13 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         wrapped_data_key_pw=data.wrappedDataKeyPw,
         wrapped_data_key_rec=data.wrappedDataKeyRec,
     )
+    _issue_and_send_verification(user)
     if not users_repo.add_user(user):
         return _error("Uživatelské jméno je obsazené", 409)
-    return _json({"token": auth.create_token(user.username)}, 201)
+    return _json(
+        {"token": auth.create_token(user.username), "emailVerified": user.email_verified},
+        201,
+    )
 
 
 @app.route(route="auth/salt", methods=["GET"])
@@ -119,9 +143,58 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
         return _error("Špatné jméno nebo heslo", 401)
     return _json(
         {"token": auth.create_token(user.username),
-         "wrappedDataKeyPw": user.wrapped_data_key_pw.model_dump()},
+         "wrappedDataKeyPw": user.wrapped_data_key_pw.model_dump(),
+         "emailVerified": user.email_verified},
         200,
     )
+
+
+@app.route(route="auth/verify-email", methods=["POST"])
+def verify_email(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
+    try:
+        data = VerifyEmailRequest(**req.get_json())
+    except Exception as e:
+        return _error(f"Neplatná data: {str(e)}", 400)
+
+    user = users_repo.get_user(data.username)
+    if user is None:
+        return _error("Neplatný odkaz", 400)
+    if user.email_verified:
+        return _json({"verified": True}, 200)
+    if (
+        not user.verify_token_hash
+        or not user.verify_expires
+        or datetime.utcnow() > user.verify_expires
+        or not auth.verify_token_hash(data.token, user.verify_token_hash)
+    ):
+        return _error("Odkaz je neplatný nebo vypršel", 400)
+
+    user.email_verified = True
+    user.verify_token_hash = None
+    user.verify_expires = None
+    users_repo.save_user(user)
+    return _json({"verified": True}, 200)
+
+
+@app.route(route="auth/send-verification", methods=["POST"])
+def send_verification(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
+    username = _require_user(req)
+    if isinstance(username, func.HttpResponse):
+        return username
+    user = users_repo.get_user(username)
+    if user is None or not user.email:
+        return _error("Není co ověřovat", 400)
+    if user.email_verified:
+        return _json({"verified": True}, 200)
+    _issue_and_send_verification(user)
+    users_repo.save_user(user)
+    return _json({"sent": True}, 200)
 
 
 @app.route(route="auth/recovery-material", methods=["GET"])

@@ -31,17 +31,28 @@ class User(BaseModel):
     rec_auth_hash: str
     wrapped_data_key_pw: Encrypted
     wrapped_data_key_rec: Encrypted
+    # E-mail je ne-tajné metadata (nešifruje se). Ověření kontroluje vlastnictví.
+    email: Optional[str] = None
+    email_verified: bool = False
+    verify_token_hash: Optional[str] = None
+    verify_expires: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class RegisterRequest(BaseModel):
     username: str
+    email: str
     salt: str
     recoverySalt: str
     authVerifier: str
     recAuthVerifier: str
     wrappedDataKeyPw: Encrypted
     wrappedDataKeyRec: Encrypted
+
+
+class VerifyEmailRequest(BaseModel):
+    username: str
+    token: str
 
 
 class LoginRequest(BaseModel):
