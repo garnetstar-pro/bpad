@@ -73,15 +73,14 @@ def _require_user(req: func.HttpRequest) -> Union[str, func.HttpResponse]:
     return username
 
 
-def _issue_and_send_verification(user: User) -> None:
-    """Vygeneruje jednorázový ověřovací token, uloží jeho hash a pošle e-mail."""
+def _prepare_verification(user: User) -> Optional[str]:
+    """Nastaví jednorázový ověřovací token na uživatele; vrátí odkaz k odeslání."""
     if not user.email:
-        return
+        return None
     token = auth.new_verification_token()
     user.verify_token_hash = auth.token_hash(token)
     user.verify_expires = datetime.utcnow() + _VERIFY_TTL
-    link = f"{mailer.base_url()}/verify?user={quote(user.username)}&token={quote(token)}"
-    mailer.send_verification_email(user.email, link)
+    return f"{mailer.base_url()}/verify?user={quote(user.username)}&token={quote(token)}"
 
 
 # ----------------------------------------------------------------- auth
@@ -97,12 +96,15 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         return _error(f"Neplatná data: {str(e)}", 400)
     if not data.username.strip():
         return _error("Chybí uživatelské jméno", 400)
-    if "@" not in data.email or "." not in data.email:
+    email = data.email.strip().lower()
+    if "@" not in email or "." not in email:
         return _error("Neplatný e-mail", 400)
+    if users_repo.email_exists(email):
+        return _error("E-mail je už registrovaný", 409)
 
     user = User(
         username=data.username,
-        email=data.email.strip().lower(),
+        email=email,
         salt=data.salt,
         recovery_salt=data.recoverySalt,
         auth_hash=auth.hash_verifier(data.authVerifier),
@@ -110,9 +112,11 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         wrapped_data_key_pw=data.wrappedDataKeyPw,
         wrapped_data_key_rec=data.wrappedDataKeyRec,
     )
-    _issue_and_send_verification(user)
+    link = _prepare_verification(user)
     if not users_repo.add_user(user):
         return _error("Uživatelské jméno je obsazené", 409)
+    if link:
+        mailer.send_verification_email(user.email, link)
     return _json(
         {"token": auth.create_token(user.username), "emailVerified": user.email_verified},
         201,
@@ -192,8 +196,10 @@ def send_verification(req: func.HttpRequest) -> func.HttpResponse:
         return _error("Není co ověřovat", 400)
     if user.email_verified:
         return _json({"verified": True}, 200)
-    _issue_and_send_verification(user)
+    link = _prepare_verification(user)
     users_repo.save_user(user)
+    if link:
+        mailer.send_verification_email(user.email, link)
     return _json({"sent": True}, 200)
 
 

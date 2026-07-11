@@ -8,10 +8,11 @@ def _note(user_id="alice", **kw):
     return Note(**defaults)
 
 
-def _user(username="alice"):
+def _user(username="alice", email=None):
     enc = Encrypted(iv="i", ct="c")
     return User(
         username=username,
+        email=email,
         salt="s",
         recovery_salt="rs",
         auth_hash="ah",
@@ -88,3 +89,10 @@ def test_save_user_updates_in_place():
     updated.salt = "new-salt"
     repo.save_user(updated)
     assert repo.get_user("alice").salt == "new-salt"
+
+
+def test_email_exists():
+    repo = InMemoryUsersRepository()
+    repo.add_user(_user("alice", email="a@example.com"))
+    assert repo.email_exists("a@example.com") is True
+    assert repo.email_exists("other@example.com") is False

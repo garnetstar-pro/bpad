@@ -96,6 +96,7 @@ class UsersRepository(Protocol):
     def get_user(self, username: str) -> Optional[User]: ...
     def add_user(self, user: User) -> bool: ...  # False když username existuje
     def save_user(self, user: User) -> None: ...  # upsert (změna hesla/recovery)
+    def email_exists(self, email: str) -> bool: ...
 
 
 class InMemoryUsersRepository:
@@ -110,6 +111,9 @@ class InMemoryUsersRepository:
             return False
         self._users[user.username] = user
         return True
+
+    def email_exists(self, email: str) -> bool:
+        return any(u.email == email for u in self._users.values())
 
     def save_user(self, user: User) -> None:
         self._users[user.username] = user
@@ -160,6 +164,16 @@ class CosmosUsersRepository:
 
     def save_user(self, user: User) -> None:
         self._c().upsert_item(self._to_item(user))
+
+    def email_exists(self, email: str) -> bool:
+        # Cross-partition dotaz (username je partition key, e-mail ne).
+        # Při velkém objemu doplnit index e-mail→username.
+        rows = self._c().query_items(
+            query="SELECT TOP 1 c.id FROM c WHERE c.email = @e",
+            parameters=[{"name": "@e", "value": email}],
+            enable_cross_partition_query=True,
+        )
+        return any(True for _ in rows)
 
 
 # ---------------------------------------------------------------- factory
