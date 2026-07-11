@@ -296,6 +296,25 @@ def change_password(req: func.HttpRequest) -> func.HttpResponse:
     return func.HttpResponse(status_code=204, headers=_CORS)
 
 
+@app.route(route="auth/me", methods=["GET"])
+def me(req: func.HttpRequest) -> func.HttpResponse:
+    username = _require_user(req)
+    if isinstance(username, func.HttpResponse):
+        return username
+    user = users_repo.get_user(username)
+    if user is None:
+        return _error("Uživatel nenalezen", 404)
+    return _json(
+        {
+            "username": user.username,
+            "email": user.email,
+            "emailVerified": user.email_verified,
+            "createdAt": user.created_at.isoformat() if user.created_at else None,
+        },
+        200,
+    )
+
+
 # ---------------------------------------------------------------- notes
 
 @app.route(route="notes", methods=["GET"])
