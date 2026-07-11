@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useAuth } from './AuthContext'
+import BpadMark from './BpadMark'
 import * as authApi from './authApi'
 
 type Mode = 'login' | 'register' | 'recover'
@@ -9,9 +10,12 @@ function Shell({ meta, children }: { meta: string; children: ReactNode }) {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-head">
-          <div>
-            <div className="brand-kicker">case file · bpad.pro</div>
-            <div className="brand">bpad</div>
+          <div className="brand-wrap">
+            <BpadMark size={30} />
+            <div>
+              <div className="brand-kicker">blank pad · encrypted</div>
+              <div className="brand">bpad</div>
+            </div>
           </div>
           <div className="brand-meta">{meta}</div>
         </div>

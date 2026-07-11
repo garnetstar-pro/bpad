@@ -1,12 +1,14 @@
 :root {
-  --ground: #14181C;
-  --surface: #1E2530;
-  --surface-hover: #242C38;
-  --ink: #EDEFF2;
-  --ink-dim: #8A93A1;
-  --stamp-red: #C1503B;
-  --hairline: rgba(237, 239, 242, 0.09);
-  --font-mono: 'Courier New', 'Courier', monospace;
+  --ground: #0E1524;
+  --surface: #172136;
+  --surface-hover: #1F2C46;
+  --ink: #EEF2FA;
+  --ink-dim: #8B98B4;
+  --accent: #22B183;
+  --blue: #2E56A0;
+  --danger: #E0574A;
+  --hairline: rgba(238, 242, 250, 0.09);
+  --font: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -15,7 +17,7 @@ body {
   margin: 0;
   background: var(--ground);
   color: var(--ink);
-  font-family: var(--font-mono);
+  font-family: var(--font);
 }
 
 .app {
@@ -48,23 +50,23 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  border-bottom: 3px double var(--ink-dim);
+  border-bottom: 1px solid var(--hairline);
   padding-bottom: 14px;
   margin-bottom: 30px;
 }
 
 .case-number {
   font-size: 10px;
-  letter-spacing: 0.15em;
-  color: var(--ink-dim);
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  font-weight: 600;
   text-transform: uppercase;
 }
 
 .app-title {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
 .app-meta {
@@ -78,7 +80,7 @@ body {
   background: transparent;
   border: none;
   color: var(--ink-dim);
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -86,7 +88,7 @@ body {
   padding: 0;
   border-bottom: 1px dotted var(--hairline);
 }
-.logout-link:hover { color: var(--stamp-red); }
+.logout-link:hover { color: var(--accent); }
 
 /* ---- Auth obrazovky ---- */
 .auth-page {
@@ -114,8 +116,8 @@ body {
   padding-bottom: 12px;
   margin-bottom: 22px;
 }
-.brand-kicker { font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink-dim); }
-.brand { font-size: 18px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1; margin-top: 3px; }
+.brand-kicker { font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.brand { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; margin-top: 2px; }
 .brand-meta { font-size: 9px; color: var(--ink-dim); text-align: right; }
 
 .auth-title { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 4px; }
@@ -135,10 +137,10 @@ body {
   box-sizing: border-box;
   height: 38px;
   border: 1px solid var(--hairline);
-  border-radius: 3px;
+  border-radius: 8px;
   background: var(--ground);
   padding: 0 11px;
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-size: 13px;
   color: var(--ink);
   outline: none;
@@ -151,10 +153,10 @@ body {
   height: 40px;
   margin-top: 6px;
   border: none;
-  border-radius: 3px;
-  background: var(--stamp-red);
-  color: var(--ink);
-  font-family: var(--font-mono);
+  border-radius: 8px;
+  background: var(--accent);
+  color: #06130D;
+  font-family: var(--font);
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.1em;
@@ -173,13 +175,13 @@ body {
   background: transparent;
   border: none;
   color: var(--ink-dim);
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-size: 11px;
   cursor: pointer;
   padding: 0;
   border-bottom: 1px dotted var(--hairline);
 }
-.auth-link.accent { color: var(--stamp-red); border-bottom-color: rgba(193, 80, 59, 0.4); }
+.auth-link.accent { color: var(--accent); border-bottom-color: rgba(34, 177, 131, 0.4); }
 
 .auth-hint {
   font-size: 10px;
@@ -219,7 +221,7 @@ body {
 .capture {
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 3px;
+  border-radius: 8px;
   padding: 18px 20px 16px;
   margin-bottom: 40px;
 }
@@ -240,7 +242,7 @@ body {
   resize: none;
   display: block;
   overflow-y: hidden;
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-size: 16px;
   line-height: 1.6;
   color: var(--ink);
@@ -263,13 +265,13 @@ body {
 }
 
 .save-btn {
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: var(--stamp-red);
-  color: var(--ink);
+  background: var(--accent);
+  color: #06130D;
   border: none;
   padding: 8px 14px;
   cursor: pointer;
@@ -304,10 +306,10 @@ body {
   box-sizing: border-box;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 3px;
+  border-radius: 8px;
   padding: 9px 32px 9px 12px;
   color: var(--ink);
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-size: 13px;
   outline: none;
 }
@@ -365,7 +367,7 @@ body {
 
 .entry:hover {
   background: var(--surface-hover);
-  border-left-color: var(--stamp-red);
+  border-left-color: var(--accent);
 }
 
 .entry-stamp {
@@ -394,8 +396,17 @@ body {
 
 /* Odkaz v hlavičce na seznam */
 .app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   color: inherit;
   text-decoration: none;
+}
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Detail poznámky */
@@ -416,7 +427,7 @@ body {
 .note-detail {
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 3px;
+  border-radius: 8px;
   padding: 22px 24px;
 }
 
@@ -453,7 +464,7 @@ body {
 }
 
 .ghost-btn {
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-weight: 700;
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -470,17 +481,17 @@ body {
 }
 
 .ghost-btn.danger:hover {
-  color: var(--stamp-red);
-  border-color: var(--stamp-red);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .error-banner {
-  background: rgba(193, 80, 59, 0.15);
-  border: 1px solid var(--stamp-red);
-  color: var(--stamp-red);
+  background: rgba(224, 87, 74, 0.15);
+  border: 1px solid var(--danger);
+  color: var(--danger);
   padding: 10px 14px;
   font-size: 12px;
-  border-radius: 3px;
+  border-radius: 8px;
   margin-bottom: 20px;
 }
 
@@ -503,10 +514,10 @@ body {
   box-sizing: border-box;
   background: var(--ground);
   border: 1px solid var(--hairline);
-  border-radius: 3px;
+  border-radius: 8px;
   padding: 8px 10px;
   color: var(--ink);
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-size: 15px;
   font-weight: 700;
   outline: none;
@@ -529,7 +540,7 @@ body {
 }
 
 .capture-tab {
-  font-family: var(--font-mono);
+  font-family: var(--font);
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -543,7 +554,7 @@ body {
 
 .capture-tab.is-active {
   color: var(--ink);
-  border-bottom-color: var(--stamp-red);
+  border-bottom-color: var(--accent);
 }
 
 .capture-preview {
@@ -589,20 +600,20 @@ body {
 }
 
 .markdown-body a {
-  color: var(--stamp-red);
+  color: var(--accent);
 }
 
 .markdown-body code {
   background: var(--ground);
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: 8px;
   font-size: 14px;
 }
 
 .markdown-body pre {
   background: var(--ground);
   padding: 10px 12px;
-  border-radius: 3px;
+  border-radius: 8px;
   overflow-x: auto;
 }
 
