@@ -17,25 +17,40 @@ export function countLeadingZeroBits(bytes: Uint8Array): number {
   return bits
 }
 
+// Horní strop pokusů (~20× průměr pro difficulty 20). Chrání před zaseknutím
+// při nešťastné varianci nebo špatně nastavené (příliš vysoké) obtížnosti.
+const MAX_ATTEMPTS = 20_000_000
+
 // Tight loop – blokuje vlákno (proto se pouští ve workeru). Testovatelné přímo.
-export async function findNonce(challenge: string, difficulty: number): Promise<string> {
+// Po vyčerpání maxAttempts to raději vzdá chybou, než aby se točilo donekonečna.
+export async function findNonce(
+  challenge: string,
+  difficulty: number,
+  maxAttempts = MAX_ATTEMPTS,
+): Promise<string> {
   if (difficulty <= 0) return '0'
   const hasher = await createSHA256()
   const enc = new TextEncoder()
-  for (let nonce = 0; ; nonce++) {
+  for (let nonce = 0; nonce < maxAttempts; nonce++) {
     hasher.init()
     hasher.update(enc.encode(challenge + nonce))
     const digest = hasher.digest('binary')
     if (countLeadingZeroBits(digest) >= difficulty) return String(nonce)
   }
+  throw new Error('Ověření trvá moc dlouho — zkus to znovu.')
 }
+
+// Zpráva z workeru: buď nalezený nonce, nebo chyba (např. vyčerpaný strop).
+export type PowResult = { nonce: string } | { error: string }
 
 // Veřejné API: vyřeší ve Web Workeru.
 export function solvePow(challenge: string, difficulty: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./powWorker.ts', import.meta.url), { type: 'module' })
-    worker.onmessage = (e: MessageEvent<string>) => {
-      resolve(e.data)
+    worker.onmessage = (e: MessageEvent<PowResult>) => {
+      const data = e.data
+      if ('error' in data) reject(new Error(data.error))
+      else resolve(data.nonce)
       worker.terminate()
     }
     worker.onerror = () => {
