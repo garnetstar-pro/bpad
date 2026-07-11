@@ -47,18 +47,18 @@ function NoteDetail() {
     }
   }
 
-  if (loading) return <div className="empty-state">loading…</div>
+  if (loading) return <div className="detail-page"><div className="empty-state">loading…</div></div>
   if (error || !note) {
     return (
-      <>
+      <div className="detail-page">
         <div className="error-banner">{error ?? 'Poznámka nenalezena.'}</div>
         <Link className="back-link" to="/">‹ zpět na seznam</Link>
-      </>
+      </div>
     )
   }
 
   return (
-    <>
+    <div className="detail-page">
       <Link className="back-link" to="/">‹ zpět na seznam</Link>
 
       {editing ? (
@@ -91,7 +91,7 @@ function NoteDetail() {
           </div>
         </article>
       )}
-    </>
+    </div>
   )
 }
 

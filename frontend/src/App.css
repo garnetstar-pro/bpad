@@ -19,9 +19,29 @@ body {
 }
 
 .app {
-  max-width: 640px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 44px 20px;
+  padding: 32px 20px;
+}
+
+/* Na mobilu využít celou šířku – žádné zbytečné okraje jen pro design */
+@media (max-width: 600px) {
+  .app {
+    padding: 20px 10px;
+  }
+
+  .capture {
+    padding: 14px 12px 12px;
+  }
+
+  .entry {
+    padding: 12px 12px;
+    gap: 10px;
+  }
+
+  .note-detail {
+    padding: 18px 14px;
+  }
 }
 
 .app-header {
@@ -118,7 +138,62 @@ body {
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--ink-dim);
+}
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-count {
+  font-size: 10px;
+  color: var(--ink-dim);
+}
+
+.search {
+  position: relative;
   margin-bottom: 14px;
+}
+
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  padding: 9px 32px 9px 12px;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: var(--ink-dim);
+}
+
+.search-input::placeholder {
+  color: var(--ink-dim);
+}
+
+.search-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.search-clear:hover {
+  color: var(--ink);
 }
 
 .empty-state {
@@ -201,6 +276,11 @@ body {
   border: 1px solid var(--hairline);
   border-radius: 3px;
   padding: 22px 24px;
+}
+
+/* Karta je široká jako seznam, ale text článku se drží čitelné šířky */
+.note-detail .markdown-body {
+  max-width: 72ch;
 }
 
 .note-detail-stamp {
