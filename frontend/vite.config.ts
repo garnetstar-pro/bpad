@@ -7,8 +7,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      // Registraci si zavoláme sami v main.tsx (kvůli přísné CSP – žádný inline skript).
+      // 'prompt' = nový SW čeká, dokud uživatel neklikne "Aktualizovat"
+      // (UpdatePrompt), místo tichého auto-reloadu.
+      registerType: 'prompt',
+      // Registraci si zavoláme sami (přes useRegisterSW) – kvůli přísné CSP
+      // žádný inline skript.
       injectRegister: null,
       manifest: {
         name: 'bpad',
