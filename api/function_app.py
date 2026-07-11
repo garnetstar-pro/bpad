@@ -21,7 +21,7 @@ users_repo = get_users_repository()
 _ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
 _CORS = {
     "Access-Control-Allow-Origin": _ALLOWED_ORIGIN,
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Auth-Token",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 }
 
@@ -51,9 +51,16 @@ def _error(message: str, status_code: int) -> func.HttpResponse:
 
 
 def _require_user(req: func.HttpRequest) -> Union[str, func.HttpResponse]:
-    """Vrátí username z platného Bearer tokenu, jinak 401 odpověď."""
-    header = req.headers.get("Authorization", "")
-    token = header[7:] if header.startswith("Bearer ") else ""
+    """Vrátí username z platného session tokenu, jinak 401 odpověď.
+
+    Token bereme z vlastní hlavičky X-Auth-Token (Azure Static Web Apps
+    hlavičku Authorization do managed functions nepropouští); Authorization
+    Bearer zůstává jako fallback pro přímé volání API.
+    """
+    token = req.headers.get("X-Auth-Token", "")
+    if not token:
+        header = req.headers.get("Authorization", "")
+        token = header[7:] if header.startswith("Bearer ") else ""
     username = auth.verify_token(token)
     if not username:
         return _error("Nepřihlášeno", 401)
