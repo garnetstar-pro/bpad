@@ -83,8 +83,9 @@ function Editor({
     }
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Ctrl+Enter (nebo Cmd+Enter na Macu) uloží; samotný Enter dělá nový řádek
+  // Ctrl+Enter (nebo Cmd+Enter na Macu) uloží z kteréhokoli pole formuláře;
+  // samotný Enter dělá v textarei nový řádek
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       submit()
@@ -92,7 +93,7 @@ function Editor({
   }
 
   return (
-    <div className="capture">
+    <div className="capture" onKeyDown={handleKeyDown}>
       {error && <div className="error-banner">{error}</div>}
 
       {editableTitle && (
@@ -132,7 +133,6 @@ function Editor({
           ref={textareaRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
           placeholder="Write a thought or paste a link…"
           disabled={submitting}
         />
