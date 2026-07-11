@@ -171,7 +171,7 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
         <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
-        <Field label="e-mail" type="email" value={email} onChange={setEmail} placeholder="pro ověření a obnovu" disabled={busy} />
+        <Field label="e-mail" type="email" value={email} onChange={setEmail} placeholder="pro ověření a upozornění" disabled={busy} />
         <Field label="heslo" type="password" value={password} onChange={setPassword} placeholder="zvol silné heslo" disabled={busy} />
         <Field label="heslo znovu" type="password" value={confirm} onChange={setConfirm} placeholder="zopakuj heslo" disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
