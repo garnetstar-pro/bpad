@@ -78,8 +78,9 @@ function Editor({
         setTitle('')
         setMode('write')
       }
-    } catch {
-      setError('Uložení se nepovedlo. Zkus to znovu.')
+    } catch (err) {
+      // Serverovou hlášku (např. limit u neověřeného účtu) ukaž tak jak je.
+      setError(err instanceof Error ? err.message : 'Uložení se nepovedlo. Zkus to znovu.')
     } finally {
       setSubmitting(false)
     }

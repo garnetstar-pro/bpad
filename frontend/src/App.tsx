@@ -8,6 +8,8 @@ import BiometricEnrollPrompt from './BiometricEnrollPrompt'
 import { hasEnrollment, declinedBiometric, isBiometricAvailable } from './biometric'
 import { isOfflineReadOnly } from './session'
 import { getEmailVerified, resendVerification } from './authApi'
+import { getKnownNoteCount } from './api'
+import { verifyBannerMessage } from './verifyStatus'
 import BpadMark from './BpadMark'
 import Home from './Home'
 import NoteDetail from './NoteDetail'
@@ -21,9 +23,17 @@ function App() {
   const [enrollDone, setEnrollDone] = useState(false)
   const [forceEnroll, setForceEnroll] = useState(false)
   const [verifySend, setVerifySend] = useState<'idle' | 'sent' | 'error'>('idle')
+  const [noteCount, setNoteCount] = useState<number | null>(getKnownNoteCount())
 
   useEffect(() => {
     isBiometricAvailable().then(setBioAvailable)
+  }, [])
+
+  // Přehodnotit počítadlo v banneru, když se změní počet poznámek.
+  useEffect(() => {
+    const sync = () => setNoteCount(getKnownNoteCount())
+    window.addEventListener('bpad:notes-changed', sync)
+    return () => window.removeEventListener('bpad:notes-changed', sync)
   }, [])
 
   // Ověřovací odkaz z e-mailu – funguje i bez přihlášení.
@@ -78,7 +88,7 @@ function App() {
 
       {getEmailVerified() === false && (
         <div className="verify-banner">
-          <span>Ověř svůj e-mail, ať můžeš psát bez omezení.</span>{' '}
+          <span>{verifyBannerMessage(noteCount)}</span>{' '}
           {verifySend === 'sent' ? (
             <span className="verify-sent">Odesláno ✓ — mrkni do schránky</span>
           ) : (
