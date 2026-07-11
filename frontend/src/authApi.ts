@@ -48,7 +48,7 @@ export async function register(username: string, password: string): Promise<stri
   if (!res.ok) throw new Error('Registrace se nepovedla')
 
   const { token } = await res.json()
-  setSession(token, dataKey)
+  setSession(token, dataKey, keys.authKey)
   return recoveryCode
 }
 
@@ -64,7 +64,21 @@ export async function login(username: string, password: string): Promise<void> {
 
   const { token, wrappedDataKeyPw } = await res.json()
   const dataKey = await unwrapDataKey(wrappedDataKeyPw, keys.encKey)
-  setSession(token, dataKey)
+  setSession(token, dataKey, keys.authKey)
+}
+
+// Re-login jen s authKey (biometrické odemčení – heslo se nezadává).
+// dataKey už máme z lokálního balíku, wrappedDataKeyPw ze serveru ignorujeme.
+export async function loginWithAuthKey(
+  username: string,
+  authKey: Uint8Array,
+  dataKey: Uint8Array,
+): Promise<void> {
+  const res = await postJson('login', { username, authVerifier: toBase64(authKey) })
+  if (res.status === 401) throw new Error('Uložené přihlášení už neplatí')
+  if (!res.ok) throw new Error('Přihlášení se nepovedlo')
+  const { token } = await res.json()
+  setSession(token, dataKey, authKey)
 }
 
 export async function recover(
@@ -100,5 +114,5 @@ export async function recover(
   if (!res.ok) throw new Error('Obnova se nepovedla')
 
   const { token } = await res.json()
-  setSession(token, dataKey)
+  setSession(token, dataKey, newKeys.authKey)
 }

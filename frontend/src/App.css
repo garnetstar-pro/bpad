@@ -90,6 +90,30 @@ body {
 }
 .logout-link:hover { color: var(--accent); }
 
+/* ---- Modal (nabídka biometriky) ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 11, 22, 0.66);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.modal-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 22px 22px 18px;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.8);
+}
+.modal-title { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; margin: 0 0 8px; }
+.modal-text { font-size: 13px; line-height: 1.65; color: var(--ink-dim); margin: 0 0 18px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
 /* ---- Auth obrazovky ---- */
 .auth-page {
   min-height: 100vh;

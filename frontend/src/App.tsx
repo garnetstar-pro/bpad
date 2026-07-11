@@ -1,15 +1,33 @@
+import { useState, useEffect } from 'react'
 import { Routes, Route, Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import AuthGate from './AuthGate'
+import BiometricUnlock from './BiometricUnlock'
+import BiometricEnrollPrompt from './BiometricEnrollPrompt'
+import { hasEnrollment, declinedBiometric, isBiometricAvailable } from './biometric'
 import BpadMark from './BpadMark'
 import Home from './Home'
 import NoteDetail from './NoteDetail'
 import './App.css'
 
 function App() {
-  const { isAuthenticated, username, logout } = useAuth()
+  const { isAuthenticated, username, authenticate, logout } = useAuth()
+  const [usePassword, setUsePassword] = useState(false)
+  const [bioAvailable, setBioAvailable] = useState(false)
+  const [enrollDone, setEnrollDone] = useState(false)
 
-  if (!isAuthenticated) return <AuthGate />
+  useEffect(() => {
+    isBiometricAvailable().then(setBioAvailable)
+  }, [])
+
+  if (!isAuthenticated) {
+    if (hasEnrollment() && !usePassword) {
+      return <BiometricUnlock onUnlocked={authenticate} onPassword={() => setUsePassword(true)} />
+    }
+    return <AuthGate />
+  }
+
+  const offerEnroll = bioAvailable && !hasEnrollment() && !declinedBiometric() && !enrollDone
 
   return (
     <div className="app">
@@ -32,6 +50,10 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/notes/:id" element={<NoteDetail />} />
       </Routes>
+
+      {offerEnroll && username && (
+        <BiometricEnrollPrompt username={username} onDone={() => setEnrollDone(true)} />
+      )}
     </div>
   )
 }
