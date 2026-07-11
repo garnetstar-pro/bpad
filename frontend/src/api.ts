@@ -14,6 +14,18 @@ const API_URL = import.meta.env.DEV
   ? 'http://localhost:7071/api/notes'
   : '/api/notes'
 
+// Poslední známý počet poznámek uživatele – pro počítadlo v banneru u
+// neověřeného účtu. Aktualizuje se při listování/vytvoření/smazání a
+// vyšle událost, na kterou se App přehodnotí.
+let knownNoteCount: number | null = null
+export function getKnownNoteCount(): number | null {
+  return knownNoteCount
+}
+function setKnownNoteCount(n: number | null): void {
+  knownNoteCount = n
+  window.dispatchEvent(new Event('bpad:notes-changed'))
+}
+
 // Dešifrovaný payload uvnitř šifry.
 interface NotePayload {
   title: string
@@ -68,13 +80,17 @@ export async function listNotes(): Promise<Note[]> {
   } catch {
     // Síť nedostupná → čti z lokální cache.
     const cached = username ? getCachedNotes(username) : null
-    if (cached) return Promise.all(cached.map(decrypt))
+    if (cached) {
+      setKnownNoteCount(cached.length)
+      return Promise.all(cached.map(decrypt))
+    }
     throw new Error('Offline a bez uložených poznámek')
   }
   checkAuth(res)
   if (!res.ok) throw new Error('Nepodařilo se načíst poznámky')
   const encrypted: EncryptedNote[] = await res.json()
   if (username) cacheNotes(username, encrypted) // uložit pro offline čtení
+  setKnownNoteCount(encrypted.length)
   return Promise.all(encrypted.map(decrypt))
 }
 
@@ -112,6 +128,7 @@ export async function createNote(content: string): Promise<Note> {
   const enc: EncryptedNote = await res.json()
   const username = getUsername()
   if (username) upsertCachedNote(username, enc)
+  if (knownNoteCount !== null) setKnownNoteCount(knownNoteCount + 1)
   return decrypt(enc)
 }
 
@@ -145,4 +162,5 @@ export async function deleteNote(id: string): Promise<void> {
   if (!res.ok) throw new Error('Smazání selhalo')
   const username = getUsername()
   if (username) removeCachedNote(username, id)
+  if (knownNoteCount !== null && knownNoteCount > 0) setKnownNoteCount(knownNoteCount - 1)
 }

@@ -15,6 +15,7 @@ from repository import get_notes_repository, get_users_repository
 from ratelimit import RateLimiter
 import auth
 import mailer
+import pow
 
 _VERIFY_TTL = timedelta(hours=24)
 _UNVERIFIED_NOTE_LIMIT = 10  # neověřené účty smí max tolik poznámek
@@ -84,7 +85,34 @@ def _prepare_verification(user: User) -> Optional[str]:
     return f"{mailer.base_url()}/verify?user={quote(user.username)}&token={quote(token)}"
 
 
+def _maybe_send_verification(user: User) -> None:
+    """Pošle ověřovací e-mail, jen když uživatel nemá platný token (anti-spam)."""
+    if not user.email:
+        return
+    if (
+        user.verify_token_hash
+        and user.verify_expires
+        and datetime.utcnow() < user.verify_expires
+    ):
+        return  # aktivní token → neposílat znovu
+    link = _prepare_verification(user)
+    users_repo.save_user(user)
+    if link:
+        mailer.send_verification_email(user.email, link)
+
+
 # ----------------------------------------------------------------- auth
+
+@app.route(route="auth/pow-challenge", methods=["GET"])
+def pow_challenge(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
+    username = req.params.get("username", "")
+    if not username.strip():
+        return _error("Chybí uživatelské jméno", 400)
+    return _json(pow.issue_challenge(username), 200)
+
 
 @app.route(route="auth/register", methods=["POST"])
 def register(req: func.HttpRequest) -> func.HttpResponse:
@@ -97,6 +125,8 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         return _error(f"Neplatná data: {str(e)}", 400)
     if not data.username.strip():
         return _error("Chybí uživatelské jméno", 400)
+    if not pow.verify_solution(data.powChallenge, data.powNonce, data.username):
+        return _error("Ověření proti robotům selhalo, zkus registraci znovu.", 403)
     email = data.email.strip().lower()
     if "@" not in email or "." not in email:
         return _error("Neplatný e-mail", 400)
@@ -114,12 +144,9 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
         wrapped_data_key_pw=data.wrappedDataKeyPw,
         wrapped_data_key_rec=data.wrappedDataKeyRec,
     )
-    link = _prepare_verification(user)
     if not users_repo.add_user(user):
         users_repo.release_email(email)  # rollback rezervace
         return _error("Uživatelské jméno je obsazené", 409)
-    if link:
-        mailer.send_verification_email(user.email, link)
     return _json(
         {"token": auth.create_token(user.username), "emailVerified": user.email_verified},
         201,
@@ -296,6 +323,7 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         and not account.email_verified
         and notes_repo.count_notes(user) >= _UNVERIFIED_NOTE_LIMIT
     ):
+        _maybe_send_verification(account)
         return _error(
             f"Ověř svůj e-mail pro víc než {_UNVERIFIED_NOTE_LIMIT} poznámek.", 403
         )

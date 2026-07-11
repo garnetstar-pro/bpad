@@ -48,6 +48,8 @@ class RegisterRequest(BaseModel):
     recAuthVerifier: str
     wrappedDataKeyPw: Encrypted
     wrappedDataKeyRec: Encrypted
+    powChallenge: str
+    powNonce: str
 
 
 class VerifyEmailRequest(BaseModel):
