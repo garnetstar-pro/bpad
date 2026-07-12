@@ -118,10 +118,13 @@ function Home() {
             {/* The row is the note link; pills are siblings (no anchor-in-anchor). */}
             <Link className="entry-main" to={`/notes/${note.id}`}>
               <div className="entry-stamp">
-                {new Date(note.created_at).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                <div className="entry-date">{new Date(note.created_at).toLocaleDateString()}</div>
+                <div className="entry-time">
+                  {new Date(note.created_at).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
               </div>
               <div className="entry-body">
                 <div className="entry-title">{note.title}</div>
