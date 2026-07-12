@@ -4,6 +4,10 @@ import remarkGfm from 'remark-gfm'
 import { markdownComponents } from './markdown'
 import { canAutofocus } from './device'
 import { useTranslation } from './i18n'
+import { TagInput } from './TagInput'
+import { getKnownTags } from './api'
+import { isPremium } from './entitlements'
+import { FREE_TAG_LIMIT } from './tags'
 
 // Config: how many rows the textarea grows to with content.
 // Past this limit the height is fixed and a scrollbar appears.
@@ -11,7 +15,7 @@ const MAX_TEXTAREA_ROWS = 12
 
 interface EditorProps {
   submitLabel: string
-  onSubmit: (content: string, title?: string) => Promise<void>
+  onSubmit: (content: string, title?: string, tags?: string[]) => Promise<void>
   initialContent?: string
   // Show an editable title field (for editing); for a new note the title
   // is derived from the markdown automatically, so the field isn't needed.
@@ -20,6 +24,7 @@ interface EditorProps {
   // Clear the editor after a successful save (for a new note); not for editing.
   resetOnSuccess?: boolean
   onCancel?: () => void
+  initialTags?: string[]
 }
 
 function Editor({
@@ -30,10 +35,12 @@ function Editor({
   initialTitle = '',
   resetOnSuccess = false,
   onCancel,
+  initialTags = [],
 }: EditorProps) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState(initialContent)
   const [title, setTitle] = useState(initialTitle)
+  const [tags, setTags] = useState<string[]>(initialTags)
   const [mode, setMode] = useState<'write' | 'preview'>('write')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -74,10 +81,11 @@ function Editor({
     setSubmitting(true)
     setError(null)
     try {
-      await onSubmit(draft, editableTitle ? title : undefined)
+      await onSubmit(draft, editableTitle ? title : undefined, tags)
       if (resetOnSuccess) {
         setDraft('')
         setTitle('')
+        setTags([])
         setMode('write')
       }
     } catch (err) {
@@ -114,6 +122,11 @@ function Editor({
             disabled={submitting}
           />
         </div>
+      )}
+
+      <TagInput value={tags} onChange={setTags} suggestions={getKnownTags()} />
+      {!isPremium() && tags.length > FREE_TAG_LIMIT && (
+        <div className="tag-nudge">{t('tags.overLimit', { count: tags.length, limit: FREE_TAG_LIMIT })}</div>
       )}
 
       <div className="capture-tabs">
