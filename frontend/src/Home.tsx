@@ -113,19 +113,22 @@ function Home() {
           <div className="empty-state">{t('home.nothingFound')}</div>
         )}
         {filtered.map((note) => (
-          <Link className="entry" key={note.id} to={`/notes/${note.id}`}>
-            <div className="entry-stamp">
-              {new Date(note.created_at).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </div>
-            <div className="entry-body">
-              <div className="entry-title">{note.title}</div>
-              <TagPills tags={note.tags} />
-            </div>
-            <div className="entry-chevron">›</div>
-          </Link>
+          <div className="entry" key={note.id}>
+            {/* The row is the note link; pills are siblings (no anchor-in-anchor). */}
+            <Link className="entry-main" to={`/notes/${note.id}`}>
+              <div className="entry-stamp">
+                {new Date(note.created_at).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+              <div className="entry-body">
+                <div className="entry-title">{note.title}</div>
+              </div>
+              <div className="entry-chevron">›</div>
+            </Link>
+            <TagPills tags={note.tags} />
+          </div>
         ))}
       </div>
     </>
