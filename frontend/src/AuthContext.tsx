@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { clearSession } from './session'
-import { canAutofocus } from './device'
+import { isTouchPrimary } from './device'
 
 interface AuthState {
   username: string | null
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Idle lock (desktop only — not on touch devices). Clears the in-memory keys
   // and shows the lock screen; the username is kept for a quick password re-auth.
   useEffect(() => {
-    if (username === null || locked || !canAutofocus()) return
+    if (username === null || locked || isTouchPrimary()) return
     let last = Date.now()
     const bump = () => { last = Date.now() }
     const check = () => {
