@@ -43,6 +43,7 @@ const DUMP = arg('dump')
 const BASE = (arg('url') || '').replace(/\/$/, '')
 const USER = arg('user')
 const USER_ID = String(arg('user-id', '1'))
+const SKIP = parseInt(arg('skip', '0'), 10) // skip the first N (resume/continue)
 const LIMIT = parseInt(arg('limit', '0'), 10) // 0 = all
 const DRY = !!arg('dry-run')
 if (!DUMP || (!DRY && (!BASE || !USER))) {
@@ -131,8 +132,9 @@ function promptHidden(q) {
 async function main() {
   const rows = parseArticles(readFileSync(DUMP, 'utf8'))
   let notes = rows.filter((r) => r.deleted == null && r.user_id === USER_ID)
+  if (SKIP > 0) notes = notes.slice(SKIP)
   if (LIMIT > 0) notes = notes.slice(0, LIMIT)
-  console.log(`Parsed ${rows.length} rows; importing ${notes.length} (user_id=${USER_ID}, not deleted).`)
+  console.log(`Parsed ${rows.length} rows; importing ${notes.length} (user_id=${USER_ID}, not deleted, skip=${SKIP}).`)
 
   if (DRY) {
     console.log('\n--dry-run: not contacting the API. Sample:')
