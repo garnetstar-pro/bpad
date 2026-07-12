@@ -9,6 +9,7 @@ import { markdownComponents } from './markdown'
 import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
 import { useTranslation, translate } from './i18n'
+import { TagPills } from './TagPills'
 
 function NoteDetail() {
   const { t } = useTranslation()
@@ -33,9 +34,9 @@ function NoteDetail() {
     }
   }, [id])
 
-  const handleUpdate = async (content: string, title?: string) => {
+  const handleUpdate = async (content: string, title?: string, tags?: string[]) => {
     if (!id) return
-    const updated = await updateNote(id, content, title)
+    const updated = await updateNote(id, content, title, tags ?? [])
     setNote(updated)
     setEditing(false)
   }
@@ -72,6 +73,7 @@ function NoteDetail() {
           onSubmit={handleUpdate}
           initialContent={note.content}
           initialTitle={note.title}
+          initialTags={note.tags}
           editableTitle
           onCancel={() => setEditing(false)}
         />
@@ -81,6 +83,7 @@ function NoteDetail() {
             {new Date(note.created_at).toLocaleString()}
           </div>
           <h1 className="note-detail-title">{note.title}</h1>
+          <TagPills tags={note.tags} />
           <div className="markdown-body">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
               {contentWithoutTitleHeading(note.content, note.title)}
