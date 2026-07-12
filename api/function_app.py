@@ -347,7 +347,12 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
             f"Verify your e-mail for more than {_UNVERIFIED_NOTE_LIMIT} notes.", 403
         )
 
-    note = Note(user_id=user, iv=data.iv, ct=data.ct)
+    note = Note(
+        user_id=user,
+        iv=data.iv,
+        ct=data.ct,
+        **({"created_at": data.created_at} if data.created_at else {}),
+    )
     notes_repo.save_note(note)
     return _json(note.model_dump(mode="json"), 201)
 
