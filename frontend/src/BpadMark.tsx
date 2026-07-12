@@ -1,4 +1,4 @@
-// Značka bpad: zápisník (modré panely) se zámkem a zelenou záložkou.
+// bpad mark: a notebook (blue panels) with a lock and a green bookmark.
 export default function BpadMark({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="11 16 42 42" aria-hidden="true">

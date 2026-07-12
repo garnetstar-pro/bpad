@@ -22,7 +22,7 @@ function detectLocale(): Locale {
   return isLocale(nav) ? nav : 'en'
 }
 
-// Modul-level aktivní locale pro non-hook translate() (moduly bez Reactu).
+// Module-level active locale for the non-hook translate() (modules without React).
 let activeLocale: Locale = 'en'
 export function setActiveLocale(l: Locale): void {
   activeLocale = l
@@ -48,7 +48,7 @@ function resolve(locale: Locale, key: string, params?: Params): string {
   return s === undefined ? key : interpolate(s, params)
 }
 
-// Non-hook překlad pro plain moduly (api.ts, authApi.ts, …).
+// Non-hook translation for plain modules (api.ts, authApi.ts, …).
 export function translate(key: string, params?: Params): string {
   return resolve(activeLocale, key, params)
 }
@@ -76,7 +76,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         try {
           localStorage.setItem(STORAGE_KEY, l)
         } catch {
-          // localStorage nedostupný – jen držíme v paměti
+          // localStorage unavailable – just keep it in memory
         }
         setLocaleState(l)
       },

@@ -24,6 +24,6 @@ describe('isUnsupportedError', () => {
   })
 
   it('friendlyError hints at the certificate for unsupported errors', () => {
-    expect(friendlyError({ name: 'SecurityError' })).toMatch(/certifik/i)
+    expect(friendlyError({ name: 'SecurityError' })).toMatch(/certificate/i)
   })
 })

@@ -1,6 +1,6 @@
-// Lokální cache pro offline čtení (localStorage, per uživatel). Ukládá se JEN
-// šifra poznámek + veřejný auth materiál (sůl, obalený dataKey) – nikdy
-// plaintext ani heslo. Best-effort (chyby kvóty se ignorují).
+// Local cache for offline reading (localStorage, per user). Stores ONLY the
+// notes' ciphertext + public auth material (salt, wrapped dataKey) – never
+// plaintext or the password. Best-effort (quota errors are ignored).
 import type { Encrypted } from './crypto'
 
 export interface EncryptedNote {
@@ -31,7 +31,7 @@ function writeJson(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    /* kvóta / private mode – offline cache je best-effort */
+    /* quota / private mode – the offline cache is best-effort */
   }
 }
 
@@ -43,7 +43,7 @@ export function getCachedNotes(username: string): EncryptedNote[] | null {
   return readJson<EncryptedNote[]>(notesKey(username))
 }
 
-// Udržet cache v souladu se zápisy (aby offline čtení ukazovalo aktuální stav).
+// Keep the cache in sync with writes (so offline reading shows the current state).
 export function upsertCachedNote(username: string, note: EncryptedNote): void {
   const list = getCachedNotes(username) ?? []
   const idx = list.findIndex((n) => n.id === note.id)

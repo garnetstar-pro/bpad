@@ -28,9 +28,9 @@ export function isUnsupportedError(err: unknown): boolean {
 
 export function friendlyError(err: unknown): string {
   if (isUnsupportedError(err)) {
-    return 'Biometrika v tomto prohlížeči nefunguje (nejspíš kvůli certifikátu). Přihlas se heslem.'
+    return translate('errors.biometricUnsupported')
   }
-  return 'Ověření se nepovedlo. Zkus to znovu nebo použij heslo.'
+  return translate('errors.biometricVerifyFailed')
 }
 
 export async function isBiometricAvailable(): Promise<boolean> {

@@ -1,6 +1,7 @@
-// Session žije JEN v paměti (žádné localStorage): token pro API, dataKey pro
-// šifrování, authKey pro re-login, username pro cache. Token může být null =
-// offline odemčeno (jen čtení z lokální cache). Zavření karty = odhlášení.
+// The session lives ONLY in memory (no localStorage): token for the API,
+// dataKey for encryption, authKey for re-login, username for the cache. Token
+// can be null = unlocked offline (read-only from the local cache). Closing
+// the tab = logout.
 let token: string | null = null
 let dataKey: Uint8Array | null = null
 let authKey: Uint8Array | null = null
@@ -41,7 +42,7 @@ export function getUsername(): string | null {
   return username
 }
 
-// Odemčeno, ale bez tokenu = offline režim → jen čtení.
+// Unlocked but with no token = offline mode → read-only.
 export function isOfflineReadOnly(): boolean {
   return dataKey !== null && token === null
 }

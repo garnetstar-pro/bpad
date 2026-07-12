@@ -25,7 +25,7 @@ describe('findNonce', () => {
   })
 
   it('gives up after maxAttempts instead of looping forever', async () => {
-    // 64 bitů je v 500 pokusech prakticky nesplnitelných → musí to vzdát chybou
-    await expect(findNonce('x', 64, 500)).rejects.toThrow(/moc dlouho|zkus to znovu/i)
+    // 64 bits is practically unreachable in 500 attempts → must give up with an error
+    await expect(findNonce('x', 64, 500)).rejects.toThrow(/taking too long|try again/i)
   })
 })

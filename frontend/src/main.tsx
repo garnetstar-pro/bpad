@@ -7,8 +7,8 @@ import './index.css'
 import App from './App.tsx'
 import UpdatePrompt from './UpdatePrompt'
 
-// UpdatePrompt registruje service worker (appka běží i offline / jde na plochu)
-// a hlídá novou verzi.
+// UpdatePrompt registers the service worker (the app runs offline / can be
+// installed) and watches for a new version.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LanguageProvider>

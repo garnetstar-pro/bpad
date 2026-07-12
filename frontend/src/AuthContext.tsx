@@ -4,7 +4,7 @@ import { clearSession } from './session'
 interface AuthState {
   username: string | null
   isAuthenticated: boolean
-  // Zavolá se po úspěšném přihlášení/registraci/obnově (session už je nastavená).
+  // Called after a successful login/registration/recovery (the session is already set).
   authenticate: (username: string) => void
   logout: () => void
 }
@@ -14,7 +14,7 @@ const AuthCtx = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null)
 
-  // Když API narazí na 401 (vypršelý token), vrátíme uživatele na přihlášení.
+  // When the API hits a 401 (expired token), send the user back to login.
   useEffect(() => {
     const onUnauthorized = () => setUsername(null)
     window.addEventListener('bpad:unauthorized', onUnauthorized)
@@ -36,6 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthState {
   const ctx = useContext(AuthCtx)
-  if (!ctx) throw new Error('useAuth musí být uvnitř <AuthProvider>')
+  if (!ctx) throw new Error('useAuth must be used within <AuthProvider>')
   return ctx
 }

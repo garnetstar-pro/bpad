@@ -7,6 +7,7 @@ export const en = {
     back: '← back',
     logOut: 'log out',
     loading: 'loading…',
+    untitled: '(untitled)',
   },
   editor: {
     saveHint: 'ctrl+enter or click “{label}”',
@@ -176,6 +177,13 @@ export const en = {
     biometricEnrollFailed: 'Biometric enrollment failed',
     biometricUnlockFailed: 'Biometric unlock failed',
     noPrfSupport: 'Device doesn’t support PRF (biometric unlock)',
+    noBiometricEnrollment: 'No biometric login enrolled',
+    biometricUnwrapFailed: 'Biometric unlock failed',
+    biometricUnsupported:
+      'Biometrics don’t work in this browser (probably a certificate issue). Log in with your password instead.',
+    biometricVerifyFailed: 'Verification failed. Try again or use your password.',
+    powTimeout: 'Verification is taking too long — try again.',
+    powFailed: 'Robot verification failed',
   },
   welcome: {
     md: `# 👋 Welcome to bpad
