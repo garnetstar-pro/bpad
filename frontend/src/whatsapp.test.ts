@@ -34,6 +34,10 @@ describe('toWhatsApp', () => {
     expect(toWhatsApp('- one\n- two')).toBe('• one\n• two')
   })
 
+  it('strips angle brackets from autolinks', () => {
+    expect(toWhatsApp('see <http://astropixels.com/x>')).toBe('see http://astropixels.com/x')
+  })
+
   it('inline code loses its backticks', () => {
     expect(toWhatsApp('run `npm test` now')).toBe('run npm test now')
   })
