@@ -107,6 +107,49 @@ export const en = {
   features: {
     title: 'What bpad can do',
   },
+  offline: {
+    banner: 'Offline · read-only — changes can’t be saved',
+  },
+  verify: {
+    remaining:
+      'Unverified account — {remaining} of {limit} notes left. Verify your e-mail to write without limits.',
+    atLimit: 'You’ve hit the {limit}-note limit — verify your e-mail to keep writing.',
+    sent: 'Sent ✓ — check your inbox',
+    sendLink: 'Send verification link',
+    sendFailed: 'Failed, try again',
+    softGate: 'Verify your e-mail for more than {limit} notes.', // mirror of backend message (see Task 7)
+    title: 'Verify e-mail',
+    checking: 'Verifying…',
+    done: 'Done — e-mail verified. ✅',
+    invalid: 'The link is invalid or has expired.',
+    backToApp: 'Back to bpad',
+  },
+  update: {
+    available: 'A new version of bpad is available.',
+    refresh: 'Update',
+    dismiss: 'Close',
+  },
+  capture: {
+    saving: 'saving link…',
+    failed: 'Saving the link failed',
+    home: '← home',
+  },
+  biometric: {
+    enableLink: 'unlock with fingerprint',
+    unlockTitle: 'Unlock',
+    loggedInAs: 'Logged in as {username}.',
+    unlocking: 'unlocking…',
+    unlock: 'Unlock with fingerprint',
+    usePasswordInstead: 'Enter password instead',
+    forgetDevice: 'Forget this device',
+    hint: 'The fingerprint unlocks a key stored only on this device. The password is never sent.',
+    enrollTitle: 'Unlock with fingerprint?',
+    enrollText:
+      'Next time you can unlock the vault with your fingerprint or Face ID instead of a password. It’s stored only encrypted on this device — the password is never stored.',
+    later: 'Not now',
+    enrolling: 'enrolling…',
+    enable: 'Enable',
+  },
 } as const
 
 export type Dictionary = typeof en

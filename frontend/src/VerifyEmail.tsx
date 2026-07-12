@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import BpadMark from './BpadMark'
 import { verifyEmail } from './authApi'
+import { useTranslation } from './i18n'
 
-// Stránka z ověřovacího odkazu v e-mailu (funguje i bez přihlášení).
+// Page reached from the verification link in the e-mail (works without being logged in too).
 export default function VerifyEmail() {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<'busy' | 'ok' | 'error'>('busy')
 
   useEffect(() => {
@@ -26,21 +28,21 @@ export default function VerifyEmail() {
           <div className="brand-wrap">
             <BpadMark size={34} />
             <div>
-              <div className="brand-kicker">blank pad · encrypted</div>
+              <div className="brand-kicker">{t('auth.brandKicker')}</div>
               <div className="brand">bpad</div>
             </div>
           </div>
           <div className="brand-meta">verify</div>
         </div>
 
-        <h2 className="auth-title">Ověření e-mailu</h2>
-        {status === 'busy' && <p className="auth-sub">Ověřuji…</p>}
-        {status === 'ok' && <p className="auth-sub">Hotovo — e-mail je ověřený. ✅</p>}
+        <h2 className="auth-title">{t('verify.title')}</h2>
+        {status === 'busy' && <p className="auth-sub">{t('verify.checking')}</p>}
+        {status === 'ok' && <p className="auth-sub">{t('verify.done')}</p>}
         {status === 'error' && (
-          <div className="error-banner">Odkaz je neplatný nebo vypršel.</div>
+          <div className="error-banner">{t('verify.invalid')}</div>
         )}
         <a className="auth-btn" href="/" style={{ textDecoration: 'none' }}>
-          Zpět do bpad
+          {t('verify.backToApp')}
         </a>
       </div>
     </div>
