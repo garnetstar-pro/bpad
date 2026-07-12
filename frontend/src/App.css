@@ -26,7 +26,7 @@ body {
   padding: 32px 20px;
 }
 
-/* Na mobilu využít celou šířku – žádné zbytečné okraje jen pro design */
+/* Use the full width on mobile – no unnecessary margins just for design */
 @media (max-width: 600px) {
   .app {
     padding: 20px 10px;
@@ -90,7 +90,7 @@ body {
 }
 .logout-link:hover { color: var(--accent); }
 
-/* ---- Modal (nabídka biometriky) ---- */
+/* ---- Modal (biometric prompt) ---- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -114,7 +114,7 @@ body {
 .modal-text { font-size: 13px; line-height: 1.65; color: var(--ink-dim); margin: 0 0 18px; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
-/* ---- Auth obrazovky ---- */
+/* ---- Auth screens ---- */
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -418,7 +418,7 @@ body {
   font-size: 18px;
 }
 
-/* Odkaz v hlavičce na seznam */
+/* Link in the header to the list */
 .app-brand {
   display: flex;
   align-items: center;
@@ -433,7 +433,7 @@ body {
   gap: 10px;
 }
 
-/* Detail poznámky */
+/* Note detail */
 .back-link {
   display: inline-block;
   font-size: 11px;
@@ -455,7 +455,7 @@ body {
   padding: 22px 24px;
 }
 
-/* Karta je široká jako seznam, ale text článku se drží čitelné šířky */
+/* The card is as wide as the list, but the article text keeps a readable width */
 .note-detail .markdown-body {
   max-width: 72ch;
 }
@@ -559,7 +559,7 @@ body {
 }
 .verify-sent { color: var(--accent); font-weight: 700; }
 
-/* Upozornění na novou verzi (PWA update) – plovoucí lišta dole */
+/* Notification about a new version (PWA update) – floating bar at the bottom */
 .update-banner {
   position: fixed;
   left: 50%;
@@ -599,7 +599,7 @@ body {
   padding: 0 2px;
 }
 
-/* Profil uživatele */
+/* User profile */
 .app-user-link {
   color: var(--ink);
   text-decoration: none;
@@ -676,7 +676,7 @@ body {
   text-decoration: underline;
 }
 
-/* Přehled funkcí (Co bpad umí) */
+/* Feature overview (What bpad can do) */
 .feature-list {
   list-style: none;
   margin: 0;
@@ -701,7 +701,7 @@ body {
   line-height: 1.5;
 }
 
-/* Editovatelné pole názvu (v editaci) */
+/* Editable title field (while editing) */
 .title-field {
   margin-bottom: 12px;
 }
