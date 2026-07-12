@@ -98,6 +98,10 @@ export default function Account() {
           </>
         )}
 
+        <div>
+          <Link to="/features" className="account-link">Co bpad umí →</Link>
+        </div>
+
         <button className="ghost-btn account-logout" onClick={logout} type="button">
           log out
         </button>
