@@ -107,6 +107,17 @@ export const en = {
   features: {
     title: 'What bpad can do',
   },
+  landing: {
+    tagline: 'An encrypted notebook only you can read.',
+    intro: 'Notes are encrypted in your browser — the server never sees them, and neither do we.',
+    getStarted: 'Create account',
+    login: 'Log in',
+    featuresHeading: 'What you get',
+    privacyHeading: 'Private by design',
+    privacyBody:
+      'Your password and keys never leave the browser. Without your password and recovery code, no one — not even us — can read your notes.',
+    footer: 'bpad · encrypted notebook',
+  },
   offline: {
     banner: 'Offline · read-only — changes can’t be saved',
   },

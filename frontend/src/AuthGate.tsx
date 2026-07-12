@@ -7,7 +7,7 @@ import { createNote } from './api'
 import { welcomeNoteMarkdown } from './welcomeNote'
 import { useTranslation } from './i18n'
 
-type Mode = 'login' | 'register' | 'recover'
+export type Mode = 'login' | 'register' | 'recover'
 
 function Shell({ meta, children }: { meta: string; children: ReactNode }) {
   const { t } = useTranslation()
@@ -245,9 +245,31 @@ function RecoverForm({ onMode }: { onMode: (m: Mode) => void }) {
   )
 }
 
-export default function AuthGate() {
-  const [mode, setMode] = useState<Mode>('login')
-  if (mode === 'register') return <RegisterForm onMode={setMode} />
-  if (mode === 'recover') return <RecoverForm onMode={setMode} />
-  return <LoginForm onMode={setMode} />
+export default function AuthGate({
+  initialMode = 'login',
+  onBack,
+}: {
+  initialMode?: Mode
+  onBack?: () => void
+}) {
+  const { t } = useTranslation()
+  const [mode, setMode] = useState<Mode>(initialMode)
+  const form =
+    mode === 'register' ? (
+      <RegisterForm onMode={setMode} />
+    ) : mode === 'recover' ? (
+      <RecoverForm onMode={setMode} />
+    ) : (
+      <LoginForm onMode={setMode} />
+    )
+  return (
+    <>
+      {onBack && (
+        <button className="landing-back" onClick={onBack} type="button">
+          {t('common.back')}
+        </button>
+      )}
+      {form}
+    </>
+  )
 }

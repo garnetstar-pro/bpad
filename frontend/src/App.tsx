@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from './i18n'
 import { useAuth } from './AuthContext'
-import AuthGate from './AuthGate'
+import AuthGate, { type Mode } from './AuthGate'
+import Landing from './Landing'
 import VerifyEmail from './VerifyEmail'
 import BiometricUnlock from './BiometricUnlock'
 import BiometricEnrollPrompt from './BiometricEnrollPrompt'
@@ -29,6 +30,8 @@ function App() {
   const [forceEnroll, setForceEnroll] = useState(false)
   const [verifySend, setVerifySend] = useState<'idle' | 'sent' | 'error'>('idle')
   const [noteCount, setNoteCount] = useState<number | null>(getKnownNoteCount())
+  // null = show the public landing; otherwise the auth form opens in this mode.
+  const [authMode, setAuthMode] = useState<Mode | null>(null)
 
   useEffect(() => {
     isBiometricAvailable().then(setBioAvailable)
@@ -48,7 +51,16 @@ function App() {
     if (hasEnrollment() && !usePassword) {
       return <BiometricUnlock onUnlocked={authenticate} onPassword={() => setUsePassword(true)} />
     }
-    return <AuthGate />
+    // New visitors see the public landing first; the CTAs open the auth form.
+    if (!authMode) {
+      return (
+        <Landing
+          onGetStarted={() => setAuthMode('register')}
+          onLogin={() => setAuthMode('login')}
+        />
+      )
+    }
+    return <AuthGate initialMode={authMode} onBack={() => setAuthMode(null)} />
   }
 
   const canOfferBio = bioAvailable && !hasEnrollment()
