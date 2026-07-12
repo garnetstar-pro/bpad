@@ -151,6 +151,15 @@ export const en = {
     failed: 'Saving the link failed',
     home: '← home',
   },
+  lock: {
+    title: 'locked',
+    sub: 'Idle too long — enter your password to unlock.',
+    password: 'password',
+    unlock: 'Unlock',
+    unlocking: 'unlocking…',
+    notYou: 'Log in as someone else',
+    failed: 'Wrong password',
+  },
   biometric: {
     enableLink: 'unlock with fingerprint',
     unlockTitle: 'Unlock',

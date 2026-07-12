@@ -18,11 +18,12 @@ import NoteDetail from './NoteDetail'
 import Account from './Account'
 import Features from './Features'
 import Capture from './Capture'
+import LockScreen from './LockScreen'
 import './App.css'
 
 function App() {
   const { t } = useTranslation()
-  const { isAuthenticated, username, authenticate, logout } = useAuth()
+  const { isAuthenticated, username, locked, authenticate, logout } = useAuth()
   const location = useLocation()
   const [usePassword, setUsePassword] = useState(false)
   const [bioAvailable, setBioAvailable] = useState(false)
@@ -62,6 +63,9 @@ function App() {
     }
     return <AuthGate initialMode={authMode} onBack={() => setAuthMode(null)} />
   }
+
+  // Idle-locked: hide the content behind the lock screen (password re-auth).
+  if (locked && username) return <LockScreen username={username} />
 
   const canOfferBio = bioAvailable && !hasEnrollment()
   const showEnroll =
