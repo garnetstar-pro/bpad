@@ -63,6 +63,7 @@ async function decrypt(enc: EncryptedNote): Promise<Note> {
     content: payload.content,
     url: payload.url,
     created_at: enc.created_at,
+    tags: [],
   }
 }
 

@@ -4,4 +4,5 @@ export interface Note {
   content: string
   url: string | null
   created_at: string
+  tags: string[]
 }
