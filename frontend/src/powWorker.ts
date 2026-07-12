@@ -3,7 +3,7 @@
 // throw in the worker doesn't trigger worker.onerror, so solvePow would
 // otherwise hang forever.
 import { findNonce, type PowResult } from './pow'
-import { translate } from './i18n'
+import { translate } from './i18n/translate'
 
 self.onmessage = async (e: MessageEvent<{ challenge: string; difficulty: number }>) => {
   const { challenge, difficulty } = e.data

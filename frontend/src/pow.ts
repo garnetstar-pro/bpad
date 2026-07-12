@@ -3,7 +3,7 @@
 // bits. The heavy search runs in a Web Worker so the UI doesn't stall;
 // verification on the server is a single hash.
 import { createSHA256 } from 'hash-wasm'
-import { translate } from './i18n'
+import { translate } from './i18n/translate'
 
 export function countLeadingZeroBits(bytes: Uint8Array): number {
   let bits = 0
