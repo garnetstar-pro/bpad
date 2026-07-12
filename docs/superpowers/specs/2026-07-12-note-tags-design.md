@@ -61,8 +61,8 @@ enforced server-side** (the server can't count tags it can't see); the cap is a
 ### 2. Tag normalization & the derived registry — `tags.ts`
 
 - `normalizeTag(raw: string): string` — `trim`, strip a leading `#` (typed out
-  of habit), collapse internal whitespace to a single space, `toLowerCase()`.
-  Returns `''` for empty; callers drop empties.
+  of habit), remove all internal whitespace (**tags are single-word**),
+  `toLowerCase()`. Returns `''` for empty; callers drop empties.
 - `normalizeTags(raw: string[]): string[]` — normalize each, drop empties,
   dedupe preserving first-seen order.
 - `FREE_TAG_LIMIT = 5`.
@@ -83,9 +83,10 @@ A controlled chip-input rendered in the editor (create + edit), separate from
 the body:
 - Props: `value: string[]`, `onChange: (tags: string[]) => void`,
   `suggestions: string[]`.
-- Typing text + **Enter** or **comma** commits `normalizeTag(input)` as a chip
-  (deduped). **Backspace** on empty input removes the last chip. Each chip has
-  an `×` to remove it.
+- Typing text + **Enter**, **comma**, or **space** commits `normalizeTag(input)`
+  as a chip (deduped) — space as a delimiter keeps tags single-word.
+  **Backspace** on empty input removes the last chip. Each chip has an `×` to
+  remove it.
 - **Autocomplete:** while typing, show a dropdown of `suggestions` whose value
   starts with (or contains) the current input and isn't already selected; click
   or Enter to add. Suggestions come from `getKnownTags()`.
