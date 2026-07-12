@@ -1,2 +1,10 @@
 User-agent: *
-Disallow: /
+# The public landing page (/) is indexable. Everything below is auth-gated
+# app content (only the landing ever renders to a crawler) — keep it out of
+# search results.
+Allow: /$
+Allow: /assets/
+Disallow: /notes/
+Disallow: /account
+Disallow: /features
+Disallow: /verify
