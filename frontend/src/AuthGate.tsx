@@ -3,6 +3,8 @@ import { useAuth } from './AuthContext'
 import BpadMark from './BpadMark'
 import { canAutofocus } from './device'
 import * as authApi from './authApi'
+import { createNote } from './api'
+import { welcomeNoteMarkdown } from './welcomeNote'
 
 type Mode = 'login' | 'register' | 'recover'
 
@@ -156,6 +158,8 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
       const code = await authApi.register(
         username.trim(), email.trim(), password, () => setSolving(true),
       )
+      // Uvítací demo-poznámka (šifrovaně, best-effort – nesmí zdržet registraci).
+      createNote(welcomeNoteMarkdown(window.location.host)).catch(() => {})
       setRecoveryCode(code)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registrace se nepovedla')

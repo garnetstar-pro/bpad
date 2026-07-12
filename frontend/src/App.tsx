@@ -14,6 +14,7 @@ import BpadMark from './BpadMark'
 import Home from './Home'
 import NoteDetail from './NoteDetail'
 import Account from './Account'
+import Features from './Features'
 import Capture from './Capture'
 import './App.css'
 
@@ -113,6 +114,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/notes/:id" element={<NoteDetail />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/features" element={<Features />} />
         {/* Catch-all: zachytí dev.bpad.pro/https://… nebo spadne domů */}
         <Route path="*" element={<Capture />} />
       </Routes>
