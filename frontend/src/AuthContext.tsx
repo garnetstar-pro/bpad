@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { clearSession } from './session'
-import { canAutofocus } from './device'
+import { isTouchPrimary } from './device'
 
 interface AuthState {
   username: string | null
@@ -35,26 +35,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Idle lock (desktop only — not on touch devices). Clears the in-memory keys
   // and shows the lock screen; the username is kept for a quick password re-auth.
+  // Primary trigger: leaving the tab/window (switch tab or app) and coming back
+  // after the timeout. Also locks after the timeout of foreground inactivity.
   useEffect(() => {
-    if (username === null || locked || !canAutofocus()) return
+    if (username === null || locked || isTouchPrimary()) return
     let last = Date.now()
-    const bump = () => { last = Date.now() }
-    const check = () => {
-      if (Date.now() - last > IDLE_TIMEOUT_MS) {
-        clearSession()
-        setLocked(true)
-      }
+    let awayAt: number | null = null
+    const lock = () => {
+      clearSession()
+      setLocked(true)
     }
-    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
-    events.forEach((e) => window.addEventListener(e, bump, { passive: true }))
-    const onVisible = () => { if (document.visibilityState === 'visible') check() }
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', check)
-    const timer = setInterval(check, 30_000)
+    const bump = () => { last = Date.now() }
+    const idleCheck = () => { if (Date.now() - last > IDLE_TIMEOUT_MS) lock() }
+    // Tab hidden or window blurred → remember when we left.
+    const leave = () => { if (awayAt === null) awayAt = Date.now() }
+    // Back on the tab/window → lock if we were away long enough.
+    const back = () => {
+      if (awayAt !== null) {
+        const away = Date.now() - awayAt
+        awayAt = null
+        if (away >= IDLE_TIMEOUT_MS) return lock()
+      }
+      last = Date.now() // fresh start; don't lock from a stale foreground timer
+    }
+    const onVisibility = () =>
+      document.visibilityState === 'hidden' ? leave() : back()
+
+    const activity = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
+    activity.forEach((e) => window.addEventListener(e, bump, { passive: true }))
+    window.addEventListener('blur', leave)
+    window.addEventListener('focus', back)
+    document.addEventListener('visibilitychange', onVisibility)
+    const timer = setInterval(idleCheck, 30_000)
     return () => {
-      events.forEach((e) => window.removeEventListener(e, bump))
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', check)
+      activity.forEach((e) => window.removeEventListener(e, bump))
+      window.removeEventListener('blur', leave)
+      window.removeEventListener('focus', back)
+      document.removeEventListener('visibilitychange', onVisibility)
       clearInterval(timer)
     }
   }, [username, locked])
