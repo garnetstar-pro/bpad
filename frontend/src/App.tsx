@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Link, useLocation } from 'react-router-dom'
+import { useTranslation } from './i18n'
 import { useAuth } from './AuthContext'
-import AuthGate from './AuthGate'
+import AuthGate, { type Mode } from './AuthGate'
+import Landing from './Landing'
 import VerifyEmail from './VerifyEmail'
 import BiometricUnlock from './BiometricUnlock'
 import BiometricEnrollPrompt from './BiometricEnrollPrompt'
@@ -19,6 +21,7 @@ import Capture from './Capture'
 import './App.css'
 
 function App() {
+  const { t } = useTranslation()
   const { isAuthenticated, username, authenticate, logout } = useAuth()
   const location = useLocation()
   const [usePassword, setUsePassword] = useState(false)
@@ -27,26 +30,37 @@ function App() {
   const [forceEnroll, setForceEnroll] = useState(false)
   const [verifySend, setVerifySend] = useState<'idle' | 'sent' | 'error'>('idle')
   const [noteCount, setNoteCount] = useState<number | null>(getKnownNoteCount())
+  // null = show the public landing; otherwise the auth form opens in this mode.
+  const [authMode, setAuthMode] = useState<Mode | null>(null)
 
   useEffect(() => {
     isBiometricAvailable().then(setBioAvailable)
   }, [])
 
-  // Přehodnotit počítadlo v banneru, když se změní počet poznámek.
+  // Re-evaluate the banner counter when the note count changes.
   useEffect(() => {
     const sync = () => setNoteCount(getKnownNoteCount())
     window.addEventListener('bpad:notes-changed', sync)
     return () => window.removeEventListener('bpad:notes-changed', sync)
   }, [])
 
-  // Ověřovací odkaz z e-mailu – funguje i bez přihlášení.
+  // Verification link from the e-mail – works without being logged in too.
   if (location.pathname === '/verify') return <VerifyEmail />
 
   if (!isAuthenticated) {
     if (hasEnrollment() && !usePassword) {
       return <BiometricUnlock onUnlocked={authenticate} onPassword={() => setUsePassword(true)} />
     }
-    return <AuthGate />
+    // New visitors see the public landing first; the CTAs open the auth form.
+    if (!authMode) {
+      return (
+        <Landing
+          onGetStarted={() => setAuthMode('register')}
+          onLogin={() => setAuthMode('login')}
+        />
+      )
+    }
+    return <AuthGate initialMode={authMode} onBack={() => setAuthMode(null)} />
   }
 
   const canOfferBio = bioAvailable && !hasEnrollment()
@@ -59,7 +73,7 @@ function App() {
         <Link to="/" className="app-brand">
           <BpadMark size={40} />
           <div>
-            <div className="case-number">blank pad · encrypted</div>
+            <div className="case-number">{t('auth.brandKicker')}</div>
             <div className="app-title">bpad</div>
           </div>
         </Link>
@@ -76,24 +90,24 @@ function App() {
                 }}
                 type="button"
               >
-                odemykat otiskem
+                {t('biometric.enableLink')}
               </button>
               <br />
             </>
           )}
-          <button className="logout-link" onClick={logout} type="button">log out</button>
+          <button className="logout-link" onClick={logout} type="button">{t('common.logOut')}</button>
         </div>
       </header>
 
       {isOfflineReadOnly() && (
-        <div className="offline-banner">Offline · jen čtení — změny nejdou uložit</div>
+        <div className="offline-banner">{t('offline.banner')}</div>
       )}
 
       {getEmailVerified() === false && (
         <div className="verify-banner">
           <span>{verifyBannerMessage(noteCount)}</span>{' '}
           {verifySend === 'sent' ? (
-            <span className="verify-sent">Odesláno ✓ — mrkni do schránky</span>
+            <span className="verify-sent">{t('verify.sent')}</span>
           ) : (
             <button
               className="verify-resend"
@@ -104,7 +118,7 @@ function App() {
                   .catch(() => setVerifySend('error'))
               }}
             >
-              {verifySend === 'error' ? 'Nepovedlo se, zkus znovu' : 'Poslat ověřovací odkaz'}
+              {verifySend === 'error' ? t('verify.sendFailed') : t('verify.sendLink')}
             </button>
           )}
         </div>
@@ -115,7 +129,7 @@ function App() {
         <Route path="/notes/:id" element={<NoteDetail />} />
         <Route path="/account" element={<Account />} />
         <Route path="/features" element={<Features />} />
-        {/* Catch-all: zachytí dev.bpad.pro/https://… nebo spadne domů */}
+        {/* Catch-all: captures dev.bpad.pro/https://… or falls back home */}
         <Route path="*" element={<Capture />} />
       </Routes>
 

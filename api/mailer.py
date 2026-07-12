@@ -1,8 +1,8 @@
-"""Odesílání ověřovacích e-mailů.
+"""Sends verification e-mails.
 
-Přes Azure Communication Services (když je nastaven ACS_CONNECTION_STRING +
-EMAIL_SENDER), jinak jen zaloguje odkaz (vývoj). Selhání odeslání nesmí shodit
-registraci – voláme best-effort.
+Via Azure Communication Services (when ACS_CONNECTION_STRING + EMAIL_SENDER
+are set), otherwise just logs the link (dev). A send failure must not break
+registration - we call it best-effort.
 """
 import logging
 import os
@@ -13,7 +13,7 @@ def send_verification_email(to_email: str, link: str) -> None:
     sender = os.environ.get("EMAIL_SENDER")
     if not conn or not sender:
         logging.warning(
-            "E-mail provider není nastaven – ověřovací odkaz pro %s: %s", to_email, link
+            "Email provider is not set - verification link for %s: %s", to_email, link
         )
         return
 
@@ -25,26 +25,26 @@ def send_verification_email(to_email: str, link: str) -> None:
             "senderAddress": sender,
             "recipients": {"to": [{"address": to_email}]},
             "content": {
-                "subject": "bpad – ověření e-mailu",
+                "subject": "bpad – verify your e-mail",
                 "plainText": (
-                    "Ověř svůj e-mail kliknutím na odkaz:\n"
-                    f"{link}\n\nPokud jsi se neregistroval, tento e-mail ignoruj."
+                    "Verify your e-mail by clicking this link:\n"
+                    f"{link}\n\nIf you didn't sign up, you can ignore this e-mail."
                 ),
                 "html": (
-                    "<p>Ověř svůj e-mail pro <b>bpad</b>:</p>"
+                    "<p>Verify your e-mail for <b>bpad</b>:</p>"
                     f'<p><a href="{link}">{link}</a></p>'
-                    "<p style=\"color:#888\">Pokud jsi se neregistroval, e-mail ignoruj.</p>"
+                    "<p style=\"color:#888\">If you didn't sign up, you can ignore this e-mail.</p>"
                 ),
             },
         }
         poller = client.begin_send(message)
-        result = poller.result()  # počkáme na výsledek, ať víme, jestli to prošlo
+        result = poller.result()  # wait for the result so we know if it succeeded
         status = getattr(result, "status", None) or (
             result.get("status") if isinstance(result, dict) else result
         )
-        logging.info("Ověřovací e-mail pro %s: status=%s", to_email, status)
-    except Exception as e:  # noqa: BLE001 – best-effort, účet se vytvoří i tak
-        logging.error("Odeslání ověřovacího e-mailu selhalo: %s", e)
+        logging.info("Verification email for %s: status=%s", to_email, status)
+    except Exception as e:  # noqa: BLE001 - best-effort, the account is created regardless
+        logging.error("Failed to send verification email: %s", e)
 
 
 def base_url() -> str:

@@ -1,10 +1,11 @@
-// Orchestrace biometrického odemykání: zabalí klíče trezoru PRF klíčem a uloží
-// je (jen jako šifru) do localStorage; při odemčení je odbalí a re-loginem
-// obnoví session. Heslo se nikdy neukládá.
+// Orchestrates biometric unlock: wraps the vault keys with a PRF key and
+// stores them (ciphertext only) in localStorage; on unlock it unwraps them
+// and restores the session via a re-login. The password is never stored.
 import { encryptJSON, decryptJSON, toBase64, fromBase64 } from './crypto'
 import { getAuthKey, getDataKey } from './session'
 import { loginWithAuthKey } from './authApi'
 import * as webauthn from './webauthn'
+import { translate } from './i18n'
 
 const STORE_KEY = 'bpad.biometric'
 const DECLINED_KEY = 'bpad.biometric.declined'
@@ -47,11 +48,11 @@ export function forget(): void {
   localStorage.removeItem(STORE_KEY)
 }
 
-// Zapnout na tomto zařízení (uživatel je přihlášený).
+// Enable on this device (the user is logged in).
 export async function enroll(username: string): Promise<void> {
   const authKey = getAuthKey()
   const dataKey = getDataKey()
-  if (!authKey || !dataKey) throw new Error('Trezor není odemčený')
+  if (!authKey || !dataKey) throw new Error(translate('errors.vaultLocked'))
 
   const { credentialId, prfKey } = await webauthn.enroll(username)
   const payload: StoredKeys = { authKey: toBase64(authKey), dataKey: toBase64(dataKey) }
@@ -62,24 +63,24 @@ export async function enroll(username: string): Promise<void> {
   localStorage.removeItem(DECLINED_KEY)
 }
 
-// Odemknout otiskem: vrátí username přihlášeného uživatele.
+// Unlock with a fingerprint: returns the logged-in user's username.
 export async function unlock(): Promise<string> {
   const enrollment = getEnrollment()
-  if (!enrollment) throw new Error('Žádné biometrické přihlášení')
+  if (!enrollment) throw new Error(translate('errors.noBiometricEnrollment'))
 
   const prfKey = await webauthn.getPrfKey(enrollment.credentialId)
   let keys: StoredKeys
   try {
     keys = await decryptJSON<StoredKeys>(enrollment.wrapped, prfKey)
   } catch {
-    throw new Error('Biometrické odemčení selhalo')
+    throw new Error(translate('errors.biometricUnwrapFailed'))
   }
 
   try {
     await loginWithAuthKey(enrollment.username, fromBase64(keys.authKey), fromBase64(keys.dataKey))
   } catch (err) {
-    // Uložené přihlášení už neplatí (heslo změněné jinde) → zapomenout.
-    if (err instanceof Error && err.message.includes('neplatí')) forget()
+    // Saved login is no longer valid (password changed elsewhere) → forget it.
+    if (err instanceof Error && err.message.includes('no longer valid')) forget()
     throw err
   }
   return enrollment.username

@@ -1,5 +1,6 @@
-// Odvození titulku poznámky z markdownu — klientská verze (server na obsah
-// nevidí). Musí odpovídat dřívějšímu backendovému chování.
+// Derives a note's title from its markdown — client-side version (the
+// server never sees the content). Must match the earlier backend behavior.
+import { translate } from './i18n'
 
 const IMAGE_RE = /!\[([^\]]*)\]\([^)]*\)/g
 const LINK_RE = /\[([^\]]+)\]\([^)]*\)/g
@@ -7,7 +8,7 @@ const CODE_RE = /`([^`]+)`/g
 const EMPHASIS_RE = /(\*\*\*|\*\*|\*|___|__|_)(.+?)\1/g
 const STRIKE_RE = /~~(.+?)~~/g
 
-// Odstraní inline markdown (tučné, kurzíva, odkazy, obrázky, kód) na plain text.
+// Strips inline markdown (bold, italic, links, images, code) down to plain text.
 export function stripInlineMarkdown(text: string): string {
   return text
     .replace(IMAGE_RE, '$1')
@@ -20,7 +21,7 @@ export function stripInlineMarkdown(text: string): string {
 
 const HEADING_RE = /^\s*#{1,6}\s+(.*?)\s*#*\s*$/
 
-// První ATX nadpis, jinak první neprázdný řádek, jinak placeholder.
+// The first ATX heading, else the first non-blank line, else a placeholder.
 export function extractTitle(content: string): string {
   const lines = content.split('\n')
   for (const line of lines) {
@@ -30,10 +31,10 @@ export function extractTitle(content: string): string {
   for (const line of lines) {
     if (line.trim()) return stripInlineMarkdown(line)
   }
-  return '(bez názvu)'
+  return translate('common.untitled')
 }
 
-// Použij zadaný titulek, jinak ho odvoď z obsahu (nikdy prázdný).
+// Use the given title if any, else derive it from the content (never empty).
 export function resolveTitle(title: string | undefined, content: string): string {
   if (title && title.trim()) return title.trim()
   return extractTitle(content)

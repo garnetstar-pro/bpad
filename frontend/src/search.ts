@@ -1,13 +1,13 @@
 import type { Note } from './types'
 
-// Odstraní diakritiku a sjednotí velikost písmen, aby „clanek" == „Článek".
-// ̀-ͯ = kombinující diakritická znaménka (vzniknou z NFD rozkladu).
+// Strips diacritics and unifies case, so „clanek" == „Článek".
+// ̀-ͯ = combining diacritical marks (produced by NFD decomposition).
 const COMBINING_MARKS = /[̀-ͯ]/g
 const normalize = (s: string) =>
   s.normalize('NFD').replace(COMBINING_MARKS, '').toLowerCase()
 
-// Vrátí poznámky, jejichž titulek nebo obsah obsahuje hledaný výraz
-// (bez ohledu na diakritiku a velikost písmen). Prázdný dotaz vrátí vše.
+// Returns the notes whose title or content contains the search term
+// (ignoring diacritics and case). An empty query returns everything.
 export function filterNotes(notes: Note[], query: string): Note[] {
   const q = normalize(query.trim())
   if (!q) return notes

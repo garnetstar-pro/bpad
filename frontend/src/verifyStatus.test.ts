@@ -19,12 +19,12 @@ describe('remainingNotes', () => {
 
 describe('verifyBannerMessage', () => {
   it('shows the remaining count before the limit', () => {
-    expect(verifyBannerMessage(7)).toContain('zbývá 3 z 10')
+    expect(verifyBannerMessage(7)).toContain('3 of 10')
   })
 
   it('switches to a limit-reached message at zero remaining', () => {
     const msg = verifyBannerMessage(10)
-    expect(msg).toContain('limitu 10')
-    expect(msg).not.toContain('zbývá')
+    expect(msg).toContain('10-note limit')
+    expect(msg).not.toContain('left')
   })
 })

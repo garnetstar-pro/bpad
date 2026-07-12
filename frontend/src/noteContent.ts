@@ -2,8 +2,8 @@ import { stripInlineMarkdown } from './titles'
 
 const HEADING_RE = /^\s*#{1,6}\s+(.*?)\s*#*\s*$/
 
-// Pro zobrazení v detailu: když se první nadpis obsahu shoduje s titlem,
-// odstraní ho (jinak by se název ukázal dvakrát). Když se liší, obsah nechá.
+// For the detail view: when the content's first heading matches the title,
+// strip it (otherwise the title would show twice). If it differs, leave the content alone.
 export function contentWithoutTitleHeading(content: string, title: string): string {
   const lines = content.split('\n')
   const idx = lines.findIndex((l) => l.trim() !== '')

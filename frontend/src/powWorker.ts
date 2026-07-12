@@ -1,7 +1,9 @@
-// Web Worker: vyřeší PoW mimo hlavní vlákno a pošle výsledek zpět.
-// Chybu (např. vyčerpaný strop pokusů) hlásíme zprávou – async throw ve
-// workeru nespustí worker.onerror, tak by solvePow jinak zůstal viset.
+// Web Worker: solves the PoW off the main thread and posts the result back.
+// We report an error (e.g. attempt cap exhausted) via a message – an async
+// throw in the worker doesn't trigger worker.onerror, so solvePow would
+// otherwise hang forever.
 import { findNonce, type PowResult } from './pow'
+import { translate } from './i18n/translate'
 
 self.onmessage = async (e: MessageEvent<{ challenge: string; difficulty: number }>) => {
   const { challenge, difficulty } = e.data
@@ -9,6 +11,6 @@ self.onmessage = async (e: MessageEvent<{ challenge: string; difficulty: number 
   try {
     post({ nonce: await findNonce(challenge, difficulty) })
   } catch (err) {
-    post({ error: err instanceof Error ? err.message : 'Ověření proti robotům selhalo' })
+    post({ error: err instanceof Error ? err.message : translate('errors.powFailed') })
   }
 }

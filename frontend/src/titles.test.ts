@@ -19,7 +19,7 @@ describe('extractTitle', () => {
   })
 
   it('returns a placeholder for empty input', () => {
-    expect(extractTitle('   \n\t\n')).toBe('(bez názvu)')
+    expect(extractTitle('   \n\t\n')).toBe('(untitled)')
   })
 
   it('strips inline formatting', () => {

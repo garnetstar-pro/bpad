@@ -1,12 +1,12 @@
-// Klientská kryptografická vrstva pro zero-knowledge trezor.
-// Používá jen prověřené primitivy: Argon2id (hash-wasm), HKDF + AES-256-GCM
-// (Web Crypto). Heslo ani odvozené klíče nikdy neopouštějí prohlížeč.
+// Client-side cryptography layer for the zero-knowledge vault.
+// Uses only vetted primitives: Argon2id (hash-wasm), HKDF + AES-256-GCM
+// (Web Crypto). Neither the password nor the derived keys ever leave the browser.
 import { argon2id } from 'hash-wasm'
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
-// Argon2id parametry (laditelné dle výkonu zařízení).
+// Argon2id parameters (tunable to the device's performance).
 const ARGON2 = { parallelism: 1, iterations: 3, memorySize: 65536, hashLength: 32 } as const
 
 // --- base64 <-> bytes ---
@@ -23,15 +23,15 @@ export function fromBase64(b64: string): Uint8Array {
   return bytes
 }
 
-// Web Crypto vyžaduje BufferSource nad ArrayBuffer (ne ArrayBufferLike/Shared).
-// Zkopíruje bajty do čerstvého ArrayBufferu, ať typy i runtime sedí.
+// Web Crypto wants a BufferSource over an ArrayBuffer (not ArrayBufferLike/Shared).
+// Copies the bytes into a fresh ArrayBuffer so both the types and the runtime line up.
 function buf(bytes: Uint8Array): ArrayBuffer {
   const ab = new ArrayBuffer(bytes.byteLength)
   new Uint8Array(ab).set(bytes)
   return ab
 }
 
-// --- náhoda ---
+// --- randomness ---
 export function randomBytes(n: number): Uint8Array {
   return crypto.getRandomValues(new Uint8Array(n))
 }
@@ -44,8 +44,8 @@ export function generateDataKey(): Uint8Array {
   return randomBytes(32)
 }
 
-// Recovery kód: 160 bitů entropie, base32 (RFC 4648, bez matoucích znaků),
-// seskupené po 4 (např. ABCD-EFGH-...). Zobrazí se jen jednou.
+// Recovery code: 160 bits of entropy, base32 (RFC 4648, no confusing chars),
+// grouped in 4s (e.g. ABCD-EFGH-...). Shown only once.
 const BASE32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
 export function generateRecoveryCode(): string {
   const bytes = randomBytes(20)
@@ -56,7 +56,7 @@ export function generateRecoveryCode(): string {
   return out.match(/.{1,4}/g)!.join('-')
 }
 
-// Normalizace recovery kódu při zadání (odstraní pomlčky/mezery, velká písmena).
+// Normalizes the recovery code on entry (strips dashes/spaces, uppercases).
 export function normalizeRecoveryCode(code: string): string {
   return code.replace(/[\s-]/g, '').toUpperCase()
 }
@@ -85,14 +85,14 @@ async function hkdf(keyMaterial: Uint8Array, info: string): Promise<Uint8Array> 
 }
 
 export interface DerivedKeys {
-  // Obaluje dataKey; nikdy neopouští klienta.
+  // Wraps dataKey; never leaves the client.
   encKey: Uint8Array
-  // Důkaz identity vůči serveru (posílá se); z encKey ho nelze odvodit.
+  // Proof of identity sent to the server; authKey can't be derived from encKey.
   authKey: Uint8Array
 }
 
-// Odvodí z hesla (nebo recovery kódu) dvojici klíčů. Deterministické pro
-// stejný vstup + sůl.
+// Derives a pair of keys from the password (or recovery code). Deterministic
+// for the same input + salt.
 export async function deriveKeys(password: string, salt: Uint8Array): Promise<DerivedKeys> {
   const master = await deriveMasterKey(password, salt)
   return {
@@ -128,7 +128,7 @@ export async function decryptBytes(enc: Encrypted, keyBytes: Uint8Array): Promis
   return new Uint8Array(pt)
 }
 
-// Obalení / odbalení náhodného dataKey klíčem odvozeným z hesla či recovery.
+// Wrap / unwrap the random dataKey with a key derived from the password or recovery code.
 export async function wrapDataKey(dataKey: Uint8Array, wrappingKey: Uint8Array): Promise<Encrypted> {
   return encryptBytes(dataKey, wrappingKey)
 }
@@ -137,7 +137,7 @@ export async function unwrapDataKey(wrapped: Encrypted, wrappingKey: Uint8Array)
   return decryptBytes(wrapped, wrappingKey)
 }
 
-// Šifrování / dešifrování JSON payloadu poznámky pomocí dataKey.
+// Encrypt / decrypt a note's JSON payload using the dataKey.
 export async function encryptJSON(value: unknown, dataKey: Uint8Array): Promise<Encrypted> {
   return encryptBytes(textEncoder.encode(JSON.stringify(value)), dataKey)
 }

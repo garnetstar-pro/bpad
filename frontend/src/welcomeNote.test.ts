@@ -12,6 +12,6 @@ describe('welcomeNoteMarkdown', () => {
   })
 
   it('mentions the persistent features page', () => {
-    expect(welcomeNoteMarkdown('x')).toContain('Co bpad umí')
+    expect(welcomeNoteMarkdown('x')).toContain('What bpad can do')
   })
 })

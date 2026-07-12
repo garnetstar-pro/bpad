@@ -1,9 +1,12 @@
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { useTranslation } from './i18n'
 
-// Upozornění na novou verzi. Registruje service worker; když je připravená
-// aktualizace, ukáže lištu s tlačítkem, které na nový SW přepne a obnoví
-// stránku (updateServiceWorker(true)). Řeší zaseknutou keš v nainstalované PWA.
+// New-version notice. Registers the service worker; when an update is
+// ready, shows a banner with a button that switches to the new SW and
+// reloads the page (updateServiceWorker(true)). Fixes a stuck cache in the
+// installed PWA.
 export default function UpdatePrompt() {
+  const { t } = useTranslation()
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -13,15 +16,15 @@ export default function UpdatePrompt() {
 
   return (
     <div className="update-banner" role="status">
-      <span>Je dostupná nová verze bpad.</span>
+      <span>{t('update.available')}</span>
       <button className="update-btn" type="button" onClick={() => updateServiceWorker(true)}>
-        Aktualizovat
+        {t('update.refresh')}
       </button>
       <button
         className="update-dismiss"
         type="button"
         onClick={() => setNeedRefresh(false)}
-        aria-label="Zavřít"
+        aria-label={t('update.dismiss')}
       >
         ×
       </button>

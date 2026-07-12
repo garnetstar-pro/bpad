@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `bpad` is a personal note-capture app deployed as an **Azure Static Web App**: a React/Vite frontend (`frontend/`) served statically, backed by an Azure Functions Python API (`api/`). Azure SWA routes requests under `/api/*` to the Functions app automatically, so the two pieces are deployed together as one unit.
 
-UI copy and log messages are in **Czech** (mixed with some English UI labels). Keep new user-facing/log strings consistent with the existing language of the file you're editing.
+User-facing copy is **English**, delivered via the `t()` i18n layer (`frontend/src/i18n/`) — never hardcode user-facing strings in components. Code comments and logs are **English**. Adding a language means adding a sibling dictionary in `frontend/src/i18n/` (see `en.ts`) and registering it in `index.tsx`'s `LOCALES`.
 
 ## Commands
 

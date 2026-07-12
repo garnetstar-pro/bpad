@@ -1,17 +1,20 @@
-// Text a limit pro upozornění neověřeného účtu. Limit zrcadlí backendovou
-// konstantu _UNVERIFIED_NOTE_LIMIT ve function_app.py – drž je v souladu.
+// Copy and limit for the unverified-account notice. The limit mirrors the
+// backend's _UNVERIFIED_NOTE_LIMIT constant in function_app.py – keep them
+// in sync.
+import { translate } from './i18n'
+
 export const UNVERIFIED_NOTE_LIMIT = 10
 
-// Kolik poznámek ještě zbývá, než neověřený účet narazí na limit (>= 0).
+// How many notes remain before an unverified account hits the limit (>= 0).
 export function remainingNotes(count: number | null, limit = UNVERIFIED_NOTE_LIMIT): number {
   return Math.max(0, limit - (count ?? 0))
 }
 
-// Hláška do verify banneru pro neověřený účet, včetně počítadla.
+// Message for the verify banner on an unverified account, including the counter.
 export function verifyBannerMessage(count: number | null, limit = UNVERIFIED_NOTE_LIMIT): string {
   const remaining = remainingNotes(count, limit)
   if (remaining === 0) {
-    return `Dosáhl jsi limitu ${limit} poznámek — ověř e-mail, ať můžeš psát dál.`
+    return translate('verify.atLimit', { limit })
   }
-  return `Neověřený účet — zbývá ${remaining} z ${limit} poznámek. Ověř e-mail pro neomezené psaní.`
+  return translate('verify.remaining', { remaining, limit })
 }

@@ -5,8 +5,10 @@ import { listNotes, createNote } from './api'
 import { filterNotes } from './search'
 import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
+import { useTranslation, translate } from './i18n'
 
 function Home() {
+  const { t } = useTranslation()
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -22,7 +24,7 @@ function Home() {
       setNotes(await listNotes())
       setError(null)
     } catch {
-      setError('Nepodařilo se spojit s backendem. Běží func start?')
+      setError(translate('home.connectFailed'))
     } finally {
       setLoading(false)
     }
@@ -41,11 +43,11 @@ function Home() {
       {error && <div className="error-banner">{error}</div>}
 
       {!isOfflineReadOnly() && (
-        <Editor submitLabel="File it" onSubmit={handleCreate} resetOnSuccess />
+        <Editor submitLabel={t('editor.fileIt')} onSubmit={handleCreate} resetOnSuccess />
       )}
 
       <div className="section-head">
-        <span className="section-label">recent entries</span>
+        <span className="section-label">{t('home.recentEntries')}</span>
         {searching && (
           <span className="section-count">
             {filtered.length} / {notes.length}
@@ -59,14 +61,14 @@ function Home() {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="hledat v poznámkách…"
+          placeholder={t('home.searchPlaceholder')}
         />
         {searching && (
           <button
             className="search-clear"
             onClick={() => setQuery('')}
             type="button"
-            aria-label="Vymazat hledání"
+            aria-label={t('home.clearSearch')}
           >
             ×
           </button>
@@ -74,12 +76,12 @@ function Home() {
       </div>
 
       <div className="entries">
-        {loading && <div className="empty-state">loading…</div>}
+        {loading && <div className="empty-state">{t('home.loading')}</div>}
         {!loading && notes.length === 0 && (
-          <div className="empty-state">no entries yet</div>
+          <div className="empty-state">{t('home.noEntries')}</div>
         )}
         {!loading && notes.length > 0 && filtered.length === 0 && (
-          <div className="empty-state">nothing found</div>
+          <div className="empty-state">{t('home.nothingFound')}</div>
         )}
         {filtered.map((note) => (
           <Link className="entry" key={note.id} to={`/notes/${note.id}`}>

@@ -26,7 +26,7 @@ body {
   padding: 32px 20px;
 }
 
-/* Na mobilu využít celou šířku – žádné zbytečné okraje jen pro design */
+/* Use the full width on mobile – no unnecessary margins just for design */
 @media (max-width: 600px) {
   .app {
     padding: 20px 10px;
@@ -90,7 +90,7 @@ body {
 }
 .logout-link:hover { color: var(--accent); }
 
-/* ---- Modal (nabídka biometriky) ---- */
+/* ---- Modal (biometric prompt) ---- */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -114,7 +114,7 @@ body {
 .modal-text { font-size: 13px; line-height: 1.65; color: var(--ink-dim); margin: 0 0 18px; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
-/* ---- Auth obrazovky ---- */
+/* ---- Auth screens ---- */
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -418,7 +418,7 @@ body {
   font-size: 18px;
 }
 
-/* Odkaz v hlavičce na seznam */
+/* Link in the header to the list */
 .app-brand {
   display: flex;
   align-items: center;
@@ -433,7 +433,7 @@ body {
   gap: 10px;
 }
 
-/* Detail poznámky */
+/* Note detail */
 .back-link {
   display: inline-block;
   font-size: 11px;
@@ -455,7 +455,7 @@ body {
   padding: 22px 24px;
 }
 
-/* Karta je široká jako seznam, ale text článku se drží čitelné šířky */
+/* The card is as wide as the list, but the article text keeps a readable width */
 .note-detail .markdown-body {
   max-width: 72ch;
 }
@@ -559,7 +559,7 @@ body {
 }
 .verify-sent { color: var(--accent); font-weight: 700; }
 
-/* Upozornění na novou verzi (PWA update) – plovoucí lišta dole */
+/* Notification about a new version (PWA update) – floating bar at the bottom */
 .update-banner {
   position: fixed;
   left: 50%;
@@ -599,7 +599,7 @@ body {
   padding: 0 2px;
 }
 
-/* Profil uživatele */
+/* User profile */
 .app-user-link {
   color: var(--ink);
   text-decoration: none;
@@ -676,7 +676,7 @@ body {
   text-decoration: underline;
 }
 
-/* Přehled funkcí (Co bpad umí) */
+/* Feature overview (What bpad can do) */
 .feature-list {
   list-style: none;
   margin: 0;
@@ -701,7 +701,138 @@ body {
   line-height: 1.5;
 }
 
-/* Editovatelné pole názvu (v editaci) */
+/* Public landing page (pre-registration) */
+.landing {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 20px 40px;
+}
+.landing-hero {
+  text-align: center;
+  padding: 24px 0 8px;
+  border-bottom: 1px solid var(--hairline);
+}
+.landing-title {
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 14px 0 4px;
+}
+.landing-tagline {
+  font-size: 19px;
+  color: var(--ink);
+  font-weight: 600;
+  margin: 0 auto 8px;
+  max-width: 30ch;
+  text-wrap: balance;
+}
+.landing-intro {
+  font-size: 14px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+  margin: 0 auto 24px;
+  max-width: 46ch;
+}
+.landing-cta {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.landing-primary {
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #06130D;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 22px;
+  cursor: pointer;
+}
+.landing-secondary {
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  cursor: pointer;
+}
+.landing-secondary:hover { border-color: var(--ink-dim); }
+
+.landing-section {
+  padding: 32px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.landing-h2 {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 20px;
+}
+.landing-feature-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px 24px;
+}
+.landing-feature-name {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.landing-feature-desc {
+  color: var(--ink-dim);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.landing-privacy-body {
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 60ch;
+  margin: 0 0 22px;
+}
+.landing-footer {
+  text-align: center;
+  color: var(--ink-dim);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding-top: 28px;
+}
+
+/* Floating "back" from the auth form to the landing */
+.landing-back {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  font-family: var(--font);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+.landing-back:hover { color: var(--accent); }
+
+/* Editable title field (while editing) */
 .title-field {
   margin-bottom: 12px;
 }

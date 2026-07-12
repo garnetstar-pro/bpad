@@ -50,12 +50,12 @@ def _signing_key() -> str:
     key = os.environ.get("SESSION_SIGNING_KEY")
     if key:
         return key
-    # Bez nastaveného klíče selži v produkci (jinak by šly padělat tokeny).
-    # Vývojový fallback jen lokálně, kde Functions runtime hlásí "Development".
+    # Fail in production without a configured key (otherwise tokens could be forged).
+    # Dev fallback only locally, where the Functions runtime reports "Development".
     if os.environ.get("AZURE_FUNCTIONS_ENVIRONMENT") == "Development":
-        logging.warning("SESSION_SIGNING_KEY není nastaven – vývojový fallback.")
+        logging.warning("SESSION_SIGNING_KEY is not set - using dev fallback.")
         return "dev-only-insecure-signing-key-change-me-in-prod"
-    raise RuntimeError("SESSION_SIGNING_KEY musí být nastaven (podepisování session tokenů)")
+    raise RuntimeError("SESSION_SIGNING_KEY must be set (used to sign session tokens)")
 
 
 def create_token(username: str, ttl_seconds: int = _TOKEN_TTL_SECONDS) -> str:
@@ -74,7 +74,7 @@ def verify_token(token: str) -> str | None:
     return sub if isinstance(sub, str) else None
 
 
-# --- ověřovací e-mailový token (jednorázový, ukládá se jen hash) ---
+# --- email verification token (one-time use, only its hash is stored) ---
 def new_verification_token() -> str:
     return secrets.token_urlsafe(32)
 
@@ -87,7 +87,7 @@ def verify_token_hash(token: str, stored: str) -> bool:
     return hmac.compare_digest(token_hash(token), stored)
 
 
-# Deterministická „falešná" sůl pro neexistující uživatele (proti enumeraci).
+# Deterministic "fake" salt for non-existent users (to prevent enumeration).
 def decoy_salt(username: str) -> str:
     mac = hmac.new(_signing_key().encode(), username.encode(), hashlib.sha256).digest()
     return _b64(mac[:16])

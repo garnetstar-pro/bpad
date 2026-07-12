@@ -3,10 +3,11 @@ from typing import Optional
 
 
 class RateLimiter:
-    """Nejjednodušší in-memory sliding-window limiter (best-effort).
+    """Simplest possible in-memory sliding-window limiter (best-effort).
 
-    Pozn.: na serverless (více instancí) je to jen orientační ochrana proti
-    hrubému brute-force; tvrdý limit patří na infra vrstvu (APIM / Front Door).
+    Note: on serverless (multiple instances) this is only an approximate
+    protection against gross brute-force; a hard limit belongs at the
+    infra layer (APIM / Front Door).
     """
 
     def __init__(self, max_calls: int, window_seconds: float) -> None:

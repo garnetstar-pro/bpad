@@ -69,7 +69,7 @@ def test_delete_scoped_to_owner():
     repo = InMemoryNotesRepository()
     n = _note(user_id="alice")
     repo.save_note(n)
-    assert repo.delete_note("bob", n.id) is False   # cizí uživatel nesmaže
+    assert repo.delete_note("bob", n.id) is False   # another user can't delete it
     assert repo.delete_note("alice", n.id) is True
     assert repo.get_note("alice", n.id) is None
 
@@ -105,7 +105,7 @@ def test_reserve_email_is_atomic():
     repo = InMemoryUsersRepository()
     assert repo.reserve_email("a@example.com", "alice") is True
     assert repo.email_exists("a@example.com") is True
-    # druhá rezervace stejného e-mailu selže
+    # a second reservation of the same email fails
     assert repo.reserve_email("a@example.com", "bob") is False
     assert repo.email_exists("other@example.com") is False
 
@@ -115,11 +115,11 @@ def test_release_email_frees_it():
     repo.reserve_email("a@example.com", "alice")
     repo.release_email("a@example.com")
     assert repo.email_exists("a@example.com") is False
-    assert repo.reserve_email("a@example.com", "bob") is True  # zase volný
+    assert repo.reserve_email("a@example.com", "bob") is True  # free again
 
 
 def test_index_email_is_idempotent_backfill():
     repo = InMemoryUsersRepository()
     repo.index_email("a@example.com", "alice")
-    repo.index_email("a@example.com", "alice")  # nevadí
+    repo.index_email("a@example.com", "alice")  # no-op, harmless
     assert repo.email_exists("a@example.com") is True

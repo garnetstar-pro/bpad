@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { enroll, declineBiometric } from './biometric'
 import { isUnsupportedError, friendlyError } from './webauthn'
+import { useTranslation } from './i18n'
 
-// Nabídka po přihlášení: zapnout odemykání otiskem na tomto zařízení.
+// Offer shown after login: turn on fingerprint unlock on this device.
 export default function BiometricEnrollPrompt({
   username,
   onDone,
@@ -10,6 +11,7 @@ export default function BiometricEnrollPrompt({
   username: string
   onDone: () => void
 }) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -20,7 +22,7 @@ export default function BiometricEnrollPrompt({
       await enroll(username)
       onDone()
     } catch (err) {
-      // Když to prohlížeč neumí (cert/nepodporováno), tiše přestaň nabízet.
+      // If the browser can't do it (cert/unsupported), quietly stop offering.
       if (isUnsupportedError(err)) {
         declineBiometric()
         onDone()
@@ -39,18 +41,17 @@ export default function BiometricEnrollPrompt({
   return (
     <div className="modal-overlay">
       <div className="modal-card">
-        <h3 className="modal-title">Odemykat otiskem?</h3>
+        <h3 className="modal-title">{t('biometric.enrollTitle')}</h3>
         <p className="modal-text">
-          Příště se do trezoru dostaneš otiskem nebo Face ID místo hesla. Uloží se
-          jen zašifrovaně na tomto zařízení — heslo se nikam neukládá.
+          {t('biometric.enrollText')}
         </p>
         {error && <div className="error-banner">{error}</div>}
         <div className="modal-actions">
           <button className="ghost-btn" onClick={later} disabled={busy} type="button">
-            Teď ne
+            {t('biometric.later')}
           </button>
           <button className="save-btn" onClick={enable} disabled={busy} type="button">
-            {busy ? 'zapínám…' : 'Zapnout'}
+            {busy ? t('biometric.enrolling') : t('biometric.enable')}
           </button>
         </div>
       </div>

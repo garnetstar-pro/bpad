@@ -12,7 +12,7 @@ class Encrypted(BaseModel):
 class Note(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str
-    # Klientem zašifrovaný payload {title, content, url}. Server obsah nevidí.
+    # Client-encrypted payload {title, content, url}. The server never sees the content.
     iv: str
     ct: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -31,7 +31,7 @@ class User(BaseModel):
     rec_auth_hash: str
     wrapped_data_key_pw: Encrypted
     wrapped_data_key_rec: Encrypted
-    # E-mail je ne-tajné metadata (nešifruje se). Ověření kontroluje vlastnictví.
+    # Email is non-secret metadata (not encrypted). Verification confirms ownership.
     email: Optional[str] = None
     email_verified: bool = False
     verify_token_hash: Optional[str] = None

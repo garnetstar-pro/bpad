@@ -5,10 +5,12 @@ import { canAutofocus } from './device'
 import * as authApi from './authApi'
 import { createNote } from './api'
 import { welcomeNoteMarkdown } from './welcomeNote'
+import { useTranslation } from './i18n'
 
-type Mode = 'login' | 'register' | 'recover'
+export type Mode = 'login' | 'register' | 'recover'
 
 function Shell({ meta, children }: { meta: string; children: ReactNode }) {
+  const { t } = useTranslation()
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -16,7 +18,7 @@ function Shell({ meta, children }: { meta: string; children: ReactNode }) {
           <div className="brand-wrap">
             <BpadMark size={34} />
             <div>
-              <div className="brand-kicker">blank pad · encrypted</div>
+              <div className="brand-kicker">{t('auth.brandKicker')}</div>
               <div className="brand">bpad</div>
             </div>
           </div>
@@ -63,6 +65,7 @@ function Field({
 }
 
 function LoginForm({ onMode }: { onMode: (m: Mode) => void }) {
+  const { t } = useTranslation()
   const { authenticate } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -77,33 +80,34 @@ function LoginForm({ onMode }: { onMode: (m: Mode) => void }) {
       await authApi.login(username.trim(), password)
       authenticate(username.trim())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Přihlášení se nepovedlo')
+      setError(err instanceof Error ? err.message : t('auth.errLogin'))
       setBusy(false)
     }
   }
 
   return (
-    <Shell meta="access: you only">
-      <h2 className="auth-title">Log in</h2>
-      <p className="auth-sub">Odemkni svůj šifrovaný trezor.</p>
+    <Shell meta={t('auth.metaAccess')}>
+      <h2 className="auth-title">{t('auth.login')}</h2>
+      <p className="auth-sub">{t('auth.loginSub')}</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
-        <Field label="heslo" type="password" value={password} onChange={setPassword} disabled={busy} />
+        <Field label={t('auth.username')} value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
+        <Field label={t('auth.password')} type="password" value={password} onChange={setPassword} disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
-          {busy ? 'odemykám…' : 'Log in'}
+          {busy ? t('auth.unlocking') : t('auth.login')}
         </button>
       </form>
       <div className="auth-links">
-        <button className="auth-link" onClick={() => onMode('recover')} type="button">Zapomenuté heslo?</button>
-        <button className="auth-link accent" onClick={() => onMode('register')} type="button">Vytvořit účet →</button>
+        <button className="auth-link" onClick={() => onMode('recover')} type="button">{t('auth.forgotPassword')}</button>
+        <button className="auth-link accent" onClick={() => onMode('register')} type="button">{t('auth.toRegister')}</button>
       </div>
-      <div className="auth-hint">Klíč se odvodí v prohlížeči a žije jen v paměti. Po zavření karty se přihlásíš znovu.</div>
+      <div className="auth-hint">{t('auth.loginHint')}</div>
     </Shell>
   )
 }
 
 function RecoveryCodeScreen({ code, onDone }: { code: string; onDone: () => void }) {
+  const { t } = useTranslation()
   const [saved, setSaved] = useState(false)
   const copy = () => navigator.clipboard?.writeText(code)
   const download = () => {
@@ -115,28 +119,29 @@ function RecoveryCodeScreen({ code, onDone }: { code: string; onDone: () => void
     URL.revokeObjectURL(a.href)
   }
   return (
-    <Shell meta="save this">
-      <h2 className="auth-title">Tvůj recovery kód</h2>
+    <Shell meta={t('auth.metaSave')}>
+      <h2 className="auth-title">{t('auth.recoveryTitle')}</h2>
       <div className="error-banner">
-        ⚠ Zapiš si ho teď. Ukáže se jen jednou. Bez hesla i bez tohoto kódu jsou poznámky nenávratně ztracené.
+        {t('auth.recoveryWarn')}
       </div>
       <div className="recovery-code">{code}</div>
       <div className="recovery-actions">
-        <button className="ghost-btn" onClick={copy} type="button">Kopírovat</button>
-        <button className="ghost-btn" onClick={download} type="button">Stáhnout .txt</button>
+        <button className="ghost-btn" onClick={copy} type="button">{t('auth.copy')}</button>
+        <button className="ghost-btn" onClick={download} type="button">{t('auth.download')}</button>
       </div>
       <label className="auth-check">
         <input type="checkbox" checked={saved} onChange={(e) => setSaved(e.target.checked)} />
-        Kód mám bezpečně uložený
+        {t('auth.recoverySaved')}
       </label>
       <button className="auth-btn" onClick={onDone} disabled={!saved} type="button">
-        Pokračovat do trezoru
+        {t('auth.toVault')}
       </button>
     </Shell>
   )
 }
 
 function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
+  const { t } = useTranslation()
   const { authenticate } = useAuth()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -149,20 +154,20 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setError('Zadej platný e-mail')
-    if (password.length < 8) return setError('Heslo musí mít aspoň 8 znaků')
-    if (password !== confirm) return setError('Hesla se neshodují')
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return setError(t('auth.errEmail'))
+    if (password.length < 8) return setError(t('auth.errPwLen'))
+    if (password !== confirm) return setError(t('auth.errPwMatch'))
     setBusy(true)
     setError(null)
     try {
       const code = await authApi.register(
         username.trim(), email.trim(), password, () => setSolving(true),
       )
-      // Uvítací demo-poznámka (šifrovaně, best-effort – nesmí zdržet registraci).
+      // Welcome demo note (encrypted, best-effort — must not block registration).
       createNote(welcomeNoteMarkdown(window.location.host)).catch(() => {})
       setRecoveryCode(code)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registrace se nepovedla')
+      setError(err instanceof Error ? err.message : t('auth.errRegister'))
       setSolving(false)
       setBusy(false)
     }
@@ -173,29 +178,30 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
   }
 
   return (
-    <Shell meta="new vault">
-      <h2 className="auth-title">Create account</h2>
-      <p className="auth-sub">Založ si soukromý šifrovaný trezor.</p>
+    <Shell meta={t('auth.metaNewVault')}>
+      <h2 className="auth-title">{t('auth.createAccount')}</h2>
+      <p className="auth-sub">{t('auth.createSub')}</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
-        <Field label="e-mail" type="email" value={email} onChange={setEmail} placeholder="pro ověření a upozornění" disabled={busy} />
-        <Field label="heslo" type="password" value={password} onChange={setPassword} placeholder="zvol silné heslo" disabled={busy} />
-        <Field label="heslo znovu" type="password" value={confirm} onChange={setConfirm} placeholder="zopakuj heslo" disabled={busy} />
+        <Field label={t('auth.username')} value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
+        <Field label={t('auth.email')} type="email" value={email} onChange={setEmail} placeholder={t('auth.emailPlaceholder')} disabled={busy} />
+        <Field label={t('auth.password')} type="password" value={password} onChange={setPassword} placeholder={t('auth.strongPassword')} disabled={busy} />
+        <Field label={t('auth.passwordAgain')} type="password" value={confirm} onChange={setConfirm} placeholder={t('auth.repeatPassword')} disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
-          {solving ? 'ověřuji, že nejsi robot…' : busy ? 'zakládám trezor…' : 'Create account'}
+          {solving ? t('auth.solvingRobot') : busy ? t('auth.creatingVault') : t('auth.createAccount')}
         </button>
       </form>
       <div className="auth-links">
-        <button className="auth-link accent" onClick={() => onMode('login')} type="button">← Zpět na přihlášení</button>
+        <button className="auth-link accent" onClick={() => onMode('login')} type="button">{t('auth.backToLogin')}</button>
         <span />
       </div>
-      <div className="auth-hint">Heslo nejde obnovit ze serveru. Po vytvoření dostaneš recovery kód — ulož si ho.</div>
+      <div className="auth-hint">{t('auth.registerHint')}</div>
     </Shell>
   )
 }
 
 function RecoverForm({ onMode }: { onMode: (m: Mode) => void }) {
+  const { t } = useTranslation()
   const { authenticate } = useAuth()
   const [username, setUsername] = useState('')
   const [code, setCode] = useState('')
@@ -205,43 +211,65 @@ function RecoverForm({ onMode }: { onMode: (m: Mode) => void }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (password.length < 8) return setError('Nové heslo musí mít aspoň 8 znaků')
+    if (password.length < 8) return setError(t('auth.errNewPwLen'))
     setBusy(true)
     setError(null)
     try {
       await authApi.recover(username.trim(), code, password)
       authenticate(username.trim())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Obnova se nepovedla')
+      setError(err instanceof Error ? err.message : t('auth.errRecover'))
       setBusy(false)
     }
   }
 
   return (
-    <Shell meta="recover">
-      <h2 className="auth-title">Obnovit heslo</h2>
-      <p className="auth-sub">Zadej recovery kód a nastav nové heslo.</p>
+    <Shell meta={t('auth.metaRecover')}>
+      <h2 className="auth-title">{t('auth.recoverTitle')}</h2>
+      <p className="auth-sub">{t('auth.recoverSub')}</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
-        <Field label="recovery kód" value={code} onChange={setCode} placeholder="XXXX-XXXX-…" disabled={busy} />
-        <Field label="nové heslo" type="password" value={password} onChange={setPassword} placeholder="nové silné heslo" disabled={busy} />
+        <Field label={t('auth.username')} value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
+        <Field label={t('auth.recoveryCode')} value={code} onChange={setCode} placeholder="XXXX-XXXX-…" disabled={busy} />
+        <Field label={t('auth.newPassword')} type="password" value={password} onChange={setPassword} placeholder={t('auth.newPasswordPlaceholder')} disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !code || !password}>
-          {busy ? 'obnovuji…' : 'Obnovit a přihlásit'}
+          {busy ? t('auth.recovering') : t('auth.recoverSubmit')}
         </button>
       </form>
       <div className="auth-links">
-        <button className="auth-link accent" onClick={() => onMode('login')} type="button">← Zpět na přihlášení</button>
+        <button className="auth-link accent" onClick={() => onMode('login')} type="button">{t('auth.backToLogin')}</button>
         <span />
       </div>
-      <div className="auth-hint">Kód odemkne trezor v prohlížeči a přebalí ho novým heslem. Poznámky se nepřešifrovávají.</div>
+      <div className="auth-hint">{t('auth.recoverHint')}</div>
     </Shell>
   )
 }
 
-export default function AuthGate() {
-  const [mode, setMode] = useState<Mode>('login')
-  if (mode === 'register') return <RegisterForm onMode={setMode} />
-  if (mode === 'recover') return <RecoverForm onMode={setMode} />
-  return <LoginForm onMode={setMode} />
+export default function AuthGate({
+  initialMode = 'login',
+  onBack,
+}: {
+  initialMode?: Mode
+  onBack?: () => void
+}) {
+  const { t } = useTranslation()
+  const [mode, setMode] = useState<Mode>(initialMode)
+  const form =
+    mode === 'register' ? (
+      <RegisterForm onMode={setMode} />
+    ) : mode === 'recover' ? (
+      <RecoverForm onMode={setMode} />
+    ) : (
+      <LoginForm onMode={setMode} />
+    )
+  return (
+    <>
+      {onBack && (
+        <button className="landing-back" onClick={onBack} type="button">
+          {t('common.back')}
+        </button>
+      )}
+      {form}
+    </>
+  )
 }

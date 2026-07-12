@@ -7,16 +7,16 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // 'prompt' = nový SW čeká, dokud uživatel neklikne "Aktualizovat"
-      // (UpdatePrompt), místo tichého auto-reloadu.
+      // 'prompt' = the new SW waits until the user clicks "Update"
+      // (UpdatePrompt), instead of a silent auto-reload.
       registerType: 'prompt',
-      // Registraci si zavoláme sami (přes useRegisterSW) – kvůli přísné CSP
-      // žádný inline skript.
+      // We register the SW ourselves (via useRegisterSW) — no inline script,
+      // because of the strict CSP.
       injectRegister: null,
       manifest: {
         name: 'bpad',
         short_name: 'bpad',
-        description: 'Šifrovaný zápisník',
+        description: 'Encrypted notebook',
         theme_color: '#0E1524',
         background_color: '#0E1524',
         display: 'standalone',
@@ -30,7 +30,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
         navigateFallback: '/index.html',
-        // /api nikdy necachovat – šifrované poznámky si appka ukládá sama.
+        // Never cache /api — the app stores its encrypted notes itself.
         navigateFallbackDenylist: [/^\/api/],
       },
     }),

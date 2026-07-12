@@ -2,6 +2,7 @@ import { useState } from 'react'
 import BpadMark from './BpadMark'
 import { getEnrollment, unlock, forget } from './biometric'
 import { friendlyError } from './webauthn'
+import { useTranslation } from './i18n'
 
 export default function BiometricUnlock({
   onUnlocked,
@@ -10,6 +11,7 @@ export default function BiometricUnlock({
   onUnlocked: (username: string) => void
   onPassword: () => void
 }) {
+  const { t } = useTranslation()
   const enrollment = getEnrollment()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,31 +40,31 @@ export default function BiometricUnlock({
           <div className="brand-wrap">
             <BpadMark size={34} />
             <div>
-              <div className="brand-kicker">blank pad · encrypted</div>
+              <div className="brand-kicker">{t('auth.brandKicker')}</div>
               <div className="brand">bpad</div>
             </div>
           </div>
           <div className="brand-meta">locked</div>
         </div>
 
-        <h2 className="auth-title">Odemknout</h2>
-        <p className="auth-sub">Přihlášen jako {enrollment?.username}.</p>
+        <h2 className="auth-title">{t('biometric.unlockTitle')}</h2>
+        <p className="auth-sub">{t('biometric.loggedInAs', { username: enrollment?.username ?? '' })}</p>
         {error && <div className="error-banner">{error}</div>}
 
         <button className="auth-btn" onClick={doUnlock} disabled={busy} type="button">
-          {busy ? 'odemykám…' : 'Odemknout otiskem'}
+          {busy ? t('biometric.unlocking') : t('biometric.unlock')}
         </button>
 
         <div className="auth-links">
           <button className="auth-link accent" onClick={onPassword} type="button">
-            Zadat heslo místo toho
+            {t('biometric.usePasswordInstead')}
           </button>
           <button className="auth-link" onClick={forgetDevice} type="button">
-            Zapomenout na zařízení
+            {t('biometric.forgetDevice')}
           </button>
         </div>
         <div className="auth-hint">
-          Otisk odemkne klíč uložený jen v tomto zařízení. Heslo se nikam neposílá.
+          {t('biometric.hint')}
         </div>
       </div>
     </div>
