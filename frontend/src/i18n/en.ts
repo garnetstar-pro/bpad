@@ -107,6 +107,12 @@ export const en = {
   features: {
     title: 'What bpad can do',
   },
+  tags: {
+    placeholder: 'add a tag…',
+    remove: 'Remove tag',
+    untagged: 'untagged',
+    overLimit: '{count} tags — free accounts get {limit}. Premium will lift this.',
+  },
   landing: {
     tagline: 'An encrypted notebook only you can read.',
     intro: 'Notes are encrypted in your browser — the server never sees them, and neither do we.',

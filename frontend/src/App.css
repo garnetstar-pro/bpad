@@ -981,3 +981,106 @@ body {
 .markdown-body img {
   max-width: 100%;
 }
+
+/* Tags: input, pills, filter bar */
+.tag-input { position: relative; margin-bottom: 12px; }
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--ground);
+  padding: 7px 9px;
+}
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(34, 177, 131, 0.14);
+  color: var(--accent);
+  border: 1px solid rgba(34, 177, 131, 0.4);
+  border-radius: 6px;
+  padding: 2px 4px 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.tag-chip-x {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.tag-field {
+  flex: 1;
+  min-width: 90px;
+  border: none;
+  background: transparent;
+  outline: none;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 3px 2px;
+}
+.tag-field::placeholder { color: var(--ink-dim); }
+.tag-suggest {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.7);
+}
+.tag-suggest-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.tag-suggest-item:hover { background: var(--surface-hover); color: var(--accent); }
+.tag-nudge { font-size: 11px; color: var(--ink-dim); margin: 4px 2px 0; }
+
+.tag-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag-pill {
+  background: rgba(34, 177, 131, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(34, 177, 131, 0.35);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.tag-pill:hover { background: rgba(34, 177, 131, 0.22); }
+
+.tag-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.tag-bar-chip {
+  background: transparent;
+  color: var(--ink-dim);
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font);
+}
+.tag-bar-chip.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(34, 177, 131, 0.12);
+}
