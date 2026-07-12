@@ -559,6 +559,112 @@ body {
 }
 .verify-sent { color: var(--accent); font-weight: 700; }
 
+/* Upozornění na novou verzi (PWA update) – plovoucí lišta dole */
+.update-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 24px);
+  background: rgba(46, 86, 160, 0.96);
+  border: 1px solid var(--blue);
+  color: #fff;
+  padding: 10px 12px 10px 16px;
+  font-size: 13px;
+  border-radius: 10px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+}
+.update-btn {
+  background: #fff;
+  border: none;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 7px;
+}
+.update-dismiss {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+/* Profil uživatele */
+.app-user-link {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--hairline);
+}
+.app-user-link:hover {
+  color: var(--accent);
+}
+
+.account-card {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 20px 22px;
+}
+.account-title {
+  margin: 0 0 14px;
+  font-size: 18px;
+  color: var(--ink);
+}
+.account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 14px;
+}
+.account-key {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+.account-val {
+  color: var(--ink);
+  text-align: right;
+  word-break: break-word;
+}
+.account-badge {
+  display: inline-block;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-left: 4px;
+}
+.account-badge.is-ok {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.account-note {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+.account-logout {
+  margin-top: 18px;
+}
+
 /* Editovatelné pole názvu (v editaci) */
 .title-field {
   margin-bottom: 12px;

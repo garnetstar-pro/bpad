@@ -1,18 +1,18 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { registerSW } from 'virtual:pwa-register'
 import { AuthProvider } from './AuthContext'
 import './index.css'
 import App from './App.tsx'
+import UpdatePrompt from './UpdatePrompt'
 
-// Service worker – appka se načte i offline (a jde přidat na plochu).
-registerSW({ immediate: true })
-
+// UpdatePrompt registruje service worker (appka běží i offline / jde na plochu)
+// a hlídá novou verzi.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
+        <UpdatePrompt />
         <App />
       </AuthProvider>
     </BrowserRouter>

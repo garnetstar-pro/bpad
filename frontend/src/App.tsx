@@ -13,6 +13,8 @@ import { verifyBannerMessage } from './verifyStatus'
 import BpadMark from './BpadMark'
 import Home from './Home'
 import NoteDetail from './NoteDetail'
+import Account from './Account'
+import Capture from './Capture'
 import './App.css'
 
 function App() {
@@ -61,7 +63,7 @@ function App() {
           </div>
         </Link>
         <div className="app-meta">
-          {username}
+          <Link to="/account" className="app-user-link">{username}</Link>
           <br />
           {canOfferBio && (
             <>
@@ -110,6 +112,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/notes/:id" element={<NoteDetail />} />
+        <Route path="/account" element={<Account />} />
+        {/* Catch-all: zachytí dev.bpad.pro/https://… nebo spadne domů */}
+        <Route path="*" element={<Capture />} />
       </Routes>
 
       {showEnroll && username && (

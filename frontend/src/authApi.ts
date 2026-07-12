@@ -25,6 +25,23 @@ export function getEmailVerified(): boolean | null {
   return emailVerified
 }
 
+// Údaje o přihlášeném účtu (ne-tajná metadata) pro profil uživatele.
+export interface Account {
+  username: string
+  email: string | null
+  emailVerified: boolean
+  createdAt: string | null
+}
+
+export async function getAccount(): Promise<Account> {
+  const token = getToken()
+  const res = await fetch(`${AUTH_URL}/me`, {
+    headers: token ? { 'X-Auth-Token': token } : {},
+  })
+  if (!res.ok) throw new Error('Nepodařilo se načíst účet')
+  return res.json()
+}
+
 async function postJson(path: string, body: unknown): Promise<Response> {
   return fetch(`${AUTH_URL}/${path}`, {
     method: 'POST',
