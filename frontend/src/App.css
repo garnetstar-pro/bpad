@@ -404,7 +404,13 @@ body {
 .entry-stamp {
   font-size: 10px;
   color: var(--ink-dim);
-  min-width: 46px;
+  min-width: 76px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.entry-time {
+  opacity: 0.65;
+  margin-top: 1px;
 }
 
 .entry-body {
