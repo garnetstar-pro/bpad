@@ -14,8 +14,8 @@ import time
 
 import auth
 
-_POW_TTL = 120  # s – okno platnosti výzvy
-_CLOCK_SKEW = 60  # s – tolerance dopředu
+_POW_TTL = 120  # s - challenge validity window
+_CLOCK_SKEW = 60  # s - forward tolerance
 
 
 def _difficulty() -> int:
@@ -26,7 +26,7 @@ def _difficulty() -> int:
 
 
 def _secret() -> bytes:
-    # Doménová separace od podepisování session tokenů.
+    # Domain separation from session token signing.
     return hmac.new(auth._signing_key().encode(), b"pow", hashlib.sha256).digest()
 
 
@@ -64,7 +64,7 @@ def issue_challenge(username: str) -> dict:
 
 def verify_solution(challenge: str, nonce: str, username: str) -> bool:
     if _difficulty() == 0:
-        return True  # PoW vypnutý (lokál/testy)
+        return True  # PoW disabled (local/tests)
     try:
         payload_b64, sig = challenge.split(".", 1)
     except ValueError:

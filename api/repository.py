@@ -19,7 +19,7 @@ def _newest_first(notes: list[Note]) -> list[Note]:
 
 
 class InMemoryNotesRepository:
-    """Dočasné úložiště poznámek v paměti procesu (data nepřežijí restart)."""
+    """Temporary in-process-memory notes store (data does not survive a restart)."""
 
     def __init__(self) -> None:
         self._notes: dict[str, Note] = {}
@@ -45,7 +45,7 @@ class InMemoryNotesRepository:
 
 
 class CosmosNotesRepository:
-    """Trvalé úložiště poznámek v Azure Cosmos DB (partition /user_id)."""
+    """Persistent notes store in Azure Cosmos DB (partition /user_id)."""
 
     def __init__(self, connection_string: str, database: str = "bpad", container: str = "notes") -> None:
         self._cs = connection_string
@@ -106,12 +106,12 @@ class CosmosNotesRepository:
 
 class UsersRepository(Protocol):
     def get_user(self, username: str) -> Optional[User]: ...
-    def add_user(self, user: User) -> bool: ...  # False když username existuje
-    def save_user(self, user: User) -> None: ...  # upsert (změna hesla/recovery)
-    # Email index (unikátnost e-mailu):
-    def reserve_email(self, email: str, username: str) -> bool: ...  # atomicky; False = obsazen
-    def release_email(self, email: str) -> None: ...  # rollback rezervace
-    def index_email(self, email: str, username: str) -> None: ...  # idempotentní backfill
+    def add_user(self, user: User) -> bool: ...  # False when the username exists
+    def save_user(self, user: User) -> None: ...  # upsert (password/recovery change)
+    # Email index (email uniqueness):
+    def reserve_email(self, email: str, username: str) -> bool: ...  # atomic; False = taken
+    def release_email(self, email: str) -> None: ...  # rollback the reservation
+    def index_email(self, email: str, username: str) -> None: ...  # idempotent backfill
     def email_exists(self, email: str) -> bool: ...
 
 
@@ -149,7 +149,7 @@ class InMemoryUsersRepository:
 
 
 class CosmosUsersRepository:
-    """Trvalé úložiště uživatelů v Cosmos DB (partition /username, id = username)."""
+    """Persistent users store in Cosmos DB (partition /username, id = username)."""
 
     def __init__(self, connection_string: str, database: str = "bpad", container: str = "users") -> None:
         self._cs = connection_string
@@ -175,7 +175,7 @@ class CosmosUsersRepository:
         return self._container
 
     def _ec(self):
-        # Email index: id = e-mail, partition /id. Point-read + atomická rezervace.
+        # Email index: id = email, partition /id. Point-read + atomic reservation.
         if self._email_container is None:
             from azure.cosmos import PartitionKey
 
@@ -186,7 +186,7 @@ class CosmosUsersRepository:
 
     def _to_item(self, user: User) -> dict:
         item = user.model_dump(mode="json")
-        item["id"] = user.username  # Cosmos vyžaduje 'id'
+        item["id"] = user.username  # Cosmos requires 'id'
         return item
 
     def get_user(self, username: str) -> Optional[User]:
@@ -251,8 +251,8 @@ def get_notes_repository() -> NotesRepository:
     if cs:
         return CosmosNotesRepository(cs)
     logging.warning(
-        "COSMOS_CONNECTION_STRING není nastaven – poznámky jsou v dočasném "
-        "in-memory úložišti (nepřežijí restart)."
+        "COSMOS_CONNECTION_STRING is not set - notes are stored in a temporary "
+        "in-memory store (they will not survive a restart)."
     )
     return InMemoryNotesRepository()
 
