@@ -954,7 +954,8 @@ body {
 .markdown-body h6 {
   line-height: 1.3;
   margin: 0.8em 0 0.4em;
-  color: var(--accent);
+  /* Light blue — distinct from the green links and the white body text. */
+  color: #8fb3f2;
 }
 
 .markdown-body h1 { font-size: 22px; }
