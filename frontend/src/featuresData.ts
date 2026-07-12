@@ -5,6 +5,10 @@ export interface Feature {
   desc: string
 }
 
+// The domain the app is actually served from, so the link-capture example is
+// accurate wherever it's deployed (mirrors the welcome note's {host}).
+const host = typeof window !== 'undefined' && window.location.host ? window.location.host : 'bpad.pro'
+
 export const FEATURES: Feature[] = [
   {
     name: 'Encrypted vault',
@@ -32,7 +36,7 @@ export const FEATURES: Feature[] = [
   },
   {
     name: 'Save a link in one move',
-    desc: 'Type "this-domain/" then a full URL and it becomes a new note.',
+    desc: `Type "${host}/" then a full URL and it becomes a new note.`,
   },
   {
     name: 'Biometric unlock',
