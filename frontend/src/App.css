@@ -933,6 +933,11 @@ body {
 }
 
 /* Rendered markdown */
+/* Break long words / URLs so they don't overflow the layout. */
+.markdown-body {
+  overflow-wrap: break-word;
+}
+
 .markdown-body > :first-child {
   margin-top: 0;
 }
@@ -972,6 +977,8 @@ body {
 
 .markdown-body a {
   color: var(--accent);
+  /* A long URL used as link text must break anywhere rather than overflow. */
+  overflow-wrap: anywhere;
 }
 
 .markdown-body code {
