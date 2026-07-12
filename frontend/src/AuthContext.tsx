@@ -1,9 +1,12 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { clearSession } from './session'
+import { canAutofocus } from './device'
 
 interface AuthState {
   username: string | null
   isAuthenticated: boolean
+  // Idle-locked: session keys cleared, username remembered → show the lock screen.
+  locked: boolean
   // Called after a successful login/registration/recovery (the session is already set).
   authenticate: (username: string) => void
   logout: () => void
@@ -11,29 +14,35 @@ interface AuthState {
 
 const AuthCtx = createContext<AuthState | null>(null)
 
-// Log out after this much inactivity (also re-checked when the tab regains
-// focus, so returning to a backgrounded tab after the timeout logs out too).
+// Lock the vault after this much inactivity (desktop only; also re-checked when
+// the tab regains focus, so returning to a backgrounded tab after the timeout
+// locks too).
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null)
+  const [locked, setLocked] = useState(false)
 
   // When the API hits a 401 (expired token), send the user back to login.
   useEffect(() => {
-    const onUnauthorized = () => setUsername(null)
+    const onUnauthorized = () => {
+      setLocked(false)
+      setUsername(null)
+    }
     window.addEventListener('bpad:unauthorized', onUnauthorized)
     return () => window.removeEventListener('bpad:unauthorized', onUnauthorized)
   }, [])
 
-  // Idle auto-logout (only while signed in).
+  // Idle lock (desktop only — not on touch devices). Clears the in-memory keys
+  // and shows the lock screen; the username is kept for a quick password re-auth.
   useEffect(() => {
-    if (username === null) return
+    if (username === null || locked || !canAutofocus()) return
     let last = Date.now()
     const bump = () => { last = Date.now() }
     const check = () => {
       if (Date.now() - last > IDLE_TIMEOUT_MS) {
         clearSession()
-        setUsername(null)
+        setLocked(true)
       }
     }
     const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
@@ -48,14 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', check)
       clearInterval(timer)
     }
-  }, [username])
+  }, [username, locked])
 
   const value: AuthState = {
     username,
     isAuthenticated: username !== null,
-    authenticate: setUsername,
+    locked,
+    authenticate: (u) => {
+      setLocked(false)
+      setUsername(u)
+    },
     logout: () => {
       clearSession()
+      setLocked(false)
       setUsername(null)
     },
   }
