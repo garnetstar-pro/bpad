@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from './i18n'
 import { normalizeTag } from './tags'
 
-// Chip input with prefix autocomplete from `suggestions`. Enter / comma /
-// space commit a chip (single-word); Backspace on empty removes the last.
+// Chip input with prefix autocomplete. A tag is committed when a space or
+// comma is typed, on Enter, or on blur (tapping Save/away) — the input-based
+// paths are what make it work on mobile keyboards, where keydown for
+// Enter/space isn't reliable. Backspace on an empty field removes the last chip.
 export function TagInput({
   value,
   onChange,
@@ -15,21 +17,51 @@ export function TagInput({
 }) {
   const { t } = useTranslation()
   const [input, setInput] = useState('')
+  const skipBlur = useRef(false)
 
-  const add = (raw: string) => {
+  const commit = (raw: string) => {
     const tag = normalizeTag(raw)
     if (tag && !value.includes(tag)) onChange([...value, tag])
-    setInput('')
+  }
+
+  // Commit whenever a delimiter (space/comma) appears; keep any trailing
+  // partial in the field. Reliable across mobile keyboards / IME.
+  const handleChange = (v: string) => {
+    if (!/[ ,]/.test(v)) {
+      setInput(v)
+      return
+    }
+    const parts = v.split(/[ ,]+/)
+    const remainder = parts.pop() ?? ''
+    const next = [...value]
+    for (const p of parts) {
+      const tag = normalizeTag(p)
+      if (tag && !next.includes(tag)) next.push(tag)
+    }
+    if (next.length !== value.length) onChange(next)
+    setInput(remainder)
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+    if (e.key === 'Enter') {
       if (input.trim()) {
         e.preventDefault()
-        add(input)
+        commit(input)
+        setInput('')
       }
     } else if (e.key === 'Backspace' && !input && value.length) {
       onChange(value.slice(0, -1))
+    }
+  }
+
+  const onBlur = () => {
+    if (skipBlur.current) {
+      skipBlur.current = false
+      return
+    }
+    if (input.trim()) {
+      commit(input)
+      setInput('')
     }
   }
 
@@ -57,9 +89,14 @@ export function TagInput({
         <input
           className="tag-field"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => handleChange(e.target.value)}
           onKeyDown={onKeyDown}
+          onBlur={onBlur}
           placeholder={value.length ? '' : t('tags.placeholder')}
+          autoCapitalize="none"
+          autoCorrect="off"
+          autoComplete="off"
+          enterKeyHint="done"
         />
       </div>
       {matches.length > 0 && (
@@ -69,10 +106,13 @@ export function TagInput({
               type="button"
               className="tag-suggest-item"
               key={s}
-              // onMouseDown (not onClick) so the input doesn't blur first.
+              // onMouseDown (not onClick) + skipBlur so selecting a suggestion
+              // doesn't first blur-commit the partial input.
               onMouseDown={(e) => {
                 e.preventDefault()
-                add(s)
+                skipBlur.current = true
+                commit(s)
+                setInput('')
               }}
             >
               {s}

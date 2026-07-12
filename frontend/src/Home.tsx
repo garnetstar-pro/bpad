@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
 import { getKnownTags, listNotes, createNote } from './api'
 import { filterNotes } from './search'
-import { filterByTags } from './tags'
+import { filterByTags, normalizeTag } from './tags'
 import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
 import { TagBar } from './TagBar'
@@ -17,7 +17,8 @@ function Home() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [searchParams, setSearchParams] = useSearchParams()
-  const selected = (searchParams.get('tags') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  // Normalize (lowercase) so a filter is case-insensitive even from a hand-typed URL.
+  const selected = (searchParams.get('tags') ?? '').split(',').map(normalizeTag).filter(Boolean)
   const untaggedOnly = searchParams.get('untagged') === '1'
 
   const setSelected = (next: string[]) => {
