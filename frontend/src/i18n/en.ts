@@ -111,7 +111,7 @@ export const en = {
     placeholder: 'add a tag…',
     remove: 'Remove tag',
     untagged: 'untagged',
-    overLimit: '{count} tags — free accounts get {limit}. Premium will lift this.',
+    overLimit: '{count} tags on your account — free accounts get {limit}. Premium will lift this.',
   },
   landing: {
     tagline: 'An encrypted notebook only you can read.',

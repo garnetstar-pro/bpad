@@ -1,7 +1,14 @@
 import type { Note } from './types'
 
-// Free accounts get up to this many tags per note (soft, client-side cap).
-export const FREE_TAG_LIMIT = 5
+// Free accounts get up to this many DISTINCT tags across the whole account
+// (soft, client-side cap). Premium lifts it.
+export const FREE_TAG_LIMIT = 12
+
+// How many distinct tags the account would have after saving a note whose
+// tags are `noteTags`, given the currently-known tags. Used for the soft cap.
+export function distinctTagCount(known: string[], noteTags: string[]): number {
+  return new Set([...known, ...noteTags]).size
+}
 
 // Single-word, lowercase, no leading '#', no inner whitespace.
 export function normalizeTag(raw: string): string {

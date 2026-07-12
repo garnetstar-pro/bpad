@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normalizeTag, normalizeTags, collectTags, filterByTags, FREE_TAG_LIMIT } from './tags'
+import { normalizeTag, normalizeTags, collectTags, filterByTags, distinctTagCount, FREE_TAG_LIMIT } from './tags'
 import type { Note } from './types'
 
 const note = (id: string, tags: string[]): Note => ({
@@ -41,5 +41,13 @@ describe('filterByTags', () => {
 })
 
 describe('FREE_TAG_LIMIT', () => {
-  it('is 5', () => expect(FREE_TAG_LIMIT).toBe(5))
+  it('is 12 (distinct tags per account)', () => expect(FREE_TAG_LIMIT).toBe(12))
+})
+
+describe('distinctTagCount', () => {
+  it('counts the union of known and note tags', () => {
+    expect(distinctTagCount(['a', 'b'], ['b', 'c'])).toBe(3)
+    expect(distinctTagCount([], ['x'])).toBe(1)
+    expect(distinctTagCount(['a', 'b'], [])).toBe(2)
+  })
 })

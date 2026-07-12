@@ -7,7 +7,7 @@ import { useTranslation } from './i18n'
 import { TagInput } from './TagInput'
 import { getKnownTags } from './api'
 import { isPremium } from './entitlements'
-import { FREE_TAG_LIMIT } from './tags'
+import { FREE_TAG_LIMIT, distinctTagCount } from './tags'
 
 // Config: how many rows the textarea grows to with content.
 // Past this limit the height is fixed and a scrollbar appears.
@@ -125,8 +125,8 @@ function Editor({
       )}
 
       <TagInput value={tags} onChange={setTags} suggestions={getKnownTags()} />
-      {!isPremium() && tags.length > FREE_TAG_LIMIT && (
-        <div className="tag-nudge">{t('tags.overLimit', { count: tags.length, limit: FREE_TAG_LIMIT })}</div>
+      {!isPremium() && distinctTagCount(getKnownTags(), tags) > FREE_TAG_LIMIT && (
+        <div className="tag-nudge">{t('tags.overLimit', { count: distinctTagCount(getKnownTags(), tags), limit: FREE_TAG_LIMIT })}</div>
       )}
 
       <div className="capture-tabs">
