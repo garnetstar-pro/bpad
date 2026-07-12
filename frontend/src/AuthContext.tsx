@@ -11,6 +11,10 @@ interface AuthState {
 
 const AuthCtx = createContext<AuthState | null>(null)
 
+// Log out after this much inactivity (also re-checked when the tab regains
+// focus, so returning to a backgrounded tab after the timeout logs out too).
+const IDLE_TIMEOUT_MS = 5 * 60 * 1000
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null)
 
@@ -20,6 +24,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener('bpad:unauthorized', onUnauthorized)
     return () => window.removeEventListener('bpad:unauthorized', onUnauthorized)
   }, [])
+
+  // Idle auto-logout (only while signed in).
+  useEffect(() => {
+    if (username === null) return
+    let last = Date.now()
+    const bump = () => { last = Date.now() }
+    const check = () => {
+      if (Date.now() - last > IDLE_TIMEOUT_MS) {
+        clearSession()
+        setUsername(null)
+      }
+    }
+    const events = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
+    events.forEach((e) => window.addEventListener(e, bump, { passive: true }))
+    const onVisible = () => { if (document.visibilityState === 'visible') check() }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', check)
+    const timer = setInterval(check, 30_000)
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, bump))
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', check)
+      clearInterval(timer)
+    }
+  }, [username])
 
   const value: AuthState = {
     username,
