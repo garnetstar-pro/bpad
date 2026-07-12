@@ -34,6 +34,8 @@ export const en = {
     save: 'Save',
     edit: 'Edit',
     delete: 'Delete',
+    copyWa: 'Copy for WhatsApp',
+    copied: 'Copied ✓',
     deleting: 'deleting…',
     deleteConfirm: 'Delete this note?',
     deleteFailed: 'Delete failed. Try again.',

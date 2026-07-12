@@ -10,6 +10,7 @@ import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
 import { useTranslation, translate } from './i18n'
 import { TagPills } from './TagPills'
+import { toWhatsApp } from './whatsapp'
 
 function NoteDetail() {
   const { t } = useTranslation()
@@ -20,6 +21,35 @@ function NoteDetail() {
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const copyForWhatsApp = async () => {
+    if (!note) return
+    const text = toWhatsApp(note.content)
+    let ok = false
+    try {
+      await navigator.clipboard.writeText(text)
+      ok = true
+    } catch {
+      // Fallback for contexts without the async clipboard API.
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try {
+        ok = document.execCommand('copy')
+      } catch {
+        /* give up */
+      }
+      document.body.removeChild(ta)
+    }
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -83,8 +113,26 @@ function NoteDetail() {
             {new Date(note.created_at).toLocaleString()}
           </div>
           <div className="note-detail-head">
-            <h1 className="note-detail-title">{note.title}</h1>
-            <TagPills tags={note.tags} />
+            <div className="note-detail-headmain">
+              <h1 className="note-detail-title">{note.title}</h1>
+              <TagPills tags={note.tags} />
+            </div>
+            <button
+              className={`copy-btn ${copied ? 'is-done' : ''}`}
+              onClick={copyForWhatsApp}
+              title={t('notes.copyWa')}
+              aria-label={t('notes.copyWa')}
+              type="button"
+            >
+              {copied ? (
+                <span className="copy-done">{t('notes.copied')}</span>
+              ) : (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="11" height="11" rx="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                </svg>
+              )}
+            </button>
           </div>
           <div className="markdown-body">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
