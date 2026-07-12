@@ -325,21 +325,33 @@ body {
   margin-bottom: 14px;
 }
 
+.search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
 .search-input {
   width: 100%;
   box-sizing: border-box;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: 8px;
-  padding: 9px 32px 9px 12px;
+  /* Darker than the note cards + a faint accent tint, so it reads as an input,
+     not a list item. */
+  background: var(--ground);
+  border: 1px solid rgba(34, 177, 131, 0.28);
+  border-radius: 9px;
+  padding: 12px 34px 12px 40px;
   color: var(--ink);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
 }
 
 .search-input:focus {
-  border-color: var(--ink-dim);
+  border-color: var(--accent);
 }
 
 .search-input::placeholder {
