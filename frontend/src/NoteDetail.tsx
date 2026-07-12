@@ -8,8 +8,10 @@ import { contentWithoutTitleHeading } from './noteContent'
 import { markdownComponents } from './markdown'
 import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
+import { useTranslation, translate } from './i18n'
 
 function NoteDetail() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [note, setNote] = useState<Note | null>(null)
@@ -24,7 +26,7 @@ function NoteDetail() {
     setLoading(true)
     getNote(id)
       .then((n) => active && setNote(n))
-      .catch(() => active && setError('Poznámka nenalezena.'))
+      .catch(() => active && setError(translate('notes.notFound')))
       .finally(() => active && setLoading(false))
     return () => {
       active = false
@@ -39,34 +41,34 @@ function NoteDetail() {
   }
 
   const handleDelete = async () => {
-    if (!id || !window.confirm('Opravdu smazat tuto poznámku?')) return
+    if (!id || !window.confirm(t('notes.deleteConfirm'))) return
     try {
       setDeleting(true)
       await deleteNote(id)
       navigate('/')
     } catch {
-      setError('Smazání se nepovedlo. Zkus to znovu.')
+      setError(t('notes.deleteFailed'))
       setDeleting(false)
     }
   }
 
-  if (loading) return <div className="detail-page"><div className="empty-state">loading…</div></div>
+  if (loading) return <div className="detail-page"><div className="empty-state">{t('common.loading')}</div></div>
   if (error || !note) {
     return (
       <div className="detail-page">
-        <div className="error-banner">{error ?? 'Poznámka nenalezena.'}</div>
-        <Link className="back-link" to="/">‹ zpět na seznam</Link>
+        <div className="error-banner">{error ?? t('notes.notFound')}</div>
+        <Link className="back-link" to="/">{t('notes.back')}</Link>
       </div>
     )
   }
 
   return (
     <div className="detail-page">
-      <Link className="back-link" to="/">‹ zpět na seznam</Link>
+      <Link className="back-link" to="/">{t('notes.back')}</Link>
 
       {editing ? (
         <Editor
-          submitLabel="Save"
+          submitLabel={t('notes.save')}
           onSubmit={handleUpdate}
           initialContent={note.content}
           initialTitle={note.title}
@@ -87,7 +89,7 @@ function NoteDetail() {
           {!isOfflineReadOnly() && (
           <div className="note-detail-actions">
             <button className="save-btn" onClick={() => setEditing(true)} type="button">
-              Edit
+              {t('notes.edit')}
             </button>
             <button
               className="ghost-btn danger"
@@ -95,7 +97,7 @@ function NoteDetail() {
               disabled={deleting}
               type="button"
             >
-              {deleting ? 'deleting…' : 'Delete'}
+              {deleting ? t('notes.deleting') : t('notes.delete')}
             </button>
           </div>
           )}

@@ -3,20 +3,21 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { markdownComponents } from './markdown'
 import { canAutofocus } from './device'
+import { useTranslation } from './i18n'
 
-// Konfigurace: do kolika řádků textarea poroste s obsahem.
-// Po překročení tohoto limitu se výška zafixuje a objeví se posuvník.
+// Config: how many rows the textarea grows to with content.
+// Past this limit the height is fixed and a scrollbar appears.
 const MAX_TEXTAREA_ROWS = 12
 
 interface EditorProps {
   submitLabel: string
   onSubmit: (content: string, title?: string) => Promise<void>
   initialContent?: string
-  // Zobrazit editovatelné pole názvu (pro editaci); u nové poznámky se název
-  // odvodí z markdownu automaticky, takže pole není potřeba.
+  // Show an editable title field (for editing); for a new note the title
+  // is derived from the markdown automatically, so the field isn't needed.
   editableTitle?: boolean
   initialTitle?: string
-  // Po úspěšném uložení vyprázdnit editor (pro novou poznámku); u editace ne.
+  // Clear the editor after a successful save (for a new note); not for editing.
   resetOnSuccess?: boolean
   onCancel?: () => void
 }
@@ -30,6 +31,7 @@ function Editor({
   resetOnSuccess = false,
   onCancel,
 }: EditorProps) {
+  const { t } = useTranslation()
   const [draft, setDraft] = useState(initialContent)
   const [title, setTitle] = useState(initialTitle)
   const [mode, setMode] = useState<'write' | 'preview'>('write')
@@ -37,12 +39,12 @@ function Editor({
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Fokus do textarey (jen na počítači – na mobilu by vyskočila klávesnice).
+  // Focus the textarea (only on desktop – on mobile it would pop up the keyboard).
   useEffect(() => {
     if (!submitting && mode === 'write' && canAutofocus()) textareaRef.current?.focus()
   }, [submitting, mode])
 
-  // Přizpůsobit výšku textarey obsahu (roste do MAX_TEXTAREA_ROWS, pak posuvník)
+  // Fit the textarea height to its content (grows up to MAX_TEXTAREA_ROWS, then scrollbar)
   const autoResize = () => {
     const ta = textareaRef.current
     if (!ta) return
@@ -79,15 +81,15 @@ function Editor({
         setMode('write')
       }
     } catch (err) {
-      // Serverovou hlášku (např. limit u neověřeného účtu) ukaž tak jak je.
-      setError(err instanceof Error ? err.message : 'Uložení se nepovedlo. Zkus to znovu.')
+      // Show the server message (e.g. the limit for an unverified account) verbatim.
+      setError(err instanceof Error ? err.message : t('editor.saveFailed'))
     } finally {
       setSubmitting(false)
     }
   }
 
-  // Ctrl+Enter (nebo Cmd+Enter na Macu) uloží z kteréhokoli pole formuláře;
-  // samotný Enter dělá v textarei nový řádek
+  // Ctrl+Enter (or Cmd+Enter on Mac) saves from any field in the form;
+  // plain Enter makes a new line in the textarea
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
@@ -101,14 +103,14 @@ function Editor({
 
       {editableTitle && (
         <div className="title-field">
-          <label className="title-label" htmlFor="note-title">title</label>
+          <label className="title-label" htmlFor="note-title">{t('editor.title')}</label>
           <input
             id="note-title"
             className="title-input"
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="odvodí se z markdownu, když necháš prázdné"
+            placeholder={t('editor.titlePlaceholder')}
             disabled={submitting}
           />
         </div>
@@ -120,14 +122,14 @@ function Editor({
           onClick={() => setMode('write')}
           type="button"
         >
-          Write
+          {t('editor.write')}
         </button>
         <button
           className={`capture-tab ${mode === 'preview' ? 'is-active' : ''}`}
           onClick={() => setMode('preview')}
           type="button"
         >
-          Preview
+          {t('editor.preview')}
         </button>
       </div>
 
@@ -136,7 +138,7 @@ function Editor({
           ref={textareaRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a thought or paste a link…"
+          placeholder={t('editor.bodyPlaceholder')}
           disabled={submitting}
         />
       ) : (
@@ -144,19 +146,19 @@ function Editor({
           {draft.trim() ? (
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{draft}</ReactMarkdown>
           ) : (
-            <div className="empty-state">nothing to preview</div>
+            <div className="empty-state">{t('editor.nothingToPreview')}</div>
           )}
         </div>
       )}
 
       <div className="capture-footer">
         <span className="capture-hint">
-          {submitting ? 'saving…' : `ctrl+enter or click “${submitLabel}”`}
+          {submitting ? t('editor.saving') : t('editor.saveHint', { label: submitLabel })}
         </span>
         <div className="capture-actions">
           {onCancel && (
             <button className="ghost-btn" onClick={onCancel} disabled={submitting} type="button">
-              Cancel
+              {t('common.cancel')}
             </button>
           )}
           <button className="save-btn" onClick={submit} disabled={submitting} type="button">
