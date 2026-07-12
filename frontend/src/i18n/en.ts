@@ -32,7 +32,6 @@ export const en = {
   },
   notes: {
     save: 'Save',
-    saveHintCtrl: 'ctrl+enter saves',
     edit: 'Edit',
     delete: 'Delete',
     deleting: 'deleting…',
@@ -40,7 +39,6 @@ export const en = {
     deleteFailed: 'Delete failed. Try again.',
     notFound: 'Note not found',
     back: '← back to list',
-    edited: 'edited',
   },
   auth: {
     login: 'Log in',
@@ -104,6 +102,7 @@ export const en = {
     sent: 'Sent ✓',
     sendFailed: 'Failed, try again',
     whatCanDo: 'What bpad can do →',
+    language: 'language',
   },
   features: {
     title: 'What bpad can do',

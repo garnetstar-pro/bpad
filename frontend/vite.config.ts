@@ -16,7 +16,7 @@ export default defineConfig({
       manifest: {
         name: 'bpad',
         short_name: 'bpad',
-        description: 'Šifrovaný zápisník',
+        description: 'Encrypted notebook',
         theme_color: '#0E1524',
         background_color: '#0E1524',
         display: 'standalone',

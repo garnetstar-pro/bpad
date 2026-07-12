@@ -5,16 +5,16 @@ import { getAccount, resendVerification, type Account as AccountData } from './a
 import { getKnownNoteCount } from './api'
 import { UNVERIFIED_NOTE_LIMIT } from './verifyStatus'
 import { getUsername } from './session'
-import { useTranslation } from './i18n'
+import { useTranslation, availableLocales, type Locale } from './i18n'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('cs-CZ')
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString()
 }
 
 export default function Account() {
-  const { t } = useTranslation()
+  const { t, locale, setLocale } = useTranslation()
   const { logout } = useAuth()
   const [account, setAccount] = useState<AccountData | null>(null)
   const [offline, setOffline] = useState(false)
@@ -37,6 +37,21 @@ export default function Account() {
 
       <div className="account-card">
         <h2 className="account-title">{t('account.title')}</h2>
+
+        {availableLocales().length > 1 && (
+          <div className="account-row">
+            <span className="account-key">{t('account.language')}</span>
+            <select
+              className="account-val"
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as Locale)}
+            >
+              {availableLocales().map((l) => (
+                <option key={l} value={l}>{l.toUpperCase()}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {loading && <div className="empty-state">{t('common.loading')}</div>}
 
