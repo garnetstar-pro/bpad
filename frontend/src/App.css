@@ -594,7 +594,7 @@ body {
 .update-btn {
   background: #fff;
   border: none;
-  color: var(--ink);
+  color: var(--ground);
   font-family: var(--font);
   font-size: 12px;
   font-weight: 700;
