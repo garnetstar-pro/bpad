@@ -150,6 +150,63 @@ export const en = {
     enrolling: 'enrolling…',
     enable: 'Enable',
   },
+  errors: {
+    vaultLocked: 'Vault is locked',
+    offlineWrite: 'You’re offline — changes can’t be saved',
+    loadFailed: 'Could not load notes',
+    offlineNoNotes: 'Offline with no saved notes',
+    noteNotFound: 'Note not found',
+    noteNotOffline: 'Note isn’t available offline',
+    saveFailed: 'Saving failed',
+    deleteFailed: 'Delete failed',
+    sessionExpired: 'Session expired',
+    loginFailed: 'Login failed',
+    wrongUserOrPass: 'Wrong username or password',
+    registerFailed: 'Registration failed',
+    emailTaken: 'Username or e-mail is taken',
+    invalidEmail: 'Invalid e-mail or details',
+    sendFailed: 'Sending failed',
+    linkInvalid: 'The link is invalid or expired',
+    userNotFound: 'User not found',
+    invalidRecovery: 'Invalid recovery code',
+    recoverFailed: 'Recovery failed',
+    offlineNoUser: 'You’re offline and I have no saved data for this user.',
+    savedLoginInvalid: 'Your saved login is no longer valid',
+    accountLoadFailed: 'Could not load the account',
+    biometricEnrollFailed: 'Biometric enrollment failed',
+    biometricUnlockFailed: 'Biometric unlock failed',
+    noPrfSupport: 'Device doesn’t support PRF (biometric unlock)',
+  },
+  welcome: {
+    md: `# 👋 Welcome to bpad
+
+This is your first note — edit or delete it freely. **bpad** is an encrypted notebook: only you see the content; the server never does.
+
+## Try it
+- **Markdown** — the first \`# …\` heading becomes the note title. Toggle **Preview** above.
+- **Quick save** — \`Ctrl+Enter\` (Mac \`Cmd+Enter\`) saves from anywhere in the editor.
+- **Search** — above the list; ignores diacritics (\`clanek\` finds "Článek").
+- **Links** open in a new tab: [bpad.pro](https://bpad.pro)
+- **Checklist**:
+  - [x] Create an account
+  - [ ] Save your recovery code
+  - [ ] Install bpad as an app
+
+## Save a link in one move
+Type \`{host}/\` in the address bar and a full URL right after it:
+
+\`{host}/https://example.com\`
+
+…and it becomes a new note.
+
+## Privacy
+- Your password and keys **never leave the browser**. Without your password and recovery code, no one — not even us — can read the content.
+- Turn on **biometric unlock** if your device supports it.
+- Works **offline** (reading) and installs as an app.
+
+Find the full feature list in **Account → What bpad can do**.
+`,
+  },
 } as const
 
 export type Dictionary = typeof en

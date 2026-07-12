@@ -1,18 +1,20 @@
-// Nízkoúrovňová WebAuthn / PRF vrstva. PRF výstup (32 B) je stabilní tajemství
-// vázané na platform authenticator, vydané jen po ověření uživatele (biometrika).
+// Low-level WebAuthn / PRF layer. The PRF output (32 B) is a stable secret
+// bound to the platform authenticator, issued only after user verification
+// (biometrics).
 import { fromBase64, toBase64, randomBytes } from './crypto'
+import { translate } from './i18n'
 
 const PRF_SALT = new TextEncoder().encode('bpad-prf-v1')
 
-// Web Crypto/WebAuthn chtějí BufferSource nad ArrayBufferem.
+// Web Crypto/WebAuthn want a BufferSource over an ArrayBuffer.
 function ab(u: Uint8Array): ArrayBuffer {
   const b = new ArrayBuffer(u.byteLength)
   new Uint8Array(b).set(u)
   return b
 }
 
-// WebAuthn v tomto kontextu nefunguje (nepodporováno, chyba certifikátu, …).
-// Odlišujeme od NotAllowedError (uživatel zrušil / timeout).
+// WebAuthn doesn't work in this context (unsupported, certificate error, …).
+// Distinguished from NotAllowedError (user cancelled / timeout).
 export function isUnsupportedError(err: unknown): boolean {
   const name = (err as { name?: string } | null)?.name ?? ''
   const msg = (err as { message?: string } | null)?.message ?? ''
@@ -40,7 +42,7 @@ export async function isBiometricAvailable(): Promise<boolean> {
   }
 }
 
-// Vytvoří platform credential s PRF a vrátí id + PRF tajemství.
+// Creates a platform credential with PRF and returns the id + PRF secret.
 export async function enroll(username: string): Promise<{ credentialId: string; prfKey: Uint8Array }> {
   const cred = (await navigator.credentials.create({
     publicKey: {
@@ -64,10 +66,10 @@ export async function enroll(username: string): Promise<{ credentialId: string; 
       extensions: { prf: {} },
     },
   })) as PublicKeyCredential | null
-  if (!cred) throw new Error('Registrace biometriky selhala')
+  if (!cred) throw new Error(translate('errors.biometricEnrollFailed'))
 
   const credentialId = toBase64(new Uint8Array(cred.rawId))
-  // PRF tajemství čteme přes assertion (spolehlivější napříč platformami).
+  // Read the PRF secret via an assertion (more reliable across platforms).
   const prfKey = await getPrfKey(credentialId)
   return { credentialId, prfKey }
 }
@@ -82,10 +84,10 @@ export async function getPrfKey(credentialId: string): Promise<Uint8Array> {
       extensions: { prf: { eval: { first: ab(PRF_SALT) } } },
     },
   })) as PublicKeyCredential | null
-  if (!assertion) throw new Error('Biometrické odemčení selhalo')
+  if (!assertion) throw new Error(translate('errors.biometricUnlockFailed'))
 
   const ext = assertion.getClientExtensionResults() as { prf?: { results?: { first?: ArrayBuffer } } }
   const first = ext.prf?.results?.first
-  if (!first) throw new Error('Zařízení nepodporuje PRF (biometrické odemykání)')
+  if (!first) throw new Error(translate('errors.noPrfSupport'))
   return new Uint8Array(first)
 }

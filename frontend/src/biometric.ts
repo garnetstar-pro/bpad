@@ -78,8 +78,8 @@ export async function unlock(): Promise<string> {
   try {
     await loginWithAuthKey(enrollment.username, fromBase64(keys.authKey), fromBase64(keys.dataKey))
   } catch (err) {
-    // Uložené přihlášení už neplatí (heslo změněné jinde) → zapomenout.
-    if (err instanceof Error && err.message.includes('neplatí')) forget()
+    // Saved login is no longer valid (password changed elsewhere) → forget it.
+    if (err instanceof Error && err.message.includes('no longer valid')) forget()
     throw err
   }
   return enrollment.username
