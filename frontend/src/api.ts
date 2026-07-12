@@ -10,6 +10,7 @@ import {
   type EncryptedNote,
 } from './offlineCache'
 import { translate } from './i18n'
+import { normalizeTags, collectTags } from './tags'
 
 const API_URL = import.meta.env.DEV
   ? 'http://localhost:7071/api/notes'
@@ -27,11 +28,19 @@ function setKnownNoteCount(n: number | null): void {
   window.dispatchEvent(new Event('bpad:notes-changed'))
 }
 
+// Client-derived tag registry: the union of tags across the user's notes,
+// used for autocomplete and the filter bar. Updated on list/create/update.
+let knownTags = new Set<string>()
+export function getKnownTags(): string[] {
+  return [...knownTags].sort()
+}
+
 // Decrypted payload inside the ciphertext.
 interface NotePayload {
   title: string
   content: string
   url: string | null
+  tags: string[]
 }
 
 function key(): Uint8Array {
@@ -63,11 +72,17 @@ async function decrypt(enc: EncryptedNote): Promise<Note> {
     content: payload.content,
     url: payload.url,
     created_at: enc.created_at,
+    tags: normalizeTags(payload.tags ?? []),
   }
 }
 
-async function encryptPayload(content: string, title?: string): Promise<Encrypted> {
-  const payload: NotePayload = { title: resolveTitle(title, content), content, url: null }
+async function encryptPayload(content: string, title?: string, tags: string[] = []): Promise<Encrypted> {
+  const payload: NotePayload = {
+    title: resolveTitle(title, content),
+    content,
+    url: null,
+    tags: normalizeTags(tags),
+  }
   return encryptJSON(payload, key())
 }
 
@@ -81,7 +96,9 @@ export async function listNotes(): Promise<Note[]> {
     const cached = username ? getCachedNotes(username) : null
     if (cached) {
       setKnownNoteCount(cached.length)
-      return Promise.all(cached.map(decrypt))
+      const notes = await Promise.all(cached.map(decrypt))
+      knownTags = new Set(collectTags(notes))
+      return notes
     }
     throw new Error(translate('errors.offlineNoNotes'))
   }
@@ -90,7 +107,9 @@ export async function listNotes(): Promise<Note[]> {
   const encrypted: EncryptedNote[] = await res.json()
   if (username) cacheNotes(username, encrypted) // store for offline reading
   setKnownNoteCount(encrypted.length)
-  return Promise.all(encrypted.map(decrypt))
+  const notes = await Promise.all(encrypted.map(decrypt))
+  knownTags = new Set(collectTags(notes))
+  return notes
 }
 
 export async function getNote(id: string): Promise<Note> {
@@ -108,13 +127,13 @@ export async function getNote(id: string): Promise<Note> {
   return decrypt(await res.json())
 }
 
-export async function createNote(content: string): Promise<Note> {
+export async function createNote(content: string, tags: string[] = []): Promise<Note> {
   let res: Response
   try {
     res = await fetch(API_URL, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify(await encryptPayload(content)),
+      body: JSON.stringify(await encryptPayload(content, undefined, tags)),
     })
   } catch {
     throw new Error(translate('errors.offlineWrite'))
@@ -128,16 +147,18 @@ export async function createNote(content: string): Promise<Note> {
   const username = getUsername()
   if (username) upsertCachedNote(username, enc)
   if (knownNoteCount !== null) setKnownNoteCount(knownNoteCount + 1)
-  return decrypt(enc)
+  const note = await decrypt(enc)
+  note.tags.forEach((tag) => knownTags.add(tag))
+  return note
 }
 
-export async function updateNote(id: string, content: string, title?: string): Promise<Note> {
+export async function updateNote(id: string, content: string, title?: string, tags: string[] = []): Promise<Note> {
   let res: Response
   try {
     res = await fetch(`${API_URL}/${id}`, {
       method: 'PUT',
       headers: headers(),
-      body: JSON.stringify(await encryptPayload(content, title)),
+      body: JSON.stringify(await encryptPayload(content, title, tags)),
     })
   } catch {
     throw new Error(translate('errors.offlineWrite'))
@@ -147,7 +168,9 @@ export async function updateNote(id: string, content: string, title?: string): P
   const enc: EncryptedNote = await res.json()
   const username = getUsername()
   if (username) upsertCachedNote(username, enc)
-  return decrypt(enc)
+  const note = await decrypt(enc)
+  note.tags.forEach((tag) => knownTags.add(tag))
+  return note
 }
 
 export async function deleteNote(id: string): Promise<void> {
