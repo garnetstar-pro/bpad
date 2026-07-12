@@ -82,8 +82,10 @@ function NoteDetail() {
           <div className="note-detail-stamp">
             {new Date(note.created_at).toLocaleString()}
           </div>
-          <h1 className="note-detail-title">{note.title}</h1>
-          <TagPills tags={note.tags} />
+          <div className="note-detail-head">
+            <h1 className="note-detail-title">{note.title}</h1>
+            <TagPills tags={note.tags} />
+          </div>
           <div className="markdown-body">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
               {contentWithoutTitleHeading(note.content, note.title)}
