@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
-import { listNotes, createNote } from './api'
+import { getKnownTags, listNotes, createNote } from './api'
 import { filterNotes } from './search'
+import { filterByTags } from './tags'
 import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
+import { TagBar } from './TagBar'
+import { TagPills } from './TagPills'
 import { useTranslation, translate } from './i18n'
 
 function Home() {
@@ -13,6 +16,24 @@ function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selected = (searchParams.get('tags') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  const untaggedOnly = searchParams.get('untagged') === '1'
+
+  const setSelected = (next: string[]) => {
+    const params = new URLSearchParams(searchParams)
+    params.delete('untagged')
+    if (next.length) params.set('tags', next.join(','))
+    else params.delete('tags')
+    setSearchParams(params, { replace: true })
+  }
+  const toggleTag = (tag: string) =>
+    setSelected(selected.includes(tag) ? selected.filter((x) => x !== tag) : [...selected, tag])
+  const toggleUntagged = () => {
+    const params = new URLSearchParams()
+    if (!untaggedOnly) params.set('untagged', '1')
+    setSearchParams(params, { replace: true })
+  }
 
   useEffect(() => {
     fetchNotes()
@@ -30,12 +51,12 @@ function Home() {
     }
   }
 
-  const handleCreate = async (content: string) => {
-    const newNote = await createNote(content)
+  const handleCreate = async (content: string, _title?: string, tags?: string[]) => {
+    const newNote = await createNote(content, tags ?? [])
     setNotes((prev) => [newNote, ...prev])
   }
 
-  const filtered = filterNotes(notes, query)
+  const filtered = filterByTags(filterNotes(notes, query), selected, untaggedOnly)
   const searching = query.trim().length > 0
 
   return (
@@ -54,6 +75,14 @@ function Home() {
           </span>
         )}
       </div>
+
+      <TagBar
+        tags={getKnownTags()}
+        selected={selected}
+        untaggedOnly={untaggedOnly}
+        onToggleTag={toggleTag}
+        onToggleUntagged={toggleUntagged}
+      />
 
       <div className="search">
         <input
@@ -93,6 +122,7 @@ function Home() {
             </div>
             <div className="entry-body">
               <div className="entry-title">{note.title}</div>
+              <TagPills tags={note.tags} />
             </div>
             <div className="entry-chevron">›</div>
           </Link>
