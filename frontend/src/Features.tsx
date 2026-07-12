@@ -1,59 +1,63 @@
 import { Link } from 'react-router-dom'
+import { useTranslation } from './i18n'
 
+// Display copy for the features page — English-only content, not routed
+// through the dictionary since it isn't reused elsewhere.
 const FEATURES: { name: string; desc: string }[] = [
   {
-    name: 'Šifrovaný trezor',
-    desc: 'Vše se šifruje ve tvém prohlížeči (zero-knowledge). Obsah poznámek server nikdy nevidí — ani my.',
+    name: 'Encrypted vault',
+    desc: 'Everything is encrypted in your browser (zero-knowledge). The server never sees your notes — neither do we.',
   },
   {
-    name: 'Markdown s auto-nadpisem',
-    desc: 'Piš v Markdownu; první nadpis „# …" se automaticky stane názvem poznámky. Název jde i přepsat ručně.',
+    name: 'Markdown with auto-title',
+    desc: 'Write in Markdown; the first "# …" heading becomes the note title. You can also override it.',
   },
   {
     name: 'Preview',
-    desc: 'Přepínej mezi psaním a náhledem vykresleného Markdownu přímo v editoru.',
+    desc: 'Toggle between writing and a rendered Markdown preview right in the editor.',
   },
   {
-    name: 'Rychlé uložení',
-    desc: 'Ctrl+Enter (na Macu Cmd+Enter) uloží poznámku odkudkoli z editoru.',
+    name: 'Quick save',
+    desc: 'Ctrl+Enter (Cmd+Enter on Mac) saves from anywhere in the editor.',
   },
   {
-    name: 'Chytré hledání',
-    desc: 'Fulltext nad seznamem, který ignoruje diakritiku — „clanek" najde „Článek".',
+    name: 'Smart search',
+    desc: 'Full-text over the list that ignores diacritics — "clanek" finds "Článek".',
   },
   {
-    name: 'Vlastní URL poznámky',
-    desc: 'Každá poznámka má svou adresu (/notes/…), takže se na ni dá odkázat i vrátit.',
+    name: 'Per-note URLs',
+    desc: 'Every note has its own address (/notes/…), so you can link and return to it.',
   },
   {
-    name: 'Zachytávání odkazu',
-    desc: 'Napiš do adresy „tato-doména/" a rovnou za to celou URL — vytvoří se z ní nová poznámka.',
+    name: 'Save a link in one move',
+    desc: 'Type "this-domain/" then a full URL and it becomes a new note.',
   },
   {
-    name: 'Odemykání otiskem',
-    desc: 'Na zařízeních s biometrikou odemkneš trezor otiskem nebo obličejem, bez psaní hesla.',
+    name: 'Biometric unlock',
+    desc: 'On devices with biometrics, unlock the vault with a fingerprint or face — no password typing.',
   },
   {
-    name: 'Offline a jako appka',
-    desc: 'Poznámky si přečteš i bez signálu a bpad jde nainstalovat na plochu jako samostatnou aplikaci (PWA).',
+    name: 'Offline & installable',
+    desc: 'Read your notes with no signal, and install bpad to your home screen as a standalone app (PWA).',
   },
   {
-    name: 'Recovery kód',
-    desc: 'Při registraci dostaneš jednorázový kód, kterým obnovíš přístup, když zapomeneš heslo. Ulož si ho.',
+    name: 'Recovery code',
+    desc: 'At signup you get a one-time code to regain access if you forget your password. Save it.',
   },
   {
-    name: 'Ověření e-mailu',
-    desc: 'Neověřený účet má strop na počet poznámek; po ověření e-mailu píšeš bez omezení.',
+    name: 'E-mail verification',
+    desc: 'Unverified accounts have a note cap; after verifying your e-mail you write without limits.',
   },
 ]
 
 export default function Features() {
+  const { t } = useTranslation()
   return (
     <div className="detail-page">
-      <Link to="/account" className="back-link">← zpět</Link>
+      <Link to="/account" className="back-link">{t('common.back')}</Link>
 
       <div className="account-card">
-        <h2 className="account-title">Co bpad umí</h2>
+        <h2 className="account-title">{t('features.title')}</h2>
         <ul className="feature-list">
           {FEATURES.map((f) => (
             <li className="feature-item" key={f.name}>

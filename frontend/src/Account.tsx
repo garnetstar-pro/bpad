@@ -5,6 +5,7 @@ import { getAccount, resendVerification, type Account as AccountData } from './a
 import { getKnownNoteCount } from './api'
 import { UNVERIFIED_NOTE_LIMIT } from './verifyStatus'
 import { getUsername } from './session'
+import { useTranslation } from './i18n'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -13,6 +14,7 @@ function formatDate(iso: string | null): string {
 }
 
 export default function Account() {
+  const { t } = useTranslation()
   const { logout } = useAuth()
   const [account, setAccount] = useState<AccountData | null>(null)
   const [offline, setOffline] = useState(false)
@@ -31,55 +33,55 @@ export default function Account() {
 
   return (
     <div className="detail-page">
-      <Link to="/" className="back-link">← zpět</Link>
+      <Link to="/" className="back-link">{t('common.back')}</Link>
 
       <div className="account-card">
-        <h2 className="account-title">Účet</h2>
+        <h2 className="account-title">{t('account.title')}</h2>
 
-        {loading && <div className="empty-state">loading…</div>}
+        {loading && <div className="empty-state">{t('common.loading')}</div>}
 
         {!loading && offline && (
           <>
             <div className="account-row">
-              <span className="account-key">username</span>
+              <span className="account-key">{t('account.username')}</span>
               <span className="account-val">{getUsername() ?? '—'}</span>
             </div>
-            <div className="account-note">E-mail se načte, až budeš online.</div>
+            <div className="account-note">{t('account.emailOffline')}</div>
           </>
         )}
 
         {!loading && account && (
           <>
             <div className="account-row">
-              <span className="account-key">username</span>
+              <span className="account-key">{t('account.username')}</span>
               <span className="account-val">{account.username}</span>
             </div>
             <div className="account-row">
-              <span className="account-key">e-mail</span>
+              <span className="account-key">{t('account.email')}</span>
               <span className="account-val">
                 {account.email ?? '—'}{' '}
                 <span className={verified ? 'account-badge is-ok' : 'account-badge'}>
-                  {verified ? 'ověřeno ✓' : 'neověřeno'}
+                  {verified ? t('account.verified') : t('account.unverified')}
                 </span>
               </span>
             </div>
             <div className="account-row">
-              <span className="account-key">poznámek</span>
+              <span className="account-key">{t('account.notes')}</span>
               <span className="account-val">
                 {noteCount ?? '—'}
-                {!verified && noteCount !== null && ` z ${UNVERIFIED_NOTE_LIMIT}`}
+                {!verified && noteCount !== null && ` ${t('account.ofLimit', { limit: UNVERIFIED_NOTE_LIMIT })}`}
               </span>
             </div>
             <div className="account-row">
-              <span className="account-key">založeno</span>
+              <span className="account-key">{t('account.joined')}</span>
               <span className="account-val">{formatDate(account.createdAt)}</span>
             </div>
 
             {!verified && (
               <div className="account-note">
-                Ověř e-mail, ať můžeš psát bez omezení.{' '}
+                {t('account.verifyCta')}{' '}
                 {resend === 'sent' ? (
-                  <span className="verify-sent">Odesláno ✓</span>
+                  <span className="verify-sent">{t('account.sent')}</span>
                 ) : (
                   <button
                     className="verify-resend"
@@ -90,7 +92,7 @@ export default function Account() {
                         .catch(() => setResend('error'))
                     }
                   >
-                    {resend === 'error' ? 'Nepovedlo se, zkus znovu' : 'Poslat ověřovací odkaz'}
+                    {resend === 'error' ? t('account.sendFailed') : t('account.sendLink')}
                   </button>
                 )}
               </div>
@@ -99,11 +101,11 @@ export default function Account() {
         )}
 
         <div>
-          <Link to="/features" className="account-link">Co bpad umí →</Link>
+          <Link to="/features" className="account-link">{t('account.whatCanDo')}</Link>
         </div>
 
         <button className="ghost-btn account-logout" onClick={logout} type="button">
-          log out
+          {t('common.logOut')}
         </button>
       </div>
     </div>
