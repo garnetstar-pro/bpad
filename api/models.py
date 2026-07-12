@@ -21,6 +21,8 @@ class Note(BaseModel):
 class NoteCreate(BaseModel):
     iv: str
     ct: str
+    # Optional: preserve an original timestamp on import; otherwise server-set.
+    created_at: Optional[datetime] = None
 
 
 class User(BaseModel):
