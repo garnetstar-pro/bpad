@@ -43,7 +43,7 @@ def _client_ip(req: func.HttpRequest) -> str:
 
 def _rate_limited(req: func.HttpRequest) -> Optional[func.HttpResponse]:
     if not _auth_limiter.allow(_client_ip(req)):
-        return _error("Příliš mnoho pokusů, zkus to za chvíli", 429)
+        return _error("Too many attempts, try again shortly", 429)
     return None
 
 
@@ -71,7 +71,7 @@ def _require_user(req: func.HttpRequest) -> Union[str, func.HttpResponse]:
         token = header[7:] if header.startswith("Bearer ") else ""
     username = auth.verify_token(token)
     if not username:
-        return _error("Nepřihlášeno", 401)
+        return _error("Not signed in", 401)
     return username
 
 
@@ -110,7 +110,7 @@ def pow_challenge(req: func.HttpRequest) -> func.HttpResponse:
         return limited
     username = req.params.get("username", "")
     if not username.strip():
-        return _error("Chybí uživatelské jméno", 400)
+        return _error("Missing username", 400)
     return _json(pow.issue_challenge(username), 200)
 
 
@@ -122,17 +122,17 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = RegisterRequest(**req.get_json())
     except Exception as e:
-        return _error(f"Neplatná data: {str(e)}", 400)
+        return _error(f"Invalid data: {str(e)}", 400)
     if not data.username.strip():
-        return _error("Chybí uživatelské jméno", 400)
+        return _error("Missing username", 400)
     if not pow.verify_solution(data.powChallenge, data.powNonce, data.username):
-        return _error("Ověření proti robotům selhalo, zkus registraci znovu.", 403)
+        return _error("Anti-bot check failed, please try registering again.", 403)
     email = data.email.strip().lower()
     if "@" not in email or "." not in email:
-        return _error("Neplatný e-mail", 400)
+        return _error("Invalid e-mail", 400)
     # Atomická rezervace e-mailu (create v email_index) – zavře i souběžné registrace.
     if not users_repo.reserve_email(email, data.username):
-        return _error("E-mail je už registrovaný", 409)
+        return _error("That e-mail is already registered", 409)
 
     user = User(
         username=data.username,
@@ -146,7 +146,7 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
     )
     if not users_repo.add_user(user):
         users_repo.release_email(email)  # rollback rezervace
-        return _error("Uživatelské jméno je obsazené", 409)
+        return _error("That username is taken", 409)
     return _json(
         {"token": auth.create_token(user.username), "emailVerified": user.email_verified},
         201,
@@ -170,11 +170,11 @@ def login(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = LoginRequest(**req.get_json())
     except Exception as e:
-        return _error(f"Neplatná data: {str(e)}", 400)
+        return _error(f"Invalid data: {str(e)}", 400)
 
     user = users_repo.get_user(data.username)
     if user is None or not auth.verify_verifier(data.authVerifier, user.auth_hash):
-        return _error("Špatné jméno nebo heslo", 401)
+        return _error("Wrong username or password", 401)
     # Backfill email indexu pro účty vytvořené před jeho zavedením (best-effort).
     if user.email:
         try:
@@ -197,11 +197,11 @@ def verify_email(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = VerifyEmailRequest(**req.get_json())
     except Exception as e:
-        return _error(f"Neplatná data: {str(e)}", 400)
+        return _error(f"Invalid data: {str(e)}", 400)
 
     user = users_repo.get_user(data.username)
     if user is None:
-        return _error("Neplatný odkaz", 400)
+        return _error("Invalid link", 400)
     if user.email_verified:
         return _json({"verified": True}, 200)
     if (
@@ -210,7 +210,7 @@ def verify_email(req: func.HttpRequest) -> func.HttpResponse:
         or datetime.utcnow() > user.verify_expires
         or not auth.verify_token_hash(data.token, user.verify_token_hash)
     ):
-        return _error("Odkaz je neplatný nebo vypršel", 400)
+        return _error("The link is invalid or expired", 400)
 
     user.email_verified = True
     user.verify_token_hash = None
@@ -229,7 +229,7 @@ def send_verification(req: func.HttpRequest) -> func.HttpResponse:
         return username
     user = users_repo.get_user(username)
     if user is None or not user.email:
-        return _error("Není co ověřovat", 400)
+        return _error("Nothing to verify", 400)
     if user.email_verified:
         return _json({"verified": True}, 200)
     link = _prepare_verification(user)
@@ -243,7 +243,7 @@ def send_verification(req: func.HttpRequest) -> func.HttpResponse:
 def recovery_material(req: func.HttpRequest) -> func.HttpResponse:
     user = users_repo.get_user(req.params.get("username", ""))
     if user is None:
-        return _error("Uživatel nenalezen", 404)
+        return _error("User not found", 404)
     return _json(
         {"recoverySalt": user.recovery_salt,
          "wrappedDataKeyRec": user.wrapped_data_key_rec.model_dump()},
@@ -259,11 +259,11 @@ def recover(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = RecoverRequest(**req.get_json())
     except Exception as e:
-        return _error(f"Neplatná data: {str(e)}", 400)
+        return _error(f"Invalid data: {str(e)}", 400)
 
     user = users_repo.get_user(data.username)
     if user is None or not auth.verify_verifier(data.recAuthVerifier, user.rec_auth_hash):
-        return _error("Neplatný recovery kód", 401)
+        return _error("Invalid recovery code", 401)
 
     user.salt = data.newSalt
     user.auth_hash = auth.hash_verifier(data.newAuthVerifier)
@@ -284,11 +284,11 @@ def change_password(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = ChangePasswordRequest(**req.get_json())
     except Exception as e:
-        return _error(f"Neplatná data: {str(e)}", 400)
+        return _error(f"Invalid data: {str(e)}", 400)
 
     user = users_repo.get_user(username)
     if user is None:
-        return _error("Uživatel nenalezen", 404)
+        return _error("User not found", 404)
     user.salt = data.newSalt
     user.auth_hash = auth.hash_verifier(data.newAuthVerifier)
     user.wrapped_data_key_pw = data.newWrappedDataKeyPw
@@ -303,7 +303,7 @@ def me(req: func.HttpRequest) -> func.HttpResponse:
         return username
     user = users_repo.get_user(username)
     if user is None:
-        return _error("Uživatel nenalezen", 404)
+        return _error("User not found", 404)
     return _json(
         {
             "username": user.username,
@@ -333,7 +333,7 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
     try:
         data = NoteCreate(**req.get_json())
     except Exception as e:
-        return _error(f"Neplatná data: {str(e)}", 400)
+        return _error(f"Invalid data: {str(e)}", 400)
 
     # Soft-gate: neověřený účet má strop na počet poznámek (brzda pro boty).
     account = users_repo.get_user(user)
@@ -344,7 +344,7 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
     ):
         _maybe_send_verification(account)
         return _error(
-            f"Ověř svůj e-mail pro víc než {_UNVERIFIED_NOTE_LIMIT} poznámek.", 403
+            f"Verify your e-mail for more than {_UNVERIFIED_NOTE_LIMIT} notes.", 403
         )
 
     note = Note(user_id=user, iv=data.iv, ct=data.ct)
@@ -359,7 +359,7 @@ def get_note(req: func.HttpRequest) -> func.HttpResponse:
         return user
     note = notes_repo.get_note(user, req.route_params.get("id"))
     if note is None:
-        return _error("Poznámka nenalezena", 404)
+        return _error("Note not found", 404)
     return _json(note.model_dump(mode="json"), 200)
 
 
@@ -370,11 +370,11 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
         return user
     note = notes_repo.get_note(user, req.route_params.get("id"))
     if note is None:
-        return _error("Poznámka nenalezena", 404)
+        return _error("Note not found", 404)
     try:
         data = NoteCreate(**req.get_json())
     except Exception as e:
-        return _error(f"Neplatná data: {str(e)}", 400)
+        return _error(f"Invalid data: {str(e)}", 400)
 
     note.iv = data.iv
     note.ct = data.ct
@@ -388,5 +388,5 @@ def delete_note(req: func.HttpRequest) -> func.HttpResponse:
     if isinstance(user, func.HttpResponse):
         return user
     if not notes_repo.delete_note(user, req.route_params.get("id")):
-        return _error("Poznámka nenalezena", 404)
+        return _error("Note not found", 404)
     return func.HttpResponse(status_code=204, headers=_CORS)

@@ -25,15 +25,15 @@ def send_verification_email(to_email: str, link: str) -> None:
             "senderAddress": sender,
             "recipients": {"to": [{"address": to_email}]},
             "content": {
-                "subject": "bpad – ověření e-mailu",
+                "subject": "bpad – verify your e-mail",
                 "plainText": (
-                    "Ověř svůj e-mail kliknutím na odkaz:\n"
-                    f"{link}\n\nPokud jsi se neregistroval, tento e-mail ignoruj."
+                    "Verify your e-mail by clicking this link:\n"
+                    f"{link}\n\nIf you didn't sign up, you can ignore this e-mail."
                 ),
                 "html": (
-                    "<p>Ověř svůj e-mail pro <b>bpad</b>:</p>"
+                    "<p>Verify your e-mail for <b>bpad</b>:</p>"
                     f'<p><a href="{link}">{link}</a></p>'
-                    "<p style=\"color:#888\">Pokud jsi se neregistroval, e-mail ignoruj.</p>"
+                    "<p style=\"color:#888\">If you didn't sign up, you can ignore this e-mail.</p>"
                 ),
             },
         }
