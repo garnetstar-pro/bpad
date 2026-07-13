@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from datetime import datetime
 import uuid
 
@@ -39,6 +39,8 @@ class User(BaseModel):
     # Email is non-secret metadata (not encrypted). Verification confirms ownership.
     email: Optional[str] = None
     email_verified: bool = False
+    # Non-secret UI preference: note-list sort field. "created" (default) | "modified".
+    sort_by: str = "created"
     verify_token_hash: Optional[str] = None
     verify_expires: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -79,3 +81,7 @@ class ChangePasswordRequest(BaseModel):
     newSalt: str
     newAuthVerifier: str
     newWrappedDataKeyPw: Encrypted
+
+
+class PreferencesRequest(BaseModel):
+    sortBy: Literal["created", "modified"]

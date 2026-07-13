@@ -135,3 +135,16 @@ def test_create_note_sets_updated_at_equal_to_created_at():
 def test_note_updated_at_defaults_to_none_for_legacy_notes():
     n = _note()  # no updated_at supplied, as with pre-existing stored notes
     assert n.updated_at is None
+
+
+def test_sort_by_defaults_to_created():
+    assert _user().sort_by == "created"
+
+
+def test_sort_pref_round_trips_through_save_user():
+    repo = InMemoryUsersRepository()
+    u = _user()
+    repo.add_user(u)
+    u.sort_by = "modified"
+    repo.save_user(u)
+    assert repo.get_user("alice").sort_by == "modified"
