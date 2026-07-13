@@ -10,7 +10,7 @@ import { TagBar } from './TagBar'
 import { TagPills } from './TagPills'
 import { useTranslation, translate } from './i18n'
 import { getSortPref, setSortPref, type SortField } from './preferences'
-import { savePreferences } from './authApi'
+import { savePreferences, getAccount } from './authApi'
 
 function Home() {
   const { t } = useTranslation()
@@ -41,6 +41,16 @@ function Home() {
 
   useEffect(() => {
     fetchNotes()
+  }, [])
+
+  // Seed the sort preference from the server (source of truth) so it follows the
+  // user across devices, not just from the local cache. Best-effort: if the fetch
+  // fails (e.g. offline) we keep the cached/default value. getAccount() also
+  // refreshes the localStorage cache via setSortPref internally.
+  useEffect(() => {
+    getAccount()
+      .then((acc) => setSortBy(acc.sortBy))
+      .catch(() => {})
   }, [])
 
   const fetchNotes = async () => {
