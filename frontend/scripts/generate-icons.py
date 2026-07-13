@@ -30,7 +30,7 @@ KEYHOLE = (27, 142, 105)   # #1B8E69
 ART_CX, ART_CY = 24.0, 23.5
 ART_W = 40.0  # reference span used for the fill fraction
 
-SS = 4  # supersampling factor for anti-aliasing
+SS = 8  # supersampling factor for anti-aliasing (PIL's draw has none of its own)
 
 
 def render(size: int, fill: float) -> Image.Image:
