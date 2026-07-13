@@ -8,6 +8,8 @@ export interface EncryptedNote {
   iv: string
   ct: string
   created_at: string
+  // Optional: absent on notes cached/stored before the field existed.
+  updated_at?: string
 }
 
 export interface OfflineAuth {
