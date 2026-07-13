@@ -22,6 +22,9 @@ export default defineConfig({
         display: 'standalone',
         start_url: '/',
         icons: [
+          // Vector first: crisp at any size on platforms that support SVG icons
+          // (e.g. Chrome/Android). PNGs are the fallback (e.g. iOS).
+          { src: '/favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
         ],
