@@ -1,82 +1,49 @@
 #!/usr/bin/env python3
-"""Generate the PWA app icons from the bpad glyph.
+"""Generate the app icons from the bpad artwork.
 
-The glyph (open book + padlock + bookmark) mirrors ``public/favicon.svg``. It is
-rendered on a fully transparent background and bled to the tile edges — the book's
-top corners touch the left/right edges, no margin — so the icon reads as large as
-possible next to other apps.
+``icon-master.png`` is the source of truth: the book + padlock + bookmark glyph
+on a fully transparent background (its dark backdrop already removed), cropped to
+the artwork. This script scales it, without distortion, into square transparent
+tiles bled to the edges:
 
-We emit ``icon-192.png`` / ``icon-512.png``; the manifest uses the 512 for both
-``any`` and ``maskable`` (the lock + keyhole stay well inside the maskable safe
-zone, so a mask only ever clips the outer page corners).
+* ``public/icon-192.png`` / ``public/icon-512.png`` — PWA / home-screen icons.
+* ``public/favicon.png`` — browser-tab icon.
 
-Run: ``python3 scripts/generate-icons.py`` (needs Pillow). Output goes to
-``public/``. Keep this in sync with ``favicon.svg``.
+Run: ``python3 scripts/generate-icons.py`` (needs Pillow). To change the artwork,
+replace ``icon-master.png`` and re-run.
 """
 
 import os
-from PIL import Image, ImageDraw
+from PIL import Image
 
-OUT = os.path.join(os.path.dirname(__file__), "..", "public")
+HERE = os.path.dirname(__file__)
+OUT = os.path.join(HERE, "..", "public")
+MASTER = os.path.join(HERE, "icon-master.png")
 
-LEFT_PAGE = (58, 99, 176)  # #3A63B0
-RIGHT_PAGE = (39, 75, 144)  # #274B90
-BOOKMARK = (34, 177, 131)  # #22B183
-WHITE = (255, 255, 255)
-KEYHOLE = (27, 142, 105)   # #1B8E69
-
-# Glyph geometry in a 0..48 art box (matches favicon.svg, offset by its 8/13
-# viewBox origin). Content spans x[4..44] y[4..43], centred on (24, 23.5).
-ART_CX, ART_CY = 24.0, 23.5
-ART_W = 40.0  # reference span used for the fill fraction
-
-SS = 8  # supersampling factor for anti-aliasing (PIL's draw has none of its own)
+# (filename, size) tiles to emit.
+TILES = [
+    ("icon-192.png", 192),
+    ("icon-512.png", 512),
+    ("favicon.png", 64),
+]
 
 
-def render(size: int, fill: float) -> Image.Image:
-    """Render the glyph on a transparent background at ``size`` px.
-
-    ``fill`` is the fraction of the tile width the glyph's bounding box spans;
-    ``fill = 1.0`` bleeds the book's top corners to the left/right edges.
-    """
-    T = size * SS
-    scale = fill * T / ART_W
-    img = Image.new("RGBA", (T, T), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-
-    def P(x, y):
-        return (T / 2 + (x - ART_CX) * scale, T / 2 + (y - ART_CY) * scale)
-
-    # Open book: two pages meeting at the spine.
-    d.polygon([P(4, 4), P(24, 8), P(24, 36), P(4, 31)], fill=LEFT_PAGE)
-    d.polygon([P(44, 4), P(24, 8), P(24, 36), P(44, 31)], fill=RIGHT_PAGE)
-    # Bookmark tab.
-    d.polygon([P(19, 34), P(29, 34), P(24, 43)], fill=BOOKMARK)
-
-    # Padlock shackle: top semicircle + two legs, tucked behind the body.
-    stroke = 3 * scale
-    sx0, sy0 = P(18, 9.6)
-    sx1, sy1 = P(30, 21.6)
-    d.arc([sx0, sy0, sx1, sy1], 180, 360, fill=WHITE, width=int(round(stroke)))
-    d.line([P(18, 15.6), P(18, 18)], fill=WHITE, width=int(round(stroke)))
-    d.line([P(30, 15.6), P(30, 18)], fill=WHITE, width=int(round(stroke)))
-
-    # Padlock body.
-    d.rounded_rectangle([P(15.5, 18), P(32.5, 32)], radius=2.6 * scale, fill=WHITE)
-
-    # Keyhole.
-    kx, ky = P(24, 24)
-    r = 2 * scale
-    d.ellipse([kx - r, ky - r, kx + r, ky + r], fill=KEYHOLE)
-    d.rounded_rectangle([P(23, 24.4), P(25, 29.4)], radius=1 * scale, fill=KEYHOLE)
-
-    return img.resize((size, size), Image.LANCZOS)
+def tile(master: Image.Image, size: int) -> Image.Image:
+    """Fit the artwork into a ``size`` square transparent tile, centred."""
+    aw, ah = master.size
+    scale = size / max(aw, ah)
+    nw, nh = round(aw * scale), round(ah * scale)
+    art = master.resize((nw, nh), Image.LANCZOS)
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    canvas.alpha_composite(art, ((size - nw) // 2, (size - nh) // 2))
+    return canvas
 
 
 def main() -> None:
-    render(192, 1.0).save(os.path.join(OUT, "icon-192.png"))
-    render(512, 1.0).save(os.path.join(OUT, "icon-512.png"))
-    print("wrote icon-192.png, icon-512.png")
+    master = Image.open(MASTER).convert("RGBA")
+    for name, size in TILES:
+        tile(master, size).save(os.path.join(OUT, name))
+    print("wrote", ", ".join(name for name, _ in TILES))
 
 
 if __name__ == "__main__":
