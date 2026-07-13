@@ -16,6 +16,7 @@ import { setSession, getToken } from './session'
 import { cacheAuth, getCachedAuth } from './offlineCache'
 import { solvePow } from './pow'
 import { translate } from './i18n'
+import { setSortPref, type SortField } from './preferences'
 
 const AUTH_URL = import.meta.env.DEV ? 'http://localhost:7071/api/auth' : '/api/auth'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -34,6 +35,7 @@ export interface Account {
   email: string | null
   emailVerified: boolean
   createdAt: string | null
+  sortBy: SortField
 }
 
 export async function getAccount(): Promise<Account> {
@@ -42,7 +44,19 @@ export async function getAccount(): Promise<Account> {
     headers: token ? { 'X-Auth-Token': token } : {},
   })
   if (!res.ok) throw new Error(translate('errors.accountLoadFailed'))
-  return res.json()
+  const account: Account = await res.json()
+  setSortPref(account.sortBy)
+  return account
+}
+
+export async function savePreferences(sortBy: SortField): Promise<void> {
+  const token = getToken()
+  const res = await fetch(`${AUTH_URL}/preferences`, {
+    method: 'PUT',
+    headers: { ...JSON_HEADERS, ...(token ? { 'X-Auth-Token': token } : {}) },
+    body: JSON.stringify({ sortBy }),
+  })
+  if (!res.ok) throw new Error(translate('errors.preferencesSaveFailed'))
 }
 
 async function postJson(path: string, body: unknown): Promise<Response> {

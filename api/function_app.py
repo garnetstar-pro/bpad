@@ -9,7 +9,7 @@ from urllib.parse import quote
 from models import (
     Note, NoteCreate, User,
     RegisterRequest, LoginRequest, RecoverRequest, ChangePasswordRequest,
-    VerifyEmailRequest,
+    VerifyEmailRequest, PreferencesRequest,
 )
 from repository import get_notes_repository, get_users_repository
 from ratelimit import RateLimiter
@@ -310,9 +310,27 @@ def me(req: func.HttpRequest) -> func.HttpResponse:
             "email": user.email,
             "emailVerified": user.email_verified,
             "createdAt": user.created_at.isoformat() if user.created_at else None,
+            "sortBy": user.sort_by,
         },
         200,
     )
+
+
+@app.route(route="auth/preferences", methods=["PUT"])
+def update_preferences(req: func.HttpRequest) -> func.HttpResponse:
+    username = _require_user(req)
+    if isinstance(username, func.HttpResponse):
+        return username
+    try:
+        data = PreferencesRequest(**req.get_json())
+    except Exception as e:
+        return _error(f"Invalid data: {str(e)}", 400)
+    user = users_repo.get_user(username)
+    if user is None:
+        return _error("User not found", 404)
+    user.sort_by = data.sortBy
+    users_repo.save_user(user)
+    return _json({"sortBy": user.sort_by}, 200)
 
 
 # ---------------------------------------------------------------- notes
@@ -353,6 +371,8 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         ct=data.ct,
         **({"created_at": data.created_at} if data.created_at else {}),
     )
+    # A new note's modification time starts equal to its creation time.
+    note.updated_at = note.created_at
     notes_repo.save_note(note)
     return _json(note.model_dump(mode="json"), 201)
 
@@ -383,6 +403,7 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
 
     note.iv = data.iv
     note.ct = data.ct
+    note.updated_at = datetime.utcnow()
     notes_repo.save_note(note)
     return _json(note.model_dump(mode="json"), 200)
 

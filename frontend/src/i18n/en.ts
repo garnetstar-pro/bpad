@@ -29,6 +29,9 @@ export const en = {
     loading: 'loading…',
     noEntries: 'no entries yet',
     nothingFound: 'nothing found',
+    sortLabel: 'Sort entries by',
+    sortCreated: 'created',
+    sortModified: 'modified',
   },
   notes: {
     save: 'Save',
@@ -201,6 +204,7 @@ export const en = {
     offlineNoUser: 'You’re offline and I have no saved data for this user.',
     savedLoginInvalid: 'Your saved login is no longer valid',
     accountLoadFailed: 'Could not load the account',
+    preferencesSaveFailed: 'Could not save the preference',
     biometricEnrollFailed: 'Biometric enrollment failed',
     biometricUnlockFailed: 'Biometric unlock failed',
     noPrfSupport: 'Device doesn’t support PRF (biometric unlock)',
