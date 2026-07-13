@@ -53,13 +53,10 @@ export async function savePreferences(sortBy: SortField): Promise<void> {
   const token = getToken()
   const res = await fetch(`${AUTH_URL}/preferences`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'X-Auth-Token': token } : {}),
-    },
+    headers: { ...JSON_HEADERS, ...(token ? { 'X-Auth-Token': token } : {}) },
     body: JSON.stringify({ sortBy }),
   })
-  if (!res.ok) throw new Error(translate('errors.accountLoadFailed'))
+  if (!res.ok) throw new Error(translate('errors.preferencesSaveFailed'))
 }
 
 async function postJson(path: string, body: unknown): Promise<Response> {

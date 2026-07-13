@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
 import { getKnownTags, listNotes, createNote } from './api'
@@ -19,6 +19,9 @@ function Home() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortField>(() => getSortPref())
+  // Set once the user picks a sort field, so the async server seed below never
+  // overwrites a choice the user has already made this session.
+  const userChoseSort = useRef(false)
   const [searchParams, setSearchParams] = useSearchParams()
   // Normalize (lowercase) so a filter is case-insensitive even from a hand-typed URL.
   const selected = (searchParams.get('tags') ?? '').split(',').map(normalizeTag).filter(Boolean)
@@ -49,7 +52,9 @@ function Home() {
   // refreshes the localStorage cache via setSortPref internally.
   useEffect(() => {
     getAccount()
-      .then((acc) => setSortBy(acc.sortBy))
+      .then((acc) => {
+        if (!userChoseSort.current) setSortBy(acc.sortBy)
+      })
       .catch(() => {})
   }, [])
 
@@ -71,6 +76,7 @@ function Home() {
   }
 
   const changeSort = (field: SortField) => {
+    userChoseSort.current = true
     setSortBy(field)
     setSortPref(field) // optimistic local cache
     // Best-effort server sync; if it fails (offline) the change stays local
