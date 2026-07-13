@@ -9,6 +9,8 @@ import Editor from './Editor'
 import { TagBar } from './TagBar'
 import { TagPills } from './TagPills'
 import { useTranslation, translate } from './i18n'
+import { getSortPref, setSortPref, type SortField } from './preferences'
+import { savePreferences } from './authApi'
 
 function Home() {
   const { t } = useTranslation()
@@ -16,6 +18,7 @@ function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortField>(() => getSortPref())
   const [searchParams, setSearchParams] = useSearchParams()
   // Normalize (lowercase) so a filter is case-insensitive even from a hand-typed URL.
   const selected = (searchParams.get('tags') ?? '').split(',').map(normalizeTag).filter(Boolean)
@@ -57,7 +60,18 @@ function Home() {
     setNotes((prev) => [newNote, ...prev])
   }
 
-  const filtered = filterByTags(filterNotes(notes, query), selected, untaggedOnly)
+  const changeSort = (field: SortField) => {
+    setSortBy(field)
+    setSortPref(field) // optimistic local cache
+    // Best-effort server sync; if it fails (offline) the change stays local
+    // and re-syncs on the next successful save.
+    savePreferences(field).catch(() => {})
+  }
+
+  const stamp = (n: Note) => (sortBy === 'modified' ? n.updated_at : n.created_at)
+  const filtered = [...filterByTags(filterNotes(notes, query), selected, untaggedOnly)].sort(
+    (a, b) => new Date(stamp(b)).getTime() - new Date(stamp(a)).getTime(),
+  )
   const searching = query.trim().length > 0
 
   return (
@@ -70,6 +84,22 @@ function Home() {
 
       <div className="section-head">
         <span className="section-label">{t('home.recentEntries')}</span>
+        <div className="sort-toggle" role="group" aria-label={t('home.sortLabel')}>
+          <button
+            type="button"
+            className={sortBy === 'created' ? 'is-active' : ''}
+            onClick={() => changeSort('created')}
+          >
+            {t('home.sortCreated')}
+          </button>
+          <button
+            type="button"
+            className={sortBy === 'modified' ? 'is-active' : ''}
+            onClick={() => changeSort('modified')}
+          >
+            {t('home.sortModified')}
+          </button>
+        </div>
         {searching && (
           <span className="section-count">
             {filtered.length} / {notes.length}

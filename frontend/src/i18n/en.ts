@@ -29,6 +29,9 @@ export const en = {
     loading: 'loading…',
     noEntries: 'no entries yet',
     nothingFound: 'nothing found',
+    sortLabel: 'Sort entries by',
+    sortCreated: 'created',
+    sortModified: 'modified',
   },
   notes: {
     save: 'Save',
