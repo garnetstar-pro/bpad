@@ -16,6 +16,9 @@ class Note(BaseModel):
     iv: str
     ct: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Server-set metadata: last modification time. Optional so notes stored before
+    # this field existed load cleanly; consumers fall back to created_at when None.
+    updated_at: Optional[datetime] = None
 
 
 class NoteCreate(BaseModel):

@@ -353,6 +353,8 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         ct=data.ct,
         **({"created_at": data.created_at} if data.created_at else {}),
     )
+    # A new note's modification time starts equal to its creation time.
+    note.updated_at = note.created_at
     notes_repo.save_note(note)
     return _json(note.model_dump(mode="json"), 201)
 
@@ -383,6 +385,7 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
 
     note.iv = data.iv
     note.ct = data.ct
+    note.updated_at = datetime.utcnow()
     notes_repo.save_note(note)
     return _json(note.model_dump(mode="json"), 200)
 

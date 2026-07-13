@@ -123,3 +123,15 @@ def test_index_email_is_idempotent_backfill():
     repo.index_email("a@example.com", "alice")
     repo.index_email("a@example.com", "alice")  # no-op, harmless
     assert repo.email_exists("a@example.com") is True
+
+
+def test_create_note_sets_updated_at_equal_to_created_at():
+    # A freshly created note (as function_app builds it) sorts identically under
+    # both "created" and "modified" ordering.
+    n = _note(created_at="2026-01-01T00:00:00", updated_at="2026-01-01T00:00:00")
+    assert n.updated_at == n.created_at
+
+
+def test_note_updated_at_defaults_to_none_for_legacy_notes():
+    n = _note()  # no updated_at supplied, as with pre-existing stored notes
+    assert n.updated_at is None
