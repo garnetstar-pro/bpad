@@ -429,14 +429,22 @@ def delete_note(req: func.HttpRequest) -> func.HttpResponse:
 
 def _notify_feedback(username: str, message: str) -> None:
     """Look up the sender's e-mail and notify the owner. Best-effort throughout:
-    the feedback is stored before this runs, so nothing here may fail the request."""
+    the feedback is stored before this runs, so nothing here may fail the request.
+
+    The two steps are guarded separately on purpose: a failed lookup must still
+    send the notification (without an address), because the notification is also
+    what writes the message to the log when no mail provider is configured.
+    """
     email = None
     try:
         user = users_repo.get_user(username)
         email = user.email if user else None
-        mailer.send_feedback_notification(username, email, message)
-    except Exception:  # noqa: BLE001 - a notification without an address beats a 500
+    except Exception:  # noqa: BLE001 - a notification without an address beats none
         logging.exception("Could not load user %s for the feedback notification", username)
+    try:
+        mailer.send_feedback_notification(username, email, message)
+    except Exception:  # noqa: BLE001 - the feedback is already stored; a 500 here would be a lie
+        logging.exception("Feedback notification failed for %s", username)
 
 
 @app.route(route="feedback", methods=["POST"])
