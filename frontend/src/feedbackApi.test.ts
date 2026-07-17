@@ -35,6 +35,14 @@ describe('sendFeedback', () => {
     await expect(sendFeedback('hello')).rejects.toThrow(/Could not send feedback/)
   })
 
+  it('translates a network failure instead of leaking the raw browser error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    const err = await sendFeedback('hello').catch((e) => e)
+    expect(err).toBeInstanceOf(Error)
+    expect(err.message).not.toMatch(/Failed to fetch/)
+    expect(err.message).toMatch(/offline/i)
+  })
+
   it('exposes the server’s length limit', () => {
     expect(FEEDBACK_MAX_LENGTH).toBe(4000)
   })

@@ -139,7 +139,16 @@ export default function Account() {
           <span className="account-key">{t('account.feedbackTitle')}</span>
           <div className="account-note">{t('account.feedbackIntro')}</div>
           {fbState === 'sent' ? (
-            <div className="verify-sent">{t('account.feedbackThanks')}</div>
+            <>
+              <div className="verify-sent">{t('account.feedbackThanks')}</div>
+              <button
+                className="ghost-btn"
+                type="button"
+                onClick={() => setFbState('idle')}
+              >
+                {t('account.feedbackSendAnother')}
+              </button>
+            </>
           ) : (
             <>
               <textarea
@@ -148,7 +157,10 @@ export default function Account() {
                 value={feedback}
                 maxLength={FEEDBACK_MAX_LENGTH}
                 placeholder={t('account.feedbackPlaceholder')}
-                onChange={(e) => setFeedback(e.target.value)}
+                onChange={(e) => {
+                  setFeedback(e.target.value)
+                  if (fbState === 'error') setFbState('idle')
+                }}
               />
               <div className="account-note">{t('account.feedbackNotEncrypted')}</div>
               <button

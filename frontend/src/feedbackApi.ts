@@ -12,14 +12,19 @@ export const FEEDBACK_MAX_LENGTH = 4000
 
 export async function sendFeedback(message: string): Promise<void> {
   const token = getToken()
-  const res = await fetch(FEEDBACK_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'X-Auth-Token': token } : {}),
-    },
-    body: JSON.stringify({ message }),
-  })
+  let res: Response
+  try {
+    res = await fetch(FEEDBACK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'X-Auth-Token': token } : {}),
+      },
+      body: JSON.stringify({ message }),
+    })
+  } catch {
+    throw new Error(translate('errors.offlineWrite'))
+  }
   if (res.status === 429) throw new Error(translate('errors.feedbackTooMany'))
   if (!res.ok) throw new Error(translate('errors.feedbackFailed'))
 }

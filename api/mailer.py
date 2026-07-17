@@ -1,8 +1,8 @@
-"""Sends verification e-mails.
+"""Sends verification e-mails and user feedback notifications.
 
 Via Azure Communication Services (when ACS_CONNECTION_STRING + EMAIL_SENDER
-are set), otherwise just logs the link (dev). A send failure must not break
-registration - we call it best-effort.
+are set), otherwise just logs the link/message (dev). A send failure must not
+break registration or feedback submission - we call it best-effort.
 """
 import logging
 import os

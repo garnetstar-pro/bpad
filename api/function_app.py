@@ -434,9 +434,9 @@ def _notify_feedback(username: str, message: str) -> None:
     try:
         user = users_repo.get_user(username)
         email = user.email if user else None
+        mailer.send_feedback_notification(username, email, message)
     except Exception:  # noqa: BLE001 - a notification without an address beats a 500
         logging.exception("Could not load user %s for the feedback notification", username)
-    mailer.send_feedback_notification(username, email, message)
 
 
 @app.route(route="feedback", methods=["POST"])

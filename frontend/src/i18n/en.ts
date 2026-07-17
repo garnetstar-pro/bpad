@@ -115,6 +115,7 @@ export const en = {
     feedbackSend: 'Send feedback',
     feedbackSending: 'Sending…',
     feedbackThanks: 'Thanks — got it ✓',
+    feedbackSendAnother: 'Send another',
   },
   features: {
     title: 'What bpad can do',
