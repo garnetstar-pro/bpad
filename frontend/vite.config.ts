@@ -21,9 +21,14 @@ export default defineConfig({
         background_color: '#0E1524',
         display: 'standalone',
         start_url: '/',
+        // 'any' and 'maskable' are separate files on purpose: Android crops a
+        // maskable icon to a launcher shape, so it carries a margin the plain
+        // icon must not have. See scripts/generate-icons.py.
         icons: [
-          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
