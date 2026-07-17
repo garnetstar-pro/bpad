@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+import mailer
 from models import Feedback, FeedbackRequest
 from ratelimit import RateLimiter
 from repository import InMemoryFeedbackRepository
@@ -60,3 +61,32 @@ def test_rate_limiter_is_per_user():
     for _ in range(5):
         rl.allow("alice", now=0)
     assert rl.allow("bob", now=0) is True
+
+
+# --- notification e-mail (best-effort, must never raise) ---
+
+def test_notification_without_recipient_logs_instead_of_raising(monkeypatch, caplog):
+    monkeypatch.delenv("FEEDBACK_EMAIL", raising=False)
+    with caplog.at_level("WARNING"):
+        mailer.send_feedback_notification("alice", "alice@example.com", "hello")
+    assert "hello" in caplog.text
+
+
+def test_notification_without_provider_logs_instead_of_raising(monkeypatch, caplog):
+    monkeypatch.setenv("FEEDBACK_EMAIL", "owner@example.com")
+    monkeypatch.delenv("ACS_CONNECTION_STRING", raising=False)
+    monkeypatch.delenv("EMAIL_SENDER", raising=False)
+    with caplog.at_level("WARNING"):
+        mailer.send_feedback_notification("alice", "alice@example.com", "hello")
+    assert "hello" in caplog.text
+
+
+def test_notification_survives_a_broken_provider(monkeypatch, caplog):
+    monkeypatch.setenv("FEEDBACK_EMAIL", "owner@example.com")
+    monkeypatch.setenv("ACS_CONNECTION_STRING", "endpoint=https://x/;accesskey=bogus")
+    monkeypatch.setenv("EMAIL_SENDER", "bpad@example.com")
+    # Must swallow the failure: the feedback is already stored by this point.
+    # Asserting on the log proves the error was handled rather than never raised.
+    with caplog.at_level("ERROR"):
+        mailer.send_feedback_notification("alice", "alice@example.com", "hello")
+    assert "Failed to send feedback notification" in caplog.text
