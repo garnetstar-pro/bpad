@@ -20,7 +20,8 @@ User-facing copy is **English**, delivered via the `t()` i18n layer (`frontend/s
 - `npm run preview` — serve the production build locally
 
 ### API (`cd api`)
-- `func start` — run the Functions host locally on port **7071** (Azure Functions Core Tools). The frontend dev build hardcodes this URL.
+- `source .venv/bin/activate && func start` — run the Functions host locally on port **7071** (Azure Functions Core Tools). The frontend dev build hardcodes this URL. **The venv must be activated first**: `func` resolves its Python worker from `PATH`, so a bare `func start` picks up the system interpreter and dies with `ModuleNotFoundError: No module named 'pydantic'` followed by "No job functions found". Prefixing the command (`.venv/bin/python -m ...`) does not help — the worker is a separate process.
+- `POW_DIFFICULTY=0 func start` disables registration proof-of-work, which makes it possible to register a test account with dummy values via `curl`.
 - `python -m pytest` — test suite (`test_*.py` beside the sources)
 - Dependencies: `pip install -r requirements-dev.txt` (runtime deps only: `requirements.txt`)
 - Python 3.12. **Use the `.venv` in `api/`** — it has the dependencies installed. (A stray empty `api/venv/` also exists; both are gitignored, but `venv/` is not the one you want.)
@@ -33,7 +34,7 @@ There is no root-level build; each part builds independently and CI wires them t
 
 **Routes** (`api/function_app.py`, ~16 of them): `auth/*` covers pow-challenge, register, salt, login, verify-email, send-verification, recovery-material, recover, change-password, me, preferences; `notes` and `notes/{id}` cover CRUD. Request/response shapes are Pydantic models in `api/models.py`.
 
-**Storage is Azure Cosmos DB** via `api/repository.py`, which is the pattern to follow for any new persisted type: a `Protocol` interface + an `InMemory*` implementation (fallback when `COSMOS_CONNECTION_STRING` is unset; used by tests) + a `Cosmos*` implementation + a `get_*_repository()` factory. Containers: `notes` (partition `/user_id`), `users` (`/username`), `email_index` (`/id`, enforces email uniqueness via atomic create). The Cosmos account is **serverless**, so extra containers cost nothing fixed — don't cram new document types into an existing container to save money.
+**Storage is Azure Cosmos DB** via `api/repository.py`, which is the pattern to follow for any new persisted type: a `Protocol` interface + an `InMemory*` implementation (fallback when `COSMOS_CONNECTION_STRING` is unset; used by tests) + a `Cosmos*` implementation + a `get_*_repository()` factory. Containers: `notes` (partition `/user_id`), `users` (`/username`), `email_index` (`/id`, enforces email uniqueness via atomic create), `feedback` (`/user_id`, write-only from the app — read it in the portal's Data Explorer). The Cosmos account is **serverless**, so extra containers cost nothing fixed — don't cram new document types into an existing container to save money.
 
 **Email** goes through Azure Communication Services (`api/mailer.py`, resource `bpad-comms`). Note it is deliberately **best-effort**: send failures are caught and logged, never raised. That is right for verification mail (the account exists regardless) but means email must never be the only record of something you cannot afford to lose.
 
@@ -56,6 +57,7 @@ There is no root-level build; each part builds independently and CI wires them t
 | `ACS_CONNECTION_STRING`, `EMAIL_SENDER` | Azure Communication Services email. Unset → the link is only logged. |
 | `APP_BASE_URL` | Base for links in emails (default `http://localhost:5173`). |
 | `POW_DIFFICULTY` | Registration proof-of-work leading zero bits (default `20`, `0` disables). |
+| `FEEDBACK_EMAIL` | Recipient of feedback notifications. Unset → the message is only logged (it is still stored). |
 | `ALLOWED_ORIGIN` | CORS origin (default `*`). |
 
 ## Notes
