@@ -85,3 +85,16 @@ class ChangePasswordRequest(BaseModel):
 
 class PreferencesRequest(BaseModel):
     sortBy: Literal["created", "modified"]
+
+
+class Feedback(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    # Deliberately NOT encrypted (no iv/ct like Note): this message is written
+    # for the app's owner to read. The UI tells the user so.
+    message: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class FeedbackRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)

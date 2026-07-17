@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Optional, Protocol
-from models import Note, User
+from models import Note, User, Feedback
 
 
 # ---------------------------------------------------------------- notes
@@ -240,6 +240,48 @@ class CosmosUsersRepository:
         return True
 
 
+# ---------------------------------------------------------------- feedback
+
+class FeedbackRepository(Protocol):
+    def add_feedback(self, feedback: Feedback) -> None: ...
+
+
+class InMemoryFeedbackRepository:
+    """Temporary in-process feedback store (does not survive a restart)."""
+
+    def __init__(self) -> None:
+        # Public: there is no read method on the Protocol (feedback is read from
+        # the portal, not the API), so tests assert against this directly.
+        self.items: list[Feedback] = []
+
+    def add_feedback(self, feedback: Feedback) -> None:
+        self.items.append(feedback)
+
+
+class CosmosFeedbackRepository:
+    """Persistent feedback store in Azure Cosmos DB (partition /user_id)."""
+
+    def __init__(self, connection_string: str, database: str = "bpad", container: str = "feedback") -> None:
+        self._cs = connection_string
+        self._database_name = database
+        self._container_name = container
+        self._container = None
+
+    def _c(self):
+        if self._container is None:
+            from azure.cosmos import CosmosClient, PartitionKey
+
+            client = CosmosClient.from_connection_string(self._cs)
+            db = client.create_database_if_not_exists(self._database_name)
+            self._container = db.create_container_if_not_exists(
+                id=self._container_name, partition_key=PartitionKey(path="/user_id")
+            )
+        return self._container
+
+    def add_feedback(self, feedback: Feedback) -> None:
+        self._c().create_item(feedback.model_dump(mode="json"))
+
+
 # ---------------------------------------------------------------- factory
 
 def _connection_string() -> Optional[str]:
@@ -262,3 +304,14 @@ def get_users_repository() -> UsersRepository:
     if cs:
         return CosmosUsersRepository(cs)
     return InMemoryUsersRepository()
+
+
+def get_feedback_repository() -> FeedbackRepository:
+    cs = _connection_string()
+    if cs:
+        return CosmosFeedbackRepository(cs)
+    logging.warning(
+        "COSMOS_CONNECTION_STRING is not set - feedback is stored in a temporary "
+        "in-memory store (it will not survive a restart)."
+    )
+    return InMemoryFeedbackRepository()

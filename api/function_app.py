@@ -10,8 +10,9 @@ from models import (
     Note, NoteCreate, User,
     RegisterRequest, LoginRequest, RecoverRequest, ChangePasswordRequest,
     VerifyEmailRequest, PreferencesRequest,
+    Feedback, FeedbackRequest,
 )
-from repository import get_notes_repository, get_users_repository
+from repository import get_notes_repository, get_users_repository, get_feedback_repository
 from ratelimit import RateLimiter
 import auth
 import mailer
@@ -24,6 +25,7 @@ app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 notes_repo = get_notes_repository()
 users_repo = get_users_repository()
+feedback_repo = get_feedback_repository()
 
 # In production set ALLOWED_ORIGIN to your own domain; defaults to '*' in dev.
 _ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
@@ -35,6 +37,11 @@ _CORS = {
 
 # Best-effort brake against brute-force on sensitive auth endpoints.
 _auth_limiter = RateLimiter(max_calls=20, window_seconds=60)
+
+# Separate from _auth_limiter on purpose: feedback must not eat the sign-in quota.
+# Keyed by username (we know who it is) rather than IP, so a shared network is
+# not punished for one chatty user.
+_feedback_limiter = RateLimiter(max_calls=5, window_seconds=600)
 
 
 def _client_ip(req: func.HttpRequest) -> str:
@@ -416,3 +423,43 @@ def delete_note(req: func.HttpRequest) -> func.HttpResponse:
     if not notes_repo.delete_note(user, req.route_params.get("id")):
         return _error("Note not found", 404)
     return func.HttpResponse(status_code=204, headers=_CORS)
+
+
+# ------------------------------------------------------------- feedback
+
+def _notify_feedback(username: str, message: str) -> None:
+    """Look up the sender's e-mail and notify the owner. Best-effort throughout:
+    the feedback is stored before this runs, so nothing here may fail the request.
+
+    The two steps are guarded separately on purpose: a failed lookup must still
+    send the notification (without an address), because the notification is also
+    what writes the message to the log when no mail provider is configured.
+    """
+    email = None
+    try:
+        user = users_repo.get_user(username)
+        email = user.email if user else None
+    except Exception:  # noqa: BLE001 - a notification without an address beats none
+        logging.exception("Could not load user %s for the feedback notification", username)
+    try:
+        mailer.send_feedback_notification(username, email, message)
+    except Exception:  # noqa: BLE001 - the feedback is already stored; a 500 here would be a lie
+        logging.exception("Feedback notification failed for %s", username)
+
+
+@app.route(route="feedback", methods=["POST"])
+def create_feedback(req: func.HttpRequest) -> func.HttpResponse:
+    user = _require_user(req)
+    if isinstance(user, func.HttpResponse):
+        return user
+    if not _feedback_limiter.allow(user):
+        return _error("Too many messages, try again later", 429)
+    try:
+        data = FeedbackRequest(**req.get_json())
+    except Exception as e:
+        return _error(f"Invalid data: {str(e)}", 400)
+    # Store first, notify second: mailer is best-effort, so e-mail must never be
+    # the only record of the message.
+    feedback_repo.add_feedback(Feedback(user_id=user, message=data.message))
+    _notify_feedback(user, data.message)
+    return _json({"ok": True}, 201)
