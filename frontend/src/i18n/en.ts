@@ -108,6 +108,13 @@ export const en = {
     sendFailed: 'Failed, try again',
     whatCanDo: 'What bpad can do →',
     language: 'language',
+    feedbackTitle: 'feedback',
+    feedbackIntro: 'Found a bug, or missing something? Tell me.',
+    feedbackNotEncrypted: 'Unlike your notes, this message isn’t encrypted — I need to be able to read it.',
+    feedbackPlaceholder: 'What works, what doesn’t, what’s missing?',
+    feedbackSend: 'Send feedback',
+    feedbackSending: 'Sending…',
+    feedbackThanks: 'Thanks — got it ✓',
   },
   features: {
     title: 'What bpad can do',
@@ -215,6 +222,8 @@ export const en = {
     biometricVerifyFailed: 'Verification failed. Try again or use your password.',
     powTimeout: 'Verification is taking too long — try again.',
     powFailed: 'Robot verification failed',
+    feedbackFailed: 'Could not send feedback',
+    feedbackTooMany: 'Too many messages — please wait a few minutes',
   },
   welcome: {
     md: `# 👋 Welcome to bpad

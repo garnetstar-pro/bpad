@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { getAccount, resendVerification, type Account as AccountData } from './authApi'
 import { getKnownNoteCount } from './api'
+import { sendFeedback, FEEDBACK_MAX_LENGTH } from './feedbackApi'
 import { UNVERIFIED_NOTE_LIMIT } from './verifyStatus'
 import { getUsername } from './session'
 import { useTranslation, availableLocales, type Locale } from './i18n'
@@ -20,6 +21,9 @@ export default function Account() {
   const [offline, setOffline] = useState(false)
   const [loading, setLoading] = useState(true)
   const [resend, setResend] = useState<'idle' | 'sent' | 'error'>('idle')
+  const [feedback, setFeedback] = useState('')
+  const [fbState, setFbState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [fbError, setFbError] = useState('')
 
   useEffect(() => {
     getAccount()
@@ -27,6 +31,18 @@ export default function Account() {
       .catch(() => setOffline(true))
       .finally(() => setLoading(false))
   }, [])
+
+  async function submitFeedback() {
+    setFbState('sending')
+    try {
+      await sendFeedback(feedback.trim())
+      setFeedback('')
+      setFbState('sent')
+    } catch (e) {
+      setFbError(e instanceof Error ? e.message : t('errors.feedbackFailed'))
+      setFbState('error')
+    }
+  }
 
   const noteCount = getKnownNoteCount()
   const verified = account?.emailVerified
@@ -117,6 +133,35 @@ export default function Account() {
 
         <div>
           <Link to="/features" className="account-link">{t('account.whatCanDo')}</Link>
+        </div>
+
+        <div className="account-feedback">
+          <span className="account-key">{t('account.feedbackTitle')}</span>
+          <div className="account-note">{t('account.feedbackIntro')}</div>
+          {fbState === 'sent' ? (
+            <div className="verify-sent">{t('account.feedbackThanks')}</div>
+          ) : (
+            <>
+              <textarea
+                className="feedback-input"
+                rows={4}
+                value={feedback}
+                maxLength={FEEDBACK_MAX_LENGTH}
+                placeholder={t('account.feedbackPlaceholder')}
+                onChange={(e) => setFeedback(e.target.value)}
+              />
+              <div className="account-note">{t('account.feedbackNotEncrypted')}</div>
+              <button
+                className="ghost-btn"
+                type="button"
+                disabled={fbState === 'sending' || feedback.trim() === ''}
+                onClick={submitFeedback}
+              >
+                {fbState === 'sending' ? t('account.feedbackSending') : t('account.feedbackSend')}
+              </button>
+              {fbState === 'error' && <div className="account-note">{fbError}</div>}
+            </>
+          )}
         </div>
 
         <button className="ghost-btn account-logout" onClick={logout} type="button">
