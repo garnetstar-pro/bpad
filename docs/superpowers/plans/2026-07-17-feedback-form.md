@@ -19,9 +19,8 @@
 - Message length limit is exactly **4000** characters; minimum **1**.
 - Rate limit is exactly **5 messages per 600 seconds**, keyed by **username** (not IP).
 - Cosmos container name is `feedback`, partition key `/user_id`.
-- Run api tests with: `cd api && python -m pytest`
+- Run api tests with: `cd api && .venv/bin/python -m pytest` — use the `.venv` in `api/`, NOT the stray empty `api/venv/`, which has no dependencies installed.
 - Run frontend tests with: `cd frontend && npm test`
-- Use the `.venv` in `api/` (NOT the stray empty `api/venv/`).
 - **vitest runs in the node environment — there is no DOM.** There is no config to change this, and every existing frontend test is a unit test of a plain module (see the localStorage stub at the top of `preferences.test.ts`). Do **not** plan or write React component tests; `Account.tsx` is verified by driving the real app in Task 5.
 - `api/` tests never exercise HTTP handlers (see `test_preferences.py`) — they test models, repositories and helpers directly. Keep to that.
 
@@ -266,12 +265,15 @@ def test_notification_without_provider_logs_instead_of_raising(monkeypatch, capl
     assert "hello" in caplog.text
 
 
-def test_notification_survives_a_broken_provider(monkeypatch):
+def test_notification_survives_a_broken_provider(monkeypatch, caplog):
     monkeypatch.setenv("FEEDBACK_EMAIL", "owner@example.com")
     monkeypatch.setenv("ACS_CONNECTION_STRING", "endpoint=https://x/;accesskey=bogus")
     monkeypatch.setenv("EMAIL_SENDER", "bpad@example.com")
     # Must swallow the failure: the feedback is already stored by this point.
-    mailer.send_feedback_notification("alice", "alice@example.com", "hello")
+    # Asserting on the log proves the error was handled rather than never raised.
+    with caplog.at_level("ERROR"):
+        mailer.send_feedback_notification("alice", "alice@example.com", "hello")
+    assert "Failed to send feedback notification" in caplog.text
 ```
 
 Add `import mailer` to the imports at the top of `api/test_feedback.py`:
