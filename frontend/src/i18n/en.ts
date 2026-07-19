@@ -223,6 +223,7 @@ export const en = {
     biometricVerifyFailed: 'Verification failed. Try again or use your password.',
     powTimeout: 'Verification is taking too long — try again.',
     powFailed: 'Robot verification failed',
+    keyDerivationFailed: 'Could not unlock — key derivation failed',
     feedbackFailed: 'Could not send feedback',
     feedbackTooMany: 'Too many messages — please wait a few minutes',
   },

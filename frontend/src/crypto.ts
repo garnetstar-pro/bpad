@@ -1,13 +1,10 @@
 // Client-side cryptography layer for the zero-knowledge vault.
 // Uses only vetted primitives: Argon2id (hash-wasm), HKDF + AES-256-GCM
 // (Web Crypto). Neither the password nor the derived keys ever leave the browser.
-import { argon2id } from 'hash-wasm'
+import { deriveMasterKey } from './argon2'
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
-
-// Argon2id parameters (tunable to the device's performance).
-const ARGON2 = { parallelism: 1, iterations: 3, memorySize: 65536, hashLength: 32 } as const
 
 // --- base64 <-> bytes ---
 export function toBase64(bytes: Uint8Array): string {
@@ -62,17 +59,8 @@ export function normalizeRecoveryCode(code: string): string {
 }
 
 // --- KDF ---
-async function deriveMasterKey(password: string, salt: Uint8Array): Promise<Uint8Array> {
-  return argon2id({
-    password,
-    salt,
-    parallelism: ARGON2.parallelism,
-    iterations: ARGON2.iterations,
-    memorySize: ARGON2.memorySize,
-    hashLength: ARGON2.hashLength,
-    outputType: 'binary',
-  })
-}
+// deriveMasterKey (Argon2id) lives in argon2.ts — it runs in a Web Worker so
+// the second-long derivation doesn't freeze the UI.
 
 async function hkdf(keyMaterial: Uint8Array, info: string): Promise<Uint8Array> {
   const base = await crypto.subtle.importKey('raw', buf(keyMaterial), 'HKDF', false, ['deriveBits'])

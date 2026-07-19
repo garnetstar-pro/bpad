@@ -87,6 +87,26 @@ async function encryptPayload(content: string, title?: string, tags: string[] = 
   return encryptJSON(payload, key())
 }
 
+// Decrypts the locally cached notes without any network call, so the list can
+// be painted immediately after unlocking instead of waiting on the round trip
+// plus the full ciphertext of every note (~700 KiB at 250 notes). Returns null
+// when there is nothing to show — no cached notes, or the vault is still
+// locked. The caller is expected to refresh from the server right after.
+//
+// Deliberately does not touch knownNoteCount: that counter drives the
+// unverified-account banner and should reflect the server, which listNotes()
+// sets moments later.
+export async function listNotesCached(): Promise<Note[] | null> {
+  const username = getUsername()
+  if (!username || !getDataKey()) return null
+  const cached = getCachedNotes(username)
+  if (!cached) return null
+
+  const notes = await Promise.all(cached.map(decrypt))
+  knownTags = new Set(collectTags(notes))
+  return notes
+}
+
 export async function listNotes(): Promise<Note[]> {
   const username = getUsername()
   let res: Response

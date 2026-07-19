@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
-import { getKnownTags, listNotes, createNote } from './api'
+import { getKnownTags, listNotes, listNotesCached, createNote } from './api'
 import { filterNotes } from './search'
 import { filterByTags, normalizeTag } from './tags'
 import { isOfflineReadOnly } from './session'
@@ -43,7 +43,36 @@ function Home() {
   }
 
   useEffect(() => {
-    fetchNotes()
+    let cancelled = false
+    let servedFromNetwork = false
+
+    // Paint the cached notes first. The server response carries the full
+    // ciphertext of every note (~700 KiB at 250 notes), so waiting for it left
+    // the list empty for seconds right after unlocking.
+    listNotesCached().then((cached) => {
+      // The network may have won the race — never overwrite fresh with stale.
+      if (cancelled || servedFromNetwork || !cached) return
+      setNotes(cached)
+      setLoading(false)
+    })
+
+    listNotes()
+      .then((fresh) => {
+        if (cancelled) return
+        servedFromNetwork = true
+        setNotes(fresh)
+        setError(null)
+      })
+      .catch(() => {
+        if (!cancelled) setError(translate('home.connectFailed'))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Seed the sort preference from the server (source of truth) so it follows the
@@ -57,18 +86,6 @@ function Home() {
       })
       .catch(() => {})
   }, [])
-
-  const fetchNotes = async () => {
-    try {
-      setLoading(true)
-      setNotes(await listNotes())
-      setError(null)
-    } catch {
-      setError(translate('home.connectFailed'))
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCreate = async (content: string, _title?: string, tags?: string[]) => {
     const newNote = await createNote(content, tags ?? [])
