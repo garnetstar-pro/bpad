@@ -13,7 +13,8 @@ import { getEmailVerified, resendVerification } from './authApi'
 import { getKnownNoteCount } from './api'
 import { verifyBannerMessage } from './verifyStatus'
 import BpadMark from './BpadMark'
-import Home from './Home'
+import NotesLayout from './NotesLayout'
+import DetailPlaceholder from './DetailPlaceholder'
 import NoteDetail from './NoteDetail'
 import Account from './Account'
 import Features from './Features'
@@ -135,8 +136,10 @@ function App() {
       )}
 
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/notes/:id" element={<NoteDetail />} />
+        <Route element={<NotesLayout />}>
+          <Route path="/" element={<DetailPlaceholder />} />
+          <Route path="/notes/:id" element={<NoteDetail />} />
+        </Route>
         <Route path="/account" element={<Account />} />
         <Route path="/features" element={<Features />} />
         {/* Catch-all: captures dev.bpad.pro/https://… or falls back home */}
