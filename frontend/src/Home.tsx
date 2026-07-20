@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useMatch, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
 import { getKnownTags, listNotes, listNotesCached, createNote } from './api'
 import { filterNotes } from './search'
@@ -23,6 +23,8 @@ function Home() {
   // overwrites a choice the user has already made this session.
   const userChoseSort = useRef(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  // The note open in the detail pane, so its row can be marked active.
+  const activeId = useMatch('/notes/:id')?.params.id
   // Normalize (lowercase) so a filter is case-insensitive even from a hand-typed URL.
   const selected = (searchParams.get('tags') ?? '').split(',').map(normalizeTag).filter(Boolean)
   const untaggedOnly = searchParams.get('untagged') === '1'
@@ -205,7 +207,7 @@ function Home() {
           <div className="empty-state">{t('home.nothingFound')}</div>
         )}
         {filtered.map((note) => (
-          <div className="entry" key={note.id}>
+          <div className={`entry ${note.id === activeId ? 'is-active' : ''}`} key={note.id}>
             {/* The row is the note link; pills are siblings (no anchor-in-anchor). */}
             <Link className="entry-main" to={`/notes/${note.id}`}>
               <div className="entry-stamp">
