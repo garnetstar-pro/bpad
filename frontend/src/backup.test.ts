@@ -6,7 +6,9 @@ import {
   encryptBackup,
   decryptBackup,
   notesOf,
+  diffAgainst,
   BACKUP_VERSION,
+  type BackupNote,
 } from './backup'
 import type { Note } from './types'
 
@@ -202,4 +204,54 @@ describe('notesOf', () => {
     )
     await expect(notesOf(enc)).rejects.toThrow(/password-protected/i)
   }, 30_000)
+})
+
+const incoming = (over: Partial<BackupNote> = {}): BackupNote => ({
+  title: 'Groceries',
+  content: '# Groceries\n\nmilk',
+  url: null,
+  created_at: '2026-01-02T03:04:05Z',
+  updated_at: '2026-01-03T03:04:05Z',
+  tags: ['home'],
+  ...over,
+})
+
+describe('diffAgainst', () => {
+  it('imports everything into an empty vault', () => {
+    const d = diffAgainst([], [incoming()])
+    expect(d.toImport).toHaveLength(1)
+    expect(d.duplicates).toHaveLength(0)
+  })
+
+  it('treats a note with the same created_at and content as a duplicate', () => {
+    const d = diffAgainst([note], [incoming()])
+    expect(d.toImport).toHaveLength(0)
+    expect(d.duplicates).toHaveLength(1)
+  })
+
+  it('splits a partial overlap', () => {
+    const d = diffAgainst([note], [incoming(), incoming({ created_at: '2026-05-05T00:00:00Z' })])
+    expect(d.toImport).toHaveLength(1)
+    expect(d.duplicates).toHaveLength(1)
+  })
+
+  it('does not treat the same content at a different time as a duplicate', () => {
+    const d = diffAgainst([note], [incoming({ created_at: '2026-05-05T00:00:00Z' })])
+    expect(d.toImport).toHaveLength(1)
+  })
+
+  it('does not treat different content at the same time as a duplicate', () => {
+    const d = diffAgainst([note], [incoming({ content: 'something else' })])
+    expect(d.toImport).toHaveLength(1)
+  })
+
+  it('keeps only the first of two identical incoming notes', () => {
+    const d = diffAgainst([], [incoming(), incoming()])
+    expect(d.toImport).toHaveLength(1)
+    expect(d.duplicates).toHaveLength(1)
+  })
+
+  it('handles an empty backup', () => {
+    expect(diffAgainst([note], [])).toEqual({ toImport: [], duplicates: [] })
+  })
 })

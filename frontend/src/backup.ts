@@ -191,3 +191,34 @@ export async function notesOf(file: BackupFile, passphrase?: string): Promise<Ba
   if (!passphrase) throw new Error(translate('errors.backupNeedsPassphrase'))
   return decryptBackup(file, passphrase)
 }
+
+export interface BackupDiff {
+  toImport: BackupNote[]
+  duplicates: BackupNote[]
+}
+
+// Identity of a note for import purposes. The server-side id is not in the
+// file, so a note is "the same note" when it was created at the same instant
+// and still says the same thing.
+function identity(n: { created_at: string; content: string }): string {
+  return `${n.created_at} ${n.content}`
+}
+
+// Splits an incoming backup into what is genuinely new and what the vault
+// already holds, so that importing the same file twice is a no-op. Identical
+// notes within one file collapse too.
+export function diffAgainst(existing: Note[], incoming: BackupNote[]): BackupDiff {
+  const seen = new Set(existing.map(identity))
+  const toImport: BackupNote[] = []
+  const duplicates: BackupNote[] = []
+  for (const n of incoming) {
+    const id = identity(n)
+    if (seen.has(id)) {
+      duplicates.push(n)
+    } else {
+      seen.add(id)
+      toImport.push(n)
+    }
+  }
+  return { toImport, duplicates }
+}
