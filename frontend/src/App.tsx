@@ -18,6 +18,7 @@ import NoteDetail from './NoteDetail'
 import Account from './Account'
 import Features from './Features'
 import Capture from './Capture'
+import Restore from './Restore'
 import LockScreen from './LockScreen'
 import './App.css'
 
@@ -47,6 +48,11 @@ function App() {
 
   // Verification link from the e-mail – works without being logged in too.
   if (location.pathname === '/verify') return <VerifyEmail />
+
+  // Restoring a backup must work for a locked-out visitor — that is the whole
+  // point of having one — so it is handled before the authentication check,
+  // and before the catch-all Capture route would swallow the path.
+  if (location.pathname === '/restore') return <Restore />
 
   if (!isAuthenticated) {
     if (hasEnrollment() && !usePassword) {

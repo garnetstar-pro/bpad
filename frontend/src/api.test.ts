@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 const store = new Map<string, string>()
 ;(globalThis as unknown as { localStorage: Storage }).localStorage = {
@@ -10,8 +10,8 @@ const store = new Map<string, string>()
   length: 0,
 } as Storage
 
-const { listNotesCached, getKnownTags } = await import('./api')
-const { encryptJSON, generateDataKey } = await import('./crypto')
+const { listNotesCached, getKnownTags, createNote } = await import('./api')
+const { encryptJSON, decryptJSON, generateDataKey } = await import('./crypto')
 const { cacheNotes } = await import('./offlineCache')
 const { setSession, clearSession } = await import('./session')
 
@@ -72,5 +72,61 @@ describe('listNotesCached', () => {
   it('returns null when the vault is locked', async () => {
     await seedCache('alice', [{ id: '1', title: 'First' }])
     expect(await listNotesCached()).toBeNull()
+  })
+})
+
+// Restoring a backup needs the note's own title and its original creation
+// time to survive the round trip; the API accepts both.
+describe('createNote with import options', () => {
+  function mockCreateOk() {
+    const fn = vi.fn().mockImplementation(async (_url: string, init: { body: string }) => {
+      const sent = JSON.parse(init.body)
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({
+          id: 'new-id',
+          iv: sent.iv,
+          ct: sent.ct,
+          created_at: sent.created_at ?? '2026-07-20T00:00:00Z',
+          updated_at: sent.created_at ?? '2026-07-20T00:00:00Z',
+        }),
+      }
+    })
+    vi.stubGlobal('fetch', fn)
+    return fn
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('sends the given created_at and preserves the given title', async () => {
+    setSession('token', dataKey, new Uint8Array(32), 'alice')
+    const fetchMock = mockCreateOk()
+
+    await createNote('# body', ['work'], {
+      title: 'Explicit title',
+      createdAt: '2026-01-02T03:04:05Z',
+    })
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.created_at).toBe('2026-01-02T03:04:05Z')
+    const payload = await decryptJSON<{ title: string; tags: string[] }>(
+      { iv: body.iv, ct: body.ct },
+      dataKey,
+    )
+    expect(payload.title).toBe('Explicit title')
+    expect(payload.tags).toEqual(['work'])
+  })
+
+  it('omits created_at when no option is given', async () => {
+    setSession('token', dataKey, new Uint8Array(32), 'alice')
+    const fetchMock = mockCreateOk()
+
+    await createNote('# body')
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body).not.toHaveProperty('created_at')
   })
 })

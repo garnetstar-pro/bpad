@@ -1192,3 +1192,61 @@ body {
   border-radius: 8px;
   padding: 8px 10px;
 }
+
+.account-backup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.backup-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.backup-choice input {
+  margin-top: 3px;
+  flex: none;
+}
+
+.backup-input {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.restore-list {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.restore-item {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.restore-body {
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 4px 0 12px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
