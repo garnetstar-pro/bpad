@@ -51,6 +51,10 @@ export const FEATURES: Feature[] = [
     desc: 'At signup you get a one-time code to regain access if you forget your password. Save it.',
   },
   {
+    name: 'Backup you own',
+    desc: 'Download every note as a file — passphrase-protected or plain — and keep it on a USB stick. Open it again on /restore, with or without an account.',
+  },
+  {
     name: 'E-mail verification',
     desc: 'Unverified accounts have a note cap; after verifying your e-mail you write without limits.',
   },
