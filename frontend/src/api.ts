@@ -148,13 +148,28 @@ export async function getNote(id: string): Promise<Note> {
   return decrypt(await res.json())
 }
 
-export async function createNote(content: string, tags: string[] = []): Promise<Note> {
+export interface CreateOptions {
+  // Preserve the note's own title instead of deriving it from the markdown.
+  title?: string
+  // Preserve the original creation time (backup import). The server accepts
+  // this and falls back to its own clock when it is absent.
+  createdAt?: string
+}
+
+export async function createNote(
+  content: string,
+  tags: string[] = [],
+  opts: CreateOptions = {},
+): Promise<Note> {
   let res: Response
   try {
     res = await fetch(API_URL, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify(await encryptPayload(content, undefined, tags)),
+      body: JSON.stringify({
+        ...(await encryptPayload(content, opts.title, tags)),
+        ...(opts.createdAt ? { created_at: opts.createdAt } : {}),
+      }),
     })
   } catch {
     throw new Error(translate('errors.offlineWrite'))
