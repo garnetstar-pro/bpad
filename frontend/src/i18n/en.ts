@@ -134,6 +134,28 @@ export const en = {
     backupDone: 'Backup downloaded: {count} notes ✓',
     backupRestoreLink: 'Restore from a backup →',
   },
+  restore: {
+    title: 'Restore from a backup',
+    intro:
+      'Open a bpad backup file. Everything happens in this browser — the file is never uploaded.',
+    pick: 'Choose a backup file',
+    passphrase: 'Backup passphrase',
+    open: 'Open',
+    opening: 'opening…',
+    summary: '{count} notes, {from} to {to}',
+    emptyBackup: 'This backup contains no notes.',
+    importTitle: 'import into your account',
+    importIntro: '{fresh} new, {dupes} already in your account.',
+    importNothing: 'Every note in this backup is already in your account.',
+    importStart: 'Import {count} notes',
+    importProgress: 'importing {done} of {total}…',
+    importDone: '{count} notes imported ✓',
+    importPartial: '{count} imported, {failed} failed. Run the import again to retry.',
+    importLimited:
+      '{count} imported, then your account hit the limit for unverified e-mail. Verify your e-mail and run the import again.',
+    lockedHint: 'Unlock your vault to import these notes into your account.',
+    loggedOutHint: 'Log in to import these notes into your account.',
+  },
   features: {
     title: 'What bpad can do',
   },
