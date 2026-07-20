@@ -191,6 +191,11 @@ export const en = {
   },
   errors: {
     vaultLocked: 'Vault is locked',
+    backupUnreadable: 'That file couldn’t be read — it isn’t valid JSON.',
+    backupNotBpad: 'That isn’t a bpad backup file.',
+    backupTooNew: 'This backup was written by a newer version of bpad.',
+    backupDamaged: 'The backup file looks damaged — the notes are missing.',
+    backupUnsupported: 'This backup uses an unsupported encryption scheme.',
     offlineWrite: 'You’re offline — changes can’t be saved',
     loadFailed: 'Could not load notes',
     offlineNoNotes: 'Offline with no saved notes',
