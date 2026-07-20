@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
 import { getKnownTags, listNotes, listNotesCached, createNote } from './api'
@@ -42,38 +42,52 @@ function Home() {
     setSearchParams(params, { replace: true })
   }
 
+  // Set once the server has answered, so a slow cache read can never overwrite
+  // fresh notes with stale ones.
+  const servedFromNetwork = useRef(false)
+
+  // Pull the authoritative list from the server. Extracted from the mount
+  // effect so the mutation listener below can reuse it — in the two-pane
+  // layout this list stays mounted while the detail pane edits notes.
+  const fetchNotes = useCallback(async () => {
+    try {
+      const fresh = await listNotes()
+      servedFromNetwork.current = true
+      setNotes(fresh)
+      setError(null)
+    } catch {
+      setError(translate('home.connectFailed'))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
-    let servedFromNetwork = false
 
     // Paint the cached notes first. The server response carries the full
     // ciphertext of every note (~700 KiB at 250 notes), so waiting for it left
     // the list empty for seconds right after unlocking.
     listNotesCached().then((cached) => {
       // The network may have won the race — never overwrite fresh with stale.
-      if (cancelled || servedFromNetwork || !cached) return
+      if (cancelled || servedFromNetwork.current || !cached) return
       setNotes(cached)
       setLoading(false)
     })
 
-    listNotes()
-      .then((fresh) => {
-        if (cancelled) return
-        servedFromNetwork = true
-        setNotes(fresh)
-        setError(null)
-      })
-      .catch(() => {
-        if (!cancelled) setError(translate('home.connectFailed'))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+    fetchNotes()
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [fetchNotes])
+
+  // Keep the persistent list pane in sync when the detail pane mutates a note.
+  useEffect(() => {
+    const refetch = () => { fetchNotes() }
+    window.addEventListener('bpad:notes-mutated', refetch)
+    return () => window.removeEventListener('bpad:notes-mutated', refetch)
+  }, [fetchNotes])
 
   // Seed the sort preference from the server (source of truth) so it follows the
   // user across devices, not just from the local cache. Best-effort: if the fetch

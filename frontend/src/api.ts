@@ -28,6 +28,13 @@ function setKnownNoteCount(n: number | null): void {
   window.dispatchEvent(new Event('bpad:notes-changed'))
 }
 
+// Fired only on create/update/delete (not on plain list reads), so a mounted
+// list can refetch without the feedback loop that listening to
+// `bpad:notes-changed` (dispatched inside listNotes) would cause.
+function notifyNotesMutated(): void {
+  window.dispatchEvent(new Event('bpad:notes-mutated'))
+}
+
 // Client-derived tag registry: the union of tags across the user's notes,
 // used for autocomplete and the filter bar. Updated on list/create/update.
 let knownTags = new Set<string>()
@@ -185,6 +192,7 @@ export async function createNote(
   if (knownNoteCount !== null) setKnownNoteCount(knownNoteCount + 1)
   const note = await decrypt(enc)
   note.tags.forEach((tag) => knownTags.add(tag))
+  notifyNotesMutated()
   return note
 }
 
@@ -206,6 +214,7 @@ export async function updateNote(id: string, content: string, title?: string, ta
   if (username) upsertCachedNote(username, enc)
   const note = await decrypt(enc)
   note.tags.forEach((tag) => knownTags.add(tag))
+  notifyNotesMutated()
   return note
 }
 
@@ -221,4 +230,5 @@ export async function deleteNote(id: string): Promise<void> {
   const username = getUsername()
   if (username) removeCachedNote(username, id)
   if (knownNoteCount !== null && knownNoteCount > 0) setKnownNoteCount(knownNoteCount - 1)
+  notifyNotesMutated()
 }
