@@ -44,6 +44,7 @@ export const en = {
     deleteFailed: 'Delete failed. Try again.',
     notFound: 'Note not found',
     back: '← back to list',
+    selectPrompt: 'Select a note to read it here.',
   },
   auth: {
     login: 'Log in',
