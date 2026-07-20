@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { getAccount, resendVerification, type Account as AccountData } from './authApi'
-import { getKnownNoteCount } from './api'
+import { getKnownNoteCount, listNotes } from './api'
+import { serializeBackup, encryptBackup, MIN_PASSPHRASE_LENGTH } from './backup'
+import { downloadBackup } from './backupFile'
 import { sendFeedback, FEEDBACK_MAX_LENGTH } from './feedbackApi'
 import { UNVERIFIED_NOTE_LIMIT } from './verifyStatus'
 import { getUsername } from './session'
@@ -24,6 +26,13 @@ export default function Account() {
   const [feedback, setFeedback] = useState('')
   const [fbState, setFbState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [fbError, setFbError] = useState('')
+  const [bkMode, setBkMode] = useState<'protected' | 'plain'>('protected')
+  const [bkPass, setBkPass] = useState('')
+  const [bkPass2, setBkPass2] = useState('')
+  const [bkAck, setBkAck] = useState(false)
+  const [bkState, setBkState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
+  const [bkError, setBkError] = useState('')
+  const [bkCount, setBkCount] = useState(0)
 
   useEffect(() => {
     getAccount()
@@ -41,6 +50,44 @@ export default function Account() {
     } catch (e) {
       setFbError(e instanceof Error ? e.message : t('errors.feedbackFailed'))
       setFbState('error')
+    }
+  }
+
+  function backupValidationError(): string {
+    if (bkMode === 'plain') return ''
+    if (bkPass.length < MIN_PASSPHRASE_LENGTH) {
+      return t('account.backupPassphraseTooShort', { min: MIN_PASSPHRASE_LENGTH })
+    }
+    if (bkPass !== bkPass2) return t('account.backupPassphraseMismatch')
+    return ''
+  }
+
+  async function downloadBackupFile() {
+    const invalid = backupValidationError()
+    if (invalid) {
+      setBkError(invalid)
+      setBkState('error')
+      return
+    }
+    setBkState('working')
+    try {
+      // listNotes() falls back to the offline cache, so a backup still works
+      // without the network — it just backs up what this device knows.
+      const notes = await listNotes()
+      if (notes.length === 0) {
+        setBkError(t('account.backupEmpty'))
+        setBkState('error')
+        return
+      }
+      const plain = serializeBackup(notes, { username: getUsername() ?? '' })
+      downloadBackup(bkMode === 'plain' ? plain : await encryptBackup(plain, bkPass))
+      setBkCount(notes.length)
+      setBkPass('')
+      setBkPass2('')
+      setBkState('done')
+    } catch (e) {
+      setBkError(e instanceof Error ? e.message : t('errors.loadFailed'))
+      setBkState('error')
     }
   }
 
@@ -133,6 +180,91 @@ export default function Account() {
 
         <div>
           <Link to="/features" className="account-link">{t('account.whatCanDo')}</Link>
+        </div>
+
+        <div className="account-backup">
+          <span className="account-key">{t('account.backupTitle')}</span>
+          <div className="account-note">{t('account.backupIntro')}</div>
+
+          <label className="backup-choice">
+            <input
+              type="radio"
+              name="backup-mode"
+              checked={bkMode === 'protected'}
+              onChange={() => {
+                setBkMode('protected')
+                setBkState('idle')
+              }}
+            />
+            {t('account.backupProtected')}
+          </label>
+          <label className="backup-choice">
+            <input
+              type="radio"
+              name="backup-mode"
+              checked={bkMode === 'plain'}
+              onChange={() => {
+                setBkMode('plain')
+                setBkState('idle')
+              }}
+            />
+            {t('account.backupPlain')}
+          </label>
+
+          {bkMode === 'protected' ? (
+            <>
+              <input
+                className="backup-input"
+                type="password"
+                autoComplete="new-password"
+                placeholder={t('account.backupPassphrase')}
+                value={bkPass}
+                onChange={(e) => {
+                  setBkPass(e.target.value)
+                  if (bkState === 'error') setBkState('idle')
+                }}
+              />
+              <input
+                className="backup-input"
+                type="password"
+                autoComplete="new-password"
+                placeholder={t('account.backupPassphraseAgain')}
+                value={bkPass2}
+                onChange={(e) => {
+                  setBkPass2(e.target.value)
+                  if (bkState === 'error') setBkState('idle')
+                }}
+              />
+              <div className="account-note">{t('account.backupPassphraseHint')}</div>
+            </>
+          ) : (
+            <label className="backup-choice">
+              <input
+                type="checkbox"
+                checked={bkAck}
+                onChange={(e) => setBkAck(e.target.checked)}
+              />
+              {t('account.backupPlainWarning')}
+            </label>
+          )}
+
+          <button
+            className="ghost-btn"
+            type="button"
+            disabled={bkState === 'working' || (bkMode === 'plain' && !bkAck)}
+            onClick={downloadBackupFile}
+          >
+            {bkState === 'working' ? t('account.backupWorking') : t('account.backupDownload')}
+          </button>
+
+          {bkState === 'done' && (
+            <div className="verify-sent">{t('account.backupDone', { count: bkCount })}</div>
+          )}
+          {bkState === 'error' && <div className="account-note">{bkError}</div>}
+
+          <div>
+            <Link to="/restore" className="account-link">{t('account.backupRestoreLink')}</Link>
+          </div>
         </div>
 
         <div className="account-feedback">

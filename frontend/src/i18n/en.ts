@@ -116,6 +116,23 @@ export const en = {
     feedbackSending: 'Sending…',
     feedbackThanks: 'Thanks — got it ✓',
     feedbackSendAnother: 'Send another',
+    backupTitle: 'backup',
+    backupIntro:
+      'Download all your notes as a file and keep it somewhere safe — a USB stick, an encrypted drive. If you ever lose both your password and your recovery code, this file is what gets your notes back.',
+    backupProtected: 'Protect with a passphrase (recommended)',
+    backupPlain: 'Plain, unencrypted file',
+    backupPassphrase: 'Backup passphrase',
+    backupPassphraseAgain: 'Repeat the passphrase',
+    backupPassphraseHint:
+      'This is NOT your bpad password. Nobody can recover it — write it down next to your recovery code.',
+    backupPassphraseTooShort: 'Use at least {min} characters.',
+    backupPassphraseMismatch: 'The two passphrases don’t match.',
+    backupPlainWarning: 'I understand anyone who finds this file can read every note in it.',
+    backupDownload: 'Download backup',
+    backupWorking: 'preparing…',
+    backupEmpty: 'There’s nothing to back up yet.',
+    backupDone: 'Backup downloaded: {count} notes ✓',
+    backupRestoreLink: 'Restore from a backup →',
   },
   features: {
     title: 'What bpad can do',
