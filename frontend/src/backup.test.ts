@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { serializeBackup, parseBackup, isEncrypted, BACKUP_VERSION } from './backup'
+import {
+  serializeBackup,
+  parseBackup,
+  isEncrypted,
+  encryptBackup,
+  decryptBackup,
+  notesOf,
+  BACKUP_VERSION,
+} from './backup'
 import type { Note } from './types'
 
 const note: Note = {
@@ -116,4 +124,82 @@ describe('parseBackup', () => {
     }
     expect(() => parseBackup(JSON.stringify(bad))).toThrow(/unsupported/i)
   })
+})
+
+describe('encryptBackup / decryptBackup', () => {
+  it('round-trips the notes', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
+    const enc = await encryptBackup(plain, 'correct horse battery staple')
+    expect(enc.encrypted).toBe(true)
+    expect(JSON.stringify(enc)).not.toContain('Groceries')
+    const back = await decryptBackup(enc, 'correct horse battery staple')
+    expect(back).toEqual(plain.notes)
+  }, 30_000)
+
+  it('keeps the header readable in the clear', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
+    const enc = await encryptBackup(plain, 'correct horse battery staple')
+    expect(enc.username).toBe('jan')
+    expect(enc.exported_at).toBe(plain.exported_at)
+    expect(enc.kdf.iterations).toBe(3)
+    expect(enc.kdf.memory_size).toBe(65536)
+  }, 30_000)
+
+  it('uses a fresh salt and IV every time', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
+    const a = await encryptBackup(plain, 'correct horse battery staple')
+    const b = await encryptBackup(plain, 'correct horse battery staple')
+    expect(a.kdf.salt).not.toBe(b.kdf.salt)
+    expect(a.iv).not.toBe(b.iv)
+  }, 60_000)
+
+  it('rejects a wrong passphrase', async () => {
+    const enc = await encryptBackup(
+      serializeBackup([note], { username: 'jan' }),
+      'right passphrase',
+    )
+    await expect(decryptBackup(enc, 'wrong passphrase')).rejects.toThrow(/passphrase/i)
+  }, 60_000)
+
+  it('rejects a corrupted ciphertext', async () => {
+    const enc = await encryptBackup(
+      serializeBackup([note], { username: 'jan' }),
+      'right passphrase',
+    )
+    const corrupted = { ...enc, ct: enc.ct.slice(0, -8) + 'AAAAAAAA' }
+    await expect(decryptBackup(corrupted, 'right passphrase')).rejects.toThrow(/passphrase/i)
+  }, 60_000)
+
+  it('survives a full parse round trip through text', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
+    const enc = await encryptBackup(plain, 'correct horse battery staple')
+    const reparsed = parseBackup(JSON.stringify(enc))
+    expect(isEncrypted(reparsed)).toBe(true)
+    if (isEncrypted(reparsed)) {
+      await expect(decryptBackup(reparsed, 'correct horse battery staple')).resolves.toEqual(
+        plain.notes,
+      )
+    }
+  }, 30_000)
+})
+
+describe('notesOf', () => {
+  it('returns the notes of a plain backup without a passphrase', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
+    await expect(notesOf(plain)).resolves.toEqual(plain.notes)
+  })
+
+  it('decrypts an encrypted backup with the passphrase', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
+    const enc = await encryptBackup(plain, 'correct horse battery staple')
+    await expect(notesOf(enc, 'correct horse battery staple')).resolves.toEqual(plain.notes)
+  }, 30_000)
+
+  it('refuses an encrypted backup with no passphrase', async () => {
+    const enc = await encryptBackup(
+      serializeBackup([note], { username: 'jan' }),
+      'correct horse battery staple',
+    )
+    await expect(notesOf(enc)).rejects.toThrow(/password-protected/i)
+  }, 30_000)
 })

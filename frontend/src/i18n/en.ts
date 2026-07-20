@@ -196,6 +196,8 @@ export const en = {
     backupTooNew: 'This backup was written by a newer version of bpad.',
     backupDamaged: 'The backup file looks damaged — the notes are missing.',
     backupUnsupported: 'This backup uses an unsupported encryption scheme.',
+    backupWrongPassphrase: 'Wrong backup passphrase — or the file is damaged.',
+    backupNeedsPassphrase: 'This backup is password-protected.',
     offlineWrite: 'You’re offline — changes can’t be saved',
     loadFailed: 'Could not load notes',
     offlineNoNotes: 'Offline with no saved notes',

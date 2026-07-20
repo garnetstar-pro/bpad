@@ -2,8 +2,10 @@
 // can store outside the app, and read such a file back. Pure logic — no UI,
 // no network, no browser storage. See
 // docs/superpowers/specs/2026-07-20-backup-export-import-design.md
+import { argon2id } from 'hash-wasm'
 import type { Note } from './types'
 import { translate } from './i18n/translate'
+import { toBase64, fromBase64, randomBytes, encryptBytes, decryptBytes } from './crypto'
 
 export const BACKUP_FORMAT = 'bpad-backup'
 export const BACKUP_VERSION = 1
@@ -113,4 +115,79 @@ export function parseBackup(text: string): BackupFile {
     throw new Error(translate('errors.backupDamaged'))
   }
   return raw as unknown as PlainBackup
+}
+
+const textEncoder = new TextEncoder()
+const textDecoder = new TextDecoder()
+
+// Defaults for a newly written backup. Reading uses whatever the file says,
+// so raising these later leaves old backups readable.
+const BACKUP_KDF: Omit<BackupKdf, 'salt'> = {
+  algorithm: 'argon2id',
+  iterations: 3,
+  memory_size: 65536,
+  parallelism: 1,
+  hash_length: 32,
+}
+
+// Derives the AES key from the backup passphrase. Unlike the login path in
+// crypto.ts there is no HKDF step: a backup needs one key, not an enc/auth
+// pair, and fewer moving parts means the format can be reimplemented from the
+// spec years from now. Runs on the calling thread — a backup is a one-off
+// action, not something the user waits on repeatedly.
+async function deriveBackupKey(passphrase: string, kdf: BackupKdf): Promise<Uint8Array> {
+  return argon2id({
+    password: passphrase,
+    salt: fromBase64(kdf.salt),
+    parallelism: kdf.parallelism,
+    iterations: kdf.iterations,
+    memorySize: kdf.memory_size,
+    hashLength: kdf.hash_length,
+    outputType: 'binary',
+  })
+}
+
+export async function encryptBackup(
+  backup: PlainBackup,
+  passphrase: string,
+): Promise<EncryptedBackup> {
+  const kdf: BackupKdf = { ...BACKUP_KDF, salt: toBase64(randomBytes(16)) }
+  const key = await deriveBackupKey(passphrase, kdf)
+  const body = textEncoder.encode(JSON.stringify({ notes: backup.notes }))
+  const { iv, ct } = await encryptBytes(body, key)
+  return {
+    format: backup.format,
+    version: backup.version,
+    exported_at: backup.exported_at,
+    username: backup.username,
+    encrypted: true,
+    kdf,
+    cipher: 'AES-256-GCM',
+    iv,
+    ct,
+  }
+}
+
+export async function decryptBackup(
+  file: EncryptedBackup,
+  passphrase: string,
+): Promise<BackupNote[]> {
+  const key = await deriveBackupKey(passphrase, file.kdf)
+  let bytes: Uint8Array
+  try {
+    bytes = await decryptBytes({ iv: file.iv, ct: file.ct }, key)
+  } catch {
+    // AES-GCM cannot tell a wrong key from a damaged file: both fail the tag
+    // check. The passphrase is by far the likelier cause, so lead with it.
+    throw new Error(translate('errors.backupWrongPassphrase'))
+  }
+  const body = JSON.parse(textDecoder.decode(bytes)) as { notes?: BackupNote[] }
+  if (!Array.isArray(body.notes)) throw new Error(translate('errors.backupDamaged'))
+  return body.notes
+}
+
+export async function notesOf(file: BackupFile, passphrase?: string): Promise<BackupNote[]> {
+  if (!isEncrypted(file)) return file.notes
+  if (!passphrase) throw new Error(translate('errors.backupNeedsPassphrase'))
+  return decryptBackup(file, passphrase)
 }
