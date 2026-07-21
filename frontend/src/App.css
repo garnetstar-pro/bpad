@@ -517,6 +517,35 @@ body {
   text-align: center;
 }
 
+/* Detail footer: hidden by default, shown only in the desktop two-pane view. */
+.detail-footer {
+  display: none;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+.detail-footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.detail-footer-app {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.detail-footer-link {
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+.detail-footer-link:hover { color: var(--accent); }
+.detail-footer-copy { margin-left: auto; }
+
 /* Desktop: list column beside detail column. */
 @media (min-width: 860px) {
   .notes-layout {
@@ -536,6 +565,8 @@ body {
   .detail-placeholder { display: block; }
   /* The "back to list" link is redundant when the list is always visible. */
   .detail-pane .back-link { display: none; }
+  /* Footer under the note card — desktop only. */
+  .detail-footer { display: block; }
   /* Active row cue. */
   .entry.is-active {
     background: var(--surface-hover);
