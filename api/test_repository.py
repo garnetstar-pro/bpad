@@ -1,5 +1,8 @@
+import repository
 from models import Note, User, Encrypted
 from repository import InMemoryNotesRepository, InMemoryUsersRepository
+
+_FAKE_CS = "AccountEndpoint=https://x.documents.azure.com:443/;AccountKey=a2V5;"
 
 
 def _note(user_id="alice", **kw):
@@ -148,3 +151,27 @@ def test_sort_pref_round_trips_through_save_user():
     u.sort_by = "modified"
     repo.save_user(u)
     assert repo.get_user("alice").sort_by == "modified"
+
+
+# --- factory: database name selection (dev/prod share one Cosmos account) ---
+
+def test_database_defaults_to_bpad_when_unset(monkeypatch):
+    monkeypatch.setenv("COSMOS_CONNECTION_STRING", _FAKE_CS)
+    monkeypatch.delenv("COSMOS_DATABASE", raising=False)
+    assert repository.get_notes_repository()._database_name == "bpad"
+    assert repository.get_users_repository()._database_name == "bpad"
+    assert repository.get_feedback_repository()._database_name == "bpad"
+
+
+def test_database_name_comes_from_env(monkeypatch):
+    monkeypatch.setenv("COSMOS_CONNECTION_STRING", _FAKE_CS)
+    monkeypatch.setenv("COSMOS_DATABASE", "bpad-prod")
+    assert repository.get_notes_repository()._database_name == "bpad-prod"
+    assert repository.get_users_repository()._database_name == "bpad-prod"
+    assert repository.get_feedback_repository()._database_name == "bpad-prod"
+
+
+def test_blank_database_env_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("COSMOS_CONNECTION_STRING", _FAKE_CS)
+    monkeypatch.setenv("COSMOS_DATABASE", "   ")
+    assert repository.get_notes_repository()._database_name == "bpad"

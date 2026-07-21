@@ -1,0 +1,48 @@
+# Deploys the PROD environment (bpad.pro) from the `master` branch to the
+# Static Web App `bpad-prod`. Requires the GitHub secret
+# AZURE_STATIC_WEB_APPS_API_TOKEN_PROD (deploy token of the bpad-prod SWA).
+# Until that SWA and secret exist, pushing master will make this job fail on a
+# missing token — create them first (see the dev/prod cutover spec).
+name: Azure Static Web Apps CI/CD (prod)
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - master
+
+jobs:
+  build_and_deploy_job:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    runs-on: ubuntu-latest
+    name: Build and Deploy Job
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+          lfs: false
+      - name: Build And Deploy
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PROD }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          action: "upload"
+          app_location: "/frontend" # App source code path
+          api_location: "api" # Api source code path - optional
+          output_location: "dist" # Built app content directory - optional
+
+  close_pull_request_job:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close Pull Request Job
+    steps:
+      - name: Close Pull Request
+        id: closepullrequest
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PROD }}
+          action: "close"

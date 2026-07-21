@@ -48,7 +48,7 @@ There is no root-level build; each part builds independently and CI wires them t
 
 **PWA:** `vite-plugin-pwa` generates the manifest and service worker from `frontend/vite.config.ts` (`registerType: 'prompt'` — the update is user-confirmed via `UpdatePrompt.tsx`, not silent). Icons are generated from `frontend/scripts/icon-master.png` by `scripts/generate-icons.py`; `scripts/check-icons.py` validates the built manifest after `npm run build`. Note `any` and `maskable` icons are **separate files on purpose** — Android crops maskable icons to a launcher shape and only the centred 80%-diameter circle survives, so one file cannot serve both roles.
 
-**Deployment:** `.github/workflows/azure-static-web-apps-*.yml` builds and deploys on push to `master` (and manages preview environments for PRs) via `Azure/static-web-apps-deploy`. Build config: `app_location: /frontend`, `api_location: api`, `output_location: dist`.
+**Deployment:** two environments, each its own Static Web App fed by its own workflow under `.github/workflows/`, both via `Azure/static-web-apps-deploy` (build config `app_location: /frontend`, `api_location: api`, `output_location: dist`). `azure-static-web-apps-dev.yml` deploys the **dev** branch to `dev.bpad.pro` (existing SWA `bpad`/green-bay); `azure-static-web-apps-prod.yml` deploys **master** to `bpad.pro` (SWA `bpad-prod`, secret `AZURE_STATIC_WEB_APPS_API_TOKEN_PROD`). Both SWAs share one Cosmos account but select different databases via `COSMOS_DATABASE` (dev → default `bpad`, prod → `bpad-prod`). Day-to-day: feature branch → PR to `dev` → merge deploys dev; promote by merging `dev` → `master`. See `docs/superpowers/specs/2026-07-21-dev-prod-prostredi-design.md`.
 
 ## Environment variables
 
@@ -56,6 +56,7 @@ There is no root-level build; each part builds independently and CI wires them t
 |---|---|
 | `SESSION_SIGNING_KEY` | Signs session tokens. **Required** — API fails closed in production without it. |
 | `COSMOS_CONNECTION_STRING` | Cosmos DB. Unset → in-memory repositories (data lost on restart). |
+| `COSMOS_DATABASE` | Cosmos database name (default `bpad`). Lets dev/prod share one account with separate databases (`bpad` vs `bpad-prod`). |
 | `ACS_CONNECTION_STRING`, `EMAIL_SENDER` | Azure Communication Services email. Unset → the link is only logged. |
 | `APP_BASE_URL` | Base for links in emails (default `http://localhost:5173`). |
 | `POW_DIFFICULTY` | Registration proof-of-work leading zero bits (default `20`, `0` disables). |

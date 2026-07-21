@@ -288,10 +288,16 @@ def _connection_string() -> Optional[str]:
     return os.environ.get("COSMOS_CONNECTION_STRING")
 
 
+def _database_name() -> str:
+    # dev and prod share one Cosmos account but use separate databases,
+    # selected here. Unset/blank falls back to the original single-env name.
+    return os.environ.get("COSMOS_DATABASE", "").strip() or "bpad"
+
+
 def get_notes_repository() -> NotesRepository:
     cs = _connection_string()
     if cs:
-        return CosmosNotesRepository(cs)
+        return CosmosNotesRepository(cs, database=_database_name())
     logging.warning(
         "COSMOS_CONNECTION_STRING is not set - notes are stored in a temporary "
         "in-memory store (they will not survive a restart)."
@@ -302,14 +308,14 @@ def get_notes_repository() -> NotesRepository:
 def get_users_repository() -> UsersRepository:
     cs = _connection_string()
     if cs:
-        return CosmosUsersRepository(cs)
+        return CosmosUsersRepository(cs, database=_database_name())
     return InMemoryUsersRepository()
 
 
 def get_feedback_repository() -> FeedbackRepository:
     cs = _connection_string()
     if cs:
-        return CosmosFeedbackRepository(cs)
+        return CosmosFeedbackRepository(cs, database=_database_name())
     logging.warning(
         "COSMOS_CONNECTION_STRING is not set - feedback is stored in a temporary "
         "in-memory store (it will not survive a restart)."
