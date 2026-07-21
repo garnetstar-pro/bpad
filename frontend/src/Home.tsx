@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link, useMatch, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
 import { getKnownTags, listNotes, listNotesCached, createNote } from './api'
 import { filterNotes } from './search'
@@ -11,6 +11,7 @@ import { TagPills } from './TagPills'
 import { useTranslation, translate } from './i18n'
 import { getSortPref, setSortPref, type SortField } from './preferences'
 import { savePreferences, getAccount } from './authApi'
+import { useWideLayout } from './device'
 
 function Home() {
   const { t } = useTranslation()
@@ -23,6 +24,10 @@ function Home() {
   // overwrites a choice the user has already made this session.
   const userChoseSort = useRef(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const wide = useWideLayout()
+  // The note open in the detail pane, so its row can be marked active.
+  const activeId = useMatch('/notes/:id')?.params.id
   // Normalize (lowercase) so a filter is case-insensitive even from a hand-typed URL.
   const selected = (searchParams.get('tags') ?? '').split(',').map(normalizeTag).filter(Boolean)
   const untaggedOnly = searchParams.get('untagged') === '1'
@@ -42,38 +47,52 @@ function Home() {
     setSearchParams(params, { replace: true })
   }
 
+  // Set once the server has answered, so a slow cache read can never overwrite
+  // fresh notes with stale ones.
+  const servedFromNetwork = useRef(false)
+
+  // Pull the authoritative list from the server. Extracted from the mount
+  // effect so the mutation listener below can reuse it — in the two-pane
+  // layout this list stays mounted while the detail pane edits notes.
+  const fetchNotes = useCallback(async () => {
+    try {
+      const fresh = await listNotes()
+      servedFromNetwork.current = true
+      setNotes(fresh)
+      setError(null)
+    } catch {
+      setError(translate('home.connectFailed'))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
-    let servedFromNetwork = false
 
     // Paint the cached notes first. The server response carries the full
     // ciphertext of every note (~700 KiB at 250 notes), so waiting for it left
     // the list empty for seconds right after unlocking.
     listNotesCached().then((cached) => {
       // The network may have won the race — never overwrite fresh with stale.
-      if (cancelled || servedFromNetwork || !cached) return
+      if (cancelled || servedFromNetwork.current || !cached) return
       setNotes(cached)
       setLoading(false)
     })
 
-    listNotes()
-      .then((fresh) => {
-        if (cancelled) return
-        servedFromNetwork = true
-        setNotes(fresh)
-        setError(null)
-      })
-      .catch(() => {
-        if (!cancelled) setError(translate('home.connectFailed'))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+    fetchNotes()
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [fetchNotes])
+
+  // Keep the persistent list pane in sync when the detail pane mutates a note.
+  useEffect(() => {
+    const refetch = () => { fetchNotes() }
+    window.addEventListener('bpad:notes-mutated', refetch)
+    return () => window.removeEventListener('bpad:notes-mutated', refetch)
+  }, [fetchNotes])
 
   // Seed the sort preference from the server (source of truth) so it follows the
   // user across devices, not just from the local cache. Best-effort: if the fetch
@@ -106,6 +125,19 @@ function Home() {
     (a, b) => new Date(stamp(b)).getTime() - new Date(stamp(a)).getTime(),
   )
   const searching = query.trim().length > 0
+
+  // Desktop two-pane: keep a note open in the detail pane. When nothing valid is
+  // selected — the URL is `/`, or the open note was just deleted — open the one
+  // at the top of the current list. Re-checks after refetches, so deleting the
+  // open note reveals the next top note rather than an empty pane. Mobile is
+  // untouched: `/` stays on the list.
+  const topId = filtered[0]?.id
+  useEffect(() => {
+    if (!wide || loading || !topId) return
+    const selectionValid = activeId != null && notes.some((n) => n.id === activeId)
+    if (selectionValid) return
+    navigate(`/notes/${topId}`, { replace: true })
+  }, [wide, loading, topId, activeId, notes, navigate])
 
   return (
     <>
@@ -191,7 +223,7 @@ function Home() {
           <div className="empty-state">{t('home.nothingFound')}</div>
         )}
         {filtered.map((note) => (
-          <div className="entry" key={note.id}>
+          <div className={`entry ${note.id === activeId ? 'is-active' : ''}`} key={note.id}>
             {/* The row is the note link; pills are siblings (no anchor-in-anchor). */}
             <Link className="entry-main" to={`/notes/${note.id}`}>
               <div className="entry-stamp">

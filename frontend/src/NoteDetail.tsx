@@ -11,6 +11,7 @@ import Editor from './Editor'
 import { useTranslation, translate } from './i18n'
 import { TagPills } from './TagPills'
 import { toWhatsApp } from './whatsapp'
+import DetailFooter from './DetailFooter'
 
 function NoteDetail() {
   const { t } = useTranslation()
@@ -156,6 +157,8 @@ function NoteDetail() {
           )}
         </article>
       )}
+
+      {!editing && <DetailFooter note={note} />}
     </div>
   )
 }

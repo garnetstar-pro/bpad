@@ -497,6 +497,88 @@ body {
   color: var(--ink);
 }
 
+/* ---- Two-pane notes layout ---- */
+.notes-layout {
+  display: block;
+}
+
+/* Mobile / narrow: one pane at a time. */
+.notes-layout .detail-pane { display: none; }
+.notes-layout .list-pane { display: block; }
+.notes-layout.has-selection .list-pane { display: none; }
+.notes-layout.has-selection .detail-pane { display: block; }
+
+/* The empty-state filler is only meaningful on desktop. */
+.detail-placeholder {
+  display: none;
+  color: var(--ink-dim);
+  font-size: 13px;
+  padding: 40px 8px;
+  text-align: center;
+}
+
+/* Detail footer: hidden by default, shown only in the desktop two-pane view. */
+.detail-footer {
+  display: none;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+.detail-footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.detail-footer-app {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.detail-footer-link {
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+.detail-footer-link:hover { color: var(--accent); }
+.detail-footer-copy { margin-left: auto; }
+
+/* Desktop: list column beside detail column. */
+@media (min-width: 860px) {
+  /* Give the two-pane view more room than the single-column pages. Scoped with
+     :has() so account/features/capture keep the narrower reading width. */
+  .app:has(.notes-layout) {
+    max-width: 1080px;
+  }
+  .notes-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+  }
+  /* Both panes always visible regardless of selection. */
+  .notes-layout .list-pane,
+  .notes-layout.has-selection .list-pane,
+  .notes-layout .detail-pane,
+  .notes-layout.has-selection .detail-pane {
+    display: block;
+    min-width: 0;
+  }
+  .detail-placeholder { display: block; }
+  /* The "back to list" link is redundant when the list is always visible. */
+  .detail-pane .back-link { display: none; }
+  /* Footer under the note card — desktop only. */
+  .detail-footer { display: block; }
+  /* Active row cue. */
+  .entry.is-active {
+    background: var(--surface-hover);
+    border-left-color: var(--accent);
+  }
+}
+
 .note-detail {
   background: var(--surface);
   border: 1px solid var(--hairline);

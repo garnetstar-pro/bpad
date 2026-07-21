@@ -44,6 +44,14 @@ export const en = {
     deleteFailed: 'Delete failed. Try again.',
     notFound: 'Note not found',
     back: '← back to list',
+    selectPrompt: 'Select a note to read it here.',
+    metaCreated: 'Created {date}',
+    metaUpdated: 'Updated {date}',
+  },
+  footer: {
+    features: 'Features',
+    tagline: 'End-to-end encrypted.',
+    copyright: '© 2026 bpad',
   },
   auth: {
     login: 'Log in',
