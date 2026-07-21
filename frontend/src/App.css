@@ -548,6 +548,11 @@ body {
 
 /* Desktop: list column beside detail column. */
 @media (min-width: 860px) {
+  /* Give the two-pane view more room than the single-column pages. Scoped with
+     :has() so account/features/capture keep the narrower reading width. */
+  .app:has(.notes-layout) {
+    max-width: 1080px;
+  }
   .notes-layout {
     display: grid;
     grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
