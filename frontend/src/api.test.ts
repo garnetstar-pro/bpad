@@ -10,6 +10,12 @@ const store = new Map<string, string>()
   length: 0,
 } as Storage
 
+// No jsdom here, but api.ts dispatches window events on note mutations.
+// A no-op event target is enough — nothing in these tests listens.
+;(globalThis as unknown as { window: { dispatchEvent: (e: Event) => boolean } }).window = {
+  dispatchEvent: () => true,
+}
+
 const { listNotesCached, getKnownTags, createNote } = await import('./api')
 const { encryptJSON, decryptJSON, generateDataKey } = await import('./crypto')
 const { cacheNotes } = await import('./offlineCache')
