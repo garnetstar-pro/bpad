@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Link, useMatch, useSearchParams } from 'react-router-dom'
+import { Link, useMatch, useNavigate, useSearchParams } from 'react-router-dom'
 import type { Note } from './types'
 import { getKnownTags, listNotes, listNotesCached, createNote } from './api'
 import { filterNotes } from './search'
@@ -11,6 +11,7 @@ import { TagPills } from './TagPills'
 import { useTranslation, translate } from './i18n'
 import { getSortPref, setSortPref, type SortField } from './preferences'
 import { savePreferences, getAccount } from './authApi'
+import { useWideLayout } from './device'
 
 function Home() {
   const { t } = useTranslation()
@@ -23,6 +24,8 @@ function Home() {
   // overwrites a choice the user has already made this session.
   const userChoseSort = useRef(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const wide = useWideLayout()
   // The note open in the detail pane, so its row can be marked active.
   const activeId = useMatch('/notes/:id')?.params.id
   // Normalize (lowercase) so a filter is case-insensitive even from a hand-typed URL.
@@ -122,6 +125,19 @@ function Home() {
     (a, b) => new Date(stamp(b)).getTime() - new Date(stamp(a)).getTime(),
   )
   const searching = query.trim().length > 0
+
+  // Desktop two-pane: keep a note open in the detail pane. When nothing valid is
+  // selected — the URL is `/`, or the open note was just deleted — open the one
+  // at the top of the current list. Re-checks after refetches, so deleting the
+  // open note reveals the next top note rather than an empty pane. Mobile is
+  // untouched: `/` stays on the list.
+  const topId = filtered[0]?.id
+  useEffect(() => {
+    if (!wide || loading || !topId) return
+    const selectionValid = activeId != null && notes.some((n) => n.id === activeId)
+    if (selectionValid) return
+    navigate(`/notes/${topId}`, { replace: true })
+  }, [wide, loading, topId, activeId, notes, navigate])
 
   return (
     <>
