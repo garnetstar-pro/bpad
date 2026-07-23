@@ -21,6 +21,9 @@ export const en = {
     fileIt: 'File it',
     saveFailed: 'Saving failed. Try again.',
   },
+  composer: {
+    newEntry: '+ New entry…',
+  },
   home: {
     connectFailed: 'Couldn’t reach the backend. Is func start running?',
     recentEntries: 'recent entries',
