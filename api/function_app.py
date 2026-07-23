@@ -20,6 +20,7 @@ import pow
 
 _VERIFY_TTL = timedelta(hours=24)
 _UNVERIFIED_NOTE_LIMIT = 10  # unverified accounts may have at most this many notes
+_VERIFIED_NOTE_LIMIT = 1000  # hard per-account ceiling (bounds Cosmos storage/RU)
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -338,6 +339,15 @@ def update_preferences(req: func.HttpRequest) -> func.HttpResponse:
     user.sort_by = data.sortBy
     users_repo.save_user(user)
     return _json({"sortBy": user.sort_by}, 200)
+
+
+def _note_limit_hit(count: int, verified: bool) -> Optional[str]:
+    """Which cap creating one more note would breach: 'unverified', 'hard', or None."""
+    if not verified and count >= _UNVERIFIED_NOTE_LIMIT:
+        return "unverified"
+    if count >= _VERIFIED_NOTE_LIMIT:
+        return "hard"
+    return None
 
 
 # ---------------------------------------------------------------- notes
