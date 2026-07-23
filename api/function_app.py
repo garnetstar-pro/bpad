@@ -163,6 +163,9 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="auth/salt", methods=["GET"])
 def get_salt(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
     username = req.params.get("username", "")
     user = users_repo.get_user(username)
     # For a non-existent user we return a deterministic fake salt (anti-enumeration).
@@ -249,6 +252,9 @@ def send_verification(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="auth/recovery-material", methods=["GET"])
 def recovery_material(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
     user = users_repo.get_user(req.params.get("username", ""))
     if user is None:
         return _error("User not found", 404)
