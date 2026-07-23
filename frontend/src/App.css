@@ -546,6 +546,31 @@ body {
 .detail-footer-link:hover { color: var(--accent); }
 .detail-footer-copy { margin-left: auto; }
 
+/* ---- New-entry composer (desktop right pane) ---- */
+/* Collapsed: a slim bar that expands into the full Editor on click. */
+.composer-bar {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px dashed var(--hairline);
+  border-radius: 8px;
+  padding: 13px 16px;
+  margin-bottom: 20px;
+  color: var(--ink-dim);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.composer-bar:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+/* Expanded: separate the Editor from the note detail below it. */
+.composer-open {
+  margin-bottom: 24px;
+}
+
 /* Desktop: list column beside detail column. */
 @media (min-width: 860px) {
   /* Give the two-pane view more room than the single-column pages. Scoped with

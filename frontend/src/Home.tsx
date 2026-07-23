@@ -12,6 +12,7 @@ import { useTranslation, translate } from './i18n'
 import { getSortPref, setSortPref, type SortField } from './preferences'
 import { savePreferences, getAccount } from './authApi'
 import { useWideLayout } from './device'
+import { shouldAutoOpenTop } from './noteSelection'
 
 function Home() {
   const { t } = useTranslation()
@@ -50,11 +51,16 @@ function Home() {
   // Set once the server has answered, so a slow cache read can never overwrite
   // fresh notes with stale ones.
   const servedFromNetwork = useRef(false)
+  // True while a server fetch is outstanding. Guards the auto-open effect below
+  // so a note just created in the detail pane isn't clobbered before its refetch
+  // lands (it isn't in `notes` yet, which would otherwise read as invalid).
+  const refetching = useRef(false)
 
   // Pull the authoritative list from the server. Extracted from the mount
   // effect so the mutation listener below can reuse it — in the two-pane
   // layout this list stays mounted while the detail pane edits notes.
   const fetchNotes = useCallback(async () => {
+    refetching.current = true
     try {
       const fresh = await listNotes()
       servedFromNetwork.current = true
@@ -63,6 +69,7 @@ function Home() {
     } catch {
       setError(translate('home.connectFailed'))
     } finally {
+      refetching.current = false
       setLoading(false)
     }
   }, [])
@@ -133,9 +140,17 @@ function Home() {
   // untouched: `/` stays on the list.
   const topId = filtered[0]?.id
   useEffect(() => {
-    if (!wide || loading || !topId) return
-    const selectionValid = activeId != null && notes.some((n) => n.id === activeId)
-    if (selectionValid) return
+    if (
+      !shouldAutoOpenTop({
+        wide,
+        loading,
+        refetching: refetching.current,
+        topId,
+        activeId,
+        noteIds: notes.map((n) => n.id),
+      })
+    )
+      return
     navigate(`/notes/${topId}`, { replace: true })
   }, [wide, loading, topId, activeId, notes, navigate])
 
@@ -143,7 +158,10 @@ function Home() {
     <>
       {error && <div className="error-banner">{error}</div>}
 
-      {!isOfflineReadOnly() && (
+      {/* Mobile keeps the composer pinned at the top of the list. On desktop it
+          moves to the right pane (NotesLayout) so the list starts with the
+          entries. */}
+      {!wide && !isOfflineReadOnly() && (
         <Editor submitLabel={t('editor.fileIt')} onSubmit={handleCreate} resetOnSuccess />
       )}
 
