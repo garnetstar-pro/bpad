@@ -370,17 +370,19 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         return _error(f"Invalid data: {str(e)}", 400)
 
-    # Soft-gate: an unverified account has a cap on the number of notes (a brake against bots).
+    # Note caps: unverified accounts get a low bot-brake ceiling; every account
+    # has a hard ceiling that bounds per-account Cosmos storage/RU.
     account = users_repo.get_user(user)
-    if (
-        account is not None
-        and not account.email_verified
-        and notes_repo.count_notes(user) >= _UNVERIFIED_NOTE_LIMIT
-    ):
-        _maybe_send_verification(account)
+    verified = account.email_verified if account is not None else False
+    hit = _note_limit_hit(notes_repo.count_notes(user), verified)
+    if hit == "unverified":
+        if account is not None:
+            _maybe_send_verification(account)
         return _error(
             f"Verify your e-mail for more than {_UNVERIFIED_NOTE_LIMIT} notes.", 403
         )
+    if hit == "hard":
+        return _error("Note limit reached", 403)
 
     note = Note(
         user_id=user,
