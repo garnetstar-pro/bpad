@@ -161,6 +161,8 @@ export const en = {
     importPartial: '{count} imported, {failed} failed. Run the import again to retry.',
     importLimited:
       '{count} imported, then your account hit the limit for unverified e-mail. Verify your e-mail and run the import again.',
+    importLimitedHard:
+      '{count} imported, then your account reached its note limit. Some notes were not imported.',
     lockedHint: 'Unlock your vault to import these notes into your account.',
     loggedOutHint: 'Log in to import these notes into your account.',
   },

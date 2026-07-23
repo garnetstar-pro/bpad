@@ -26,7 +26,7 @@ beforeEach(() => {
 describe('importNotes', () => {
   it('creates every note with its title, tags and original timestamp', async () => {
     const summary = await importNotes([backupNote(1)])
-    expect(summary).toEqual({ imported: 1, failed: 0, stoppedByLimit: false })
+    expect(summary).toEqual({ imported: 1, failed: 0, stoppedByLimit: null })
     expect(mockCreate).toHaveBeenCalledWith('body 1', ['x'], {
       title: 'Note 1',
       createdAt: '2026-01-01T00:00:00Z',
@@ -62,7 +62,7 @@ describe('importNotes', () => {
       .mockRejectedValueOnce(new Error('Saving failed'))
       .mockResolvedValueOnce({} as never)
     const summary = await importNotes([backupNote(1), backupNote(2), backupNote(3)])
-    expect(summary).toEqual({ imported: 2, failed: 1, stoppedByLimit: false })
+    expect(summary).toEqual({ imported: 2, failed: 1, stoppedByLimit: null })
     expect(mockCreate).toHaveBeenCalledTimes(3)
   })
 
@@ -71,7 +71,16 @@ describe('importNotes', () => {
       .mockResolvedValueOnce({} as never)
       .mockRejectedValueOnce(new Error('Verify your e-mail for more than 10 notes.'))
     const summary = await importNotes([backupNote(1), backupNote(2), backupNote(3)])
-    expect(summary).toEqual({ imported: 1, failed: 0, stoppedByLimit: true })
+    expect(summary).toEqual({ imported: 1, failed: 0, stoppedByLimit: 'unverified' })
+    expect(mockCreate).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops at the hard per-account note limit instead of failing every note', async () => {
+    mockCreate
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(new Error('Note limit reached'))
+    const summary = await importNotes([backupNote(1), backupNote(2), backupNote(3)])
+    expect(summary).toEqual({ imported: 1, failed: 0, stoppedByLimit: 'hard' })
     expect(mockCreate).toHaveBeenCalledTimes(2)
   })
 
@@ -79,7 +88,7 @@ describe('importNotes', () => {
     await expect(importNotes([])).resolves.toEqual({
       imported: 0,
       failed: 0,
-      stoppedByLimit: false,
+      stoppedByLimit: null,
     })
   })
 })
