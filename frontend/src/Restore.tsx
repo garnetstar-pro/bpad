@@ -95,7 +95,8 @@ export default function Restore() {
   }
 
   function summaryLine(s: ImportSummary): string {
-    if (s.stoppedByLimit) return t('restore.importLimited', { count: s.imported })
+    if (s.stoppedByLimit === 'unverified') return t('restore.importLimited', { count: s.imported })
+    if (s.stoppedByLimit === 'hard') return t('restore.importLimitedHard', { count: s.imported })
     if (s.failed > 0) return t('restore.importPartial', { count: s.imported, failed: s.failed })
     return t('restore.importDone', { count: s.imported })
   }
