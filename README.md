@@ -1,9 +1,34 @@
 # bpad
 
-Personal, **end-to-end encrypted** note-capture app. A React/Vite frontend
-(`frontend/`) backed by an Azure Functions Python API (`api/`), deployed together
-as one Azure Static Web App. Note contents are encrypted in the browser — the
-server only ever stores ciphertext.
+**A zero-knowledge, end-to-end encrypted note-capture app.** The fastest path
+from a thought — or a link — to a saved note, without trusting the server with
+your contents. Notes are encrypted in your browser; the API only ever stores
+ciphertext, so nobody who runs or breaches the server can read them.
+
+**Live: [bpad.pro](https://bpad.pro)** · Free, no ads, no tracking.
+
+## What it does
+
+- **Zero-knowledge encryption.** Keys are derived from your password with
+  Argon2id + HKDF and notes are sealed with AES-256-GCM, all in the browser. The
+  password never leaves your device — the server only sees an auth verifier
+  (stored PBKDF2-hashed). Optional biometric unlock via the WebAuthn PRF
+  extension.
+- **Capture a link in one move.** Type the domain then a full URL in the address
+  bar — `bpad.pro/https://example.com` — and it becomes a new note.
+- **Markdown** with auto-title from the first heading, live preview, and
+  `Ctrl/Cmd+Enter` to save from anywhere.
+- **PWA:** installable to your home screen, reads offline.
+- **You own your data.** Export every note to an encrypted (or plain) backup file
+  and restore it with no account at all — the escape hatch for an app where I
+  genuinely cannot recover your notes for you.
+
+## Security & status
+
+This is a personal project with a single maintainer, and the cryptography has
+**not** had a formal third-party audit. The security-relevant code lives in
+[`frontend/src/crypto.ts`](frontend/src/crypto.ts) and
+[`api/auth.py`](api/auth.py) — review and issues are very welcome.
 
 ## Running locally
 
@@ -93,3 +118,8 @@ From `api/` (venv activated):
 
 Architecture, environment variables, and design notes live in
 [CLAUDE.md](CLAUDE.md). Design docs are under `docs/superpowers/`.
+
+## License
+
+[GNU AGPL-3.0](LICENSE). If you run a modified version as a network service, the
+license requires you to offer your users the corresponding source.
