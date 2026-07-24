@@ -301,6 +301,23 @@ This is your first note — edit or delete it freely. **bpad** is an encrypted n
   - [ ] Save your recovery code
   - [ ] Install bpad as an app
 
+## Markdown quick guide
+Write plain text, or sprinkle in a little Markdown. Toggle **Preview** to see it rendered.
+
+| You type | You get |
+| --- | --- |
+| \`# Heading\` | a title/heading |
+| \`**bold**\` | **bold** |
+| \`*italic*\` | *italic* |
+| \`- item\` | a bullet list |
+| \`1. item\` | a numbered list |
+| \`- [ ] task\` | a checklist box |
+| \`[label](https://…)\` | a [link](https://bpad.pro) |
+| \`\` \`code\` \`\` | inline \`code\` |
+| \`> quote\` | a blockquote |
+
+Leave a blank line between paragraphs.
+
 ## Save a link in one move
 Type \`{host}/\` in the address bar and a full URL right after it:
 
