@@ -43,6 +43,10 @@ export const FEATURES: Feature[] = [
     desc: 'On devices with biometrics, unlock the vault with a fingerprint or face — no password typing.',
   },
   {
+    name: 'Auto-lock when idle',
+    desc: 'On desktop the vault locks itself after a few minutes of inactivity — a quick password re-entry gets you back in.',
+  },
+  {
     name: 'Offline & installable',
     desc: 'Read your notes with no signal, and install bpad to your home screen as a standalone app (PWA).',
   },
@@ -57,5 +61,9 @@ export const FEATURES: Feature[] = [
   {
     name: 'E-mail verification',
     desc: 'Unverified accounts have a note cap; after verifying your e-mail you write without limits.',
+  },
+  {
+    name: 'In-app feedback',
+    desc: 'Send us a message straight from your account — ideas, bugs, or anything else, without leaving the app.',
   },
 ]

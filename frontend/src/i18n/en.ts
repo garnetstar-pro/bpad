@@ -21,6 +21,9 @@ export const en = {
     fileIt: 'File it',
     saveFailed: 'Saving failed. Try again.',
   },
+  composer: {
+    newEntry: '+ New entry…',
+  },
   home: {
     connectFailed: 'Couldn’t reach the backend. Is func start running?',
     recentEntries: 'recent entries',
@@ -161,6 +164,8 @@ export const en = {
     importPartial: '{count} imported, {failed} failed. Run the import again to retry.',
     importLimited:
       '{count} imported, then your account hit the limit for unverified e-mail. Verify your e-mail and run the import again.',
+    importLimitedHard:
+      '{count} imported, then your account reached its note limit. Some notes were not imported.',
     lockedHint: 'Unlock your vault to import these notes into your account.',
     loggedOutHint: 'Log in to import these notes into your account.',
   },
@@ -295,6 +300,23 @@ This is your first note — edit or delete it freely. **bpad** is an encrypted n
   - [x] Create an account
   - [ ] Save your recovery code
   - [ ] Install bpad as an app
+
+## Markdown quick guide
+Write plain text, or sprinkle in a little Markdown. Toggle **Preview** to see it rendered.
+
+| You type | You get |
+| --- | --- |
+| \`# Heading\` | a title/heading |
+| \`**bold**\` | **bold** |
+| \`*italic*\` | *italic* |
+| \`- item\` | a bullet list |
+| \`1. item\` | a numbered list |
+| \`- [ ] task\` | a checklist box |
+| \`[label](https://…)\` | a [link](https://bpad.pro) |
+| \`\` \`code\` \`\` | inline \`code\` |
+| \`> quote\` | a blockquote |
+
+Leave a blank line between paragraphs.
 
 ## Save a link in one move
 Type \`{host}/\` in the address bar and a full URL right after it:

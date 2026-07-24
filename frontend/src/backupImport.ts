@@ -4,19 +4,25 @@
 import { createNote } from './api'
 import type { BackupNote } from './backup'
 
+export type ImportLimit = 'unverified' | 'hard'
+
 export interface ImportSummary {
   imported: number
   failed: number
-  // True when the API's unverified-account note cap cut the import short.
-  stoppedByLimit: boolean
+  // Which server-side note cap cut the import short, or null if it ran to completion.
+  stoppedByLimit: ImportLimit | null
 }
 
-// The API rejects the 11th note of an unverified account with a 403 whose
-// message asks the user to verify their e-mail (api/function_app.py:371).
-// Retrying every remaining note would produce a wall of identical failures,
-// so the import stops and says what to do instead.
-function isNoteLimit(err: unknown): boolean {
-  return err instanceof Error && /verify your e-mail/i.test(err.message)
+// The API rejects an over-limit create with a 403. Two distinct caps produce two
+// messages: an unverified account hitting 10 notes asks the user to verify their
+// e-mail; any account hitting the hard per-account ceiling returns "Note limit
+// reached" (api/function_app.py). Retrying every remaining note would produce a
+// wall of identical failures, so the import stops and says what to do instead.
+function noteLimitKind(err: unknown): ImportLimit | null {
+  if (!(err instanceof Error)) return null
+  if (/verify your e-mail/i.test(err.message)) return 'unverified'
+  if (/note limit reached/i.test(err.message)) return 'hard'
+  return null
 }
 
 // Sequential on purpose: it keeps Cosmos RU consumption flat and makes an
@@ -37,10 +43,11 @@ export async function importNotes(
       })
       imported++
     } catch (err) {
-      if (isNoteLimit(err)) return { imported, failed, stoppedByLimit: true }
+      const limit = noteLimitKind(err)
+      if (limit) return { imported, failed, stoppedByLimit: limit }
       failed++
     }
     onProgress?.(i + 1, notes.length)
   }
-  return { imported, failed, stoppedByLimit: false }
+  return { imported, failed, stoppedByLimit: null }
 }

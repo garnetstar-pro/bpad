@@ -22,8 +22,11 @@ class Note(BaseModel):
 
 
 class NoteCreate(BaseModel):
-    iv: str
-    ct: str
+    # Length caps bound per-note Cosmos storage/RU. ct is Base64 ciphertext:
+    # 65536 chars ~= 48 KB encrypted ~= ~45 KB plaintext. iv is a 12-byte nonce
+    # (~16 chars); 64 is headroom.
+    iv: str = Field(max_length=64)
+    ct: str = Field(max_length=65536)
     # Optional: preserve an original timestamp on import; otherwise server-set.
     created_at: Optional[datetime] = None
 

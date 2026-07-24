@@ -20,6 +20,7 @@ import pow
 
 _VERIFY_TTL = timedelta(hours=24)
 _UNVERIFIED_NOTE_LIMIT = 10  # unverified accounts may have at most this many notes
+_VERIFIED_NOTE_LIMIT = 1000  # hard per-account ceiling (bounds Cosmos storage/RU)
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -162,6 +163,9 @@ def register(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="auth/salt", methods=["GET"])
 def get_salt(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
     username = req.params.get("username", "")
     user = users_repo.get_user(username)
     # For a non-existent user we return a deterministic fake salt (anti-enumeration).
@@ -248,6 +252,9 @@ def send_verification(req: func.HttpRequest) -> func.HttpResponse:
 
 @app.route(route="auth/recovery-material", methods=["GET"])
 def recovery_material(req: func.HttpRequest) -> func.HttpResponse:
+    limited = _rate_limited(req)
+    if limited:
+        return limited
     user = users_repo.get_user(req.params.get("username", ""))
     if user is None:
         return _error("User not found", 404)
@@ -340,6 +347,15 @@ def update_preferences(req: func.HttpRequest) -> func.HttpResponse:
     return _json({"sortBy": user.sort_by}, 200)
 
 
+def _note_limit_hit(count: int, verified: bool) -> Optional[str]:
+    """Which cap creating one more note would breach: 'unverified', 'hard', or None."""
+    if not verified and count >= _UNVERIFIED_NOTE_LIMIT:
+        return "unverified"
+    if count >= _VERIFIED_NOTE_LIMIT:
+        return "hard"
+    return None
+
+
 # ---------------------------------------------------------------- notes
 
 @app.route(route="notes", methods=["GET"])
@@ -360,17 +376,19 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as e:
         return _error(f"Invalid data: {str(e)}", 400)
 
-    # Soft-gate: an unverified account has a cap on the number of notes (a brake against bots).
+    # Note caps: unverified accounts get a low bot-brake ceiling; every account
+    # has a hard ceiling that bounds per-account Cosmos storage/RU.
     account = users_repo.get_user(user)
-    if (
-        account is not None
-        and not account.email_verified
-        and notes_repo.count_notes(user) >= _UNVERIFIED_NOTE_LIMIT
-    ):
-        _maybe_send_verification(account)
+    verified = account.email_verified if account is not None else False
+    hit = _note_limit_hit(notes_repo.count_notes(user), verified)
+    if hit == "unverified":
+        if account is not None:
+            _maybe_send_verification(account)
         return _error(
             f"Verify your e-mail for more than {_UNVERIFIED_NOTE_LIMIT} notes.", 403
         )
+    if hit == "hard":
+        return _error("Note limit reached", 403)
 
     note = Note(
         user_id=user,

@@ -546,6 +546,31 @@ body {
 .detail-footer-link:hover { color: var(--accent); }
 .detail-footer-copy { margin-left: auto; }
 
+/* ---- New-entry composer (desktop right pane) ---- */
+/* Collapsed: a slim bar that expands into the full Editor on click. */
+.composer-bar {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px dashed var(--hairline);
+  border-radius: 8px;
+  padding: 13px 16px;
+  margin-bottom: 20px;
+  color: var(--ink-dim);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.composer-bar:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+/* Expanded: separate the Editor from the note detail below it. */
+.composer-open {
+  margin-bottom: 24px;
+}
+
 /* Desktop: list column beside detail column. */
 @media (min-width: 860px) {
   /* Give the two-pane view more room than the single-column pages. Scoped with
@@ -566,6 +591,27 @@ body {
   .notes-layout.has-selection .detail-pane {
     display: block;
     min-width: 0;
+  }
+  /* Left list stays pinned in view and scrolls on its own, so a long list no
+     longer pushes the detail off-screen; its header (search / tags / sort) stays
+     put while only the entries scroll. The right column flows with the page —
+     it has no inner scrollbar, so a long note scrolls the page while the list
+     stays pinned. Both selectors (incl. has-selection) so it beats the
+     equal-or-higher-specificity display rule above — desktop always has a note
+     selected. */
+  .notes-layout .list-pane,
+  .notes-layout.has-selection .list-pane {
+    position: sticky;
+    top: 0;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .list-pane .entries {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
   .detail-placeholder { display: block; }
   /* The "back to list" link is redundant when the list is always visible. */

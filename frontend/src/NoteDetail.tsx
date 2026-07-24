@@ -23,6 +23,12 @@ function NoteDetail() {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [copied, setCopied] = useState(false)
+  // The detail flows with the page (it has no inner scroll), so when the open
+  // note changes, reset the window to the top — otherwise a long note you
+  // scrolled down leaves the next one opening mid-page.
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [id])
 
   const copyForWhatsApp = async () => {
     if (!note) return
