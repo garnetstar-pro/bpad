@@ -1382,3 +1382,18 @@ body {
   font-size: 0.85rem;
   opacity: 0.85;
 }
+
+.note-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 0.5rem 0;
+}
+.note-image-loading,
+.note-image-failed {
+  display: inline-block;
+  font-size: 0.85em;
+  opacity: 0.6;
+  font-style: italic;
+}

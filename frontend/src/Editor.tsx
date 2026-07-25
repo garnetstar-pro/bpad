@@ -8,6 +8,7 @@ import { TagInput } from './TagInput'
 import { getKnownTags } from './api'
 import { isPremium } from './entitlements'
 import { FREE_TAG_LIMIT, distinctTagCount } from './tags'
+import { processImage, uploadImage } from './images'
 
 // Config: how many rows the textarea grows to with content.
 // Past this limit the height is fixed and a scrollbar appears.
@@ -43,6 +44,7 @@ function Editor({
   const [tags, setTags] = useState<string[]>(initialTags)
   const [mode, setMode] = useState<'write' | 'preview'>('write')
   const [submitting, setSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -105,6 +107,31 @@ function Editor({
     }
   }
 
+  // Paste an image (clipboard clipping) → upload → insert ![](bpad-img:ID) at the caret.
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith('image/'))
+    if (!item) return // let normal text paste through
+    e.preventDefault()
+    const file = item.getAsFile()
+    if (!file) return
+    const ta = textareaRef.current
+    const start = ta ? ta.selectionStart : draft.length
+    const end = ta ? ta.selectionEnd : draft.length
+    setUploading(true)
+    setError(null)
+    try {
+      const processed = await processImage(file)
+      const id = await uploadImage(processed)
+      const snippet = `![](bpad-img:${id})`
+      setDraft((d) => d.slice(0, start) + snippet + d.slice(end))
+    } catch (err) {
+      const code = err instanceof Error ? err.message : ''
+      setError(code === 'too-large' ? t('editor.imageTooLarge') : t('editor.imageFailed'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <div className="capture" onKeyDown={handleKeyDown}>
       {error && <div className="error-banner">{error}</div>}
@@ -151,6 +178,7 @@ function Editor({
           ref={textareaRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onPaste={handlePaste}
           placeholder={t('editor.bodyPlaceholder')}
           disabled={submitting}
         />
@@ -166,7 +194,11 @@ function Editor({
 
       <div className="capture-footer">
         <span className="capture-hint">
-          {submitting ? t('editor.saving') : t('editor.saveHint', { label: submitLabel })}
+          {uploading
+            ? t('editor.imageUploading')
+            : submitting
+              ? t('editor.saving')
+              : t('editor.saveHint', { label: submitLabel })}
         </span>
         <div className="capture-actions">
           {onCancel && (
@@ -174,7 +206,7 @@ function Editor({
               {t('common.cancel')}
             </button>
           )}
-          <button className="save-btn" onClick={submit} disabled={submitting} type="button">
+          <button className="save-btn" onClick={submit} disabled={submitting || uploading} type="button">
             {submitLabel}
           </button>
         </div>
