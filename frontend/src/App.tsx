@@ -31,7 +31,7 @@ function App() {
   const [bioAvailable, setBioAvailable] = useState(false)
   const [enrollDone, setEnrollDone] = useState(false)
   const [forceEnroll, setForceEnroll] = useState(false)
-  const [verifySend, setVerifySend] = useState<'idle' | 'sent' | 'error'>('idle')
+  const [verifySend, setVerifySend] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [noteCount, setNoteCount] = useState<number | null>(getKnownNoteCount())
   // null = show the public landing; otherwise the auth form opens in this mode.
   const [authMode, setAuthMode] = useState<Mode | null>(null)
@@ -123,13 +123,19 @@ function App() {
             <button
               className="verify-resend"
               type="button"
+              disabled={verifySend === 'sending'}
               onClick={() => {
+                setVerifySend('sending')
                 resendVerification()
                   .then(() => setVerifySend('sent'))
                   .catch(() => setVerifySend('error'))
               }}
             >
-              {verifySend === 'error' ? t('verify.sendFailed') : t('verify.sendLink')}
+              {verifySend === 'sending'
+                ? t('verify.sending')
+                : verifySend === 'error'
+                  ? t('verify.sendFailed')
+                  : t('verify.sendLink')}
             </button>
           )}
         </div>

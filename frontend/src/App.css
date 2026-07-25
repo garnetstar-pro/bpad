@@ -765,6 +765,10 @@ body {
   padding: 0;
   border-bottom: 1px dotted rgba(34, 177, 131, 0.5);
 }
+.verify-resend:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
 .verify-sent { color: var(--accent); font-weight: 700; }
 
 /* Notification about a new version (PWA update) – floating bar at the bottom */
