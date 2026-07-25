@@ -130,6 +130,12 @@ oznámí explicitně:
   `image_ids` nejsou (uživatel je z textu smazal), se smažou — blob i záznam.
 - `image_ids` je jediná další metadata-stopa (počet obrázků poznámky); obsah ani
   pozici v textu server nezná. Pro fázi 1 (obrázky stejně nešifrované) přijatelné.
+- **Známé omezení „jeden obrázek = jedna poznámka":** `note_id` je jednohodnotové.
+  Když uživatel *ručně zkopíruje* markdown `![](bpad-img:ID)` do druhé poznámky,
+  obě sdílejí týž blob; smazání/úprava jedné pak přes kaskádu/unbind smaže blob
+  i té druhé (tichá ztráta obrázku). Málo pravděpodobné — paste vždy nahrává nový
+  obrázek s novým ID. Fáze 1 to vědomě neřeší; skutečné řešení (reference-counting
+  nebo duplikace blobu při kopírování) je mimo scope.
 
 ## Životní cyklus a úklid
 
@@ -167,6 +173,14 @@ oznámí explicitně:
 | Offline čtení | best-effort přes SW cache, nezaručeno | text poznámek funguje dál |
 | Free/premium limit | bez gatingu, jen technický strop na obrázek | entitlement lze přidat později |
 | Editace obrázku (crop) | ❌ | |
+| Strop velikosti obrázku | **klientský** (10 MB / přeškálování) — write SAS ho nevynucuje | skutečné vynucení velikosti až fáze 2 / infra; upload je ale rate-limitovaný (viz níže) |
+| Sdílený blob mezi poznámkami | ❌ jeden obrázek = jedna poznámka (viz omezení výše) | reference-counting mimo scope |
+
+**Rate-limit uploadu:** `POST /api/images` má per-user sliding-window limit
+(`_image_limiter`, 60 uploadů / 600 s), stejný vzor jako auth/feedback. Je to
+brzda proti tomu, aby přihlášený účet nafoukl blob storage — ne tvrdý limit
+(ten patří na infra vrstvu, viz CLAUDE.md). Strop velikosti jednoho obrázku
+zůstává klientský.
 
 ## Testy
 
