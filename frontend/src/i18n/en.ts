@@ -20,6 +20,14 @@ export const en = {
     nothingToPreview: 'nothing to preview',
     fileIt: 'File it',
     saveFailed: 'Saving failed. Try again.',
+    imageUploading: 'uploading image…',
+    imageTooLarge: 'that image is too large (max 10 MB)',
+    imageFailed: 'image upload failed, try again',
+  },
+  images: {
+    loading: 'loading image…',
+    failed: 'image unavailable',
+    alt: 'note image',
   },
   composer: {
     newEntry: '+ New entry…',

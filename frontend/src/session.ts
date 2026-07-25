@@ -2,6 +2,8 @@
 // dataKey for encryption, authKey for re-login, username for the cache. Token
 // can be null = unlocked offline (read-only from the local cache). Closing
 // the tab = logout.
+import { clearImageUrlCache } from './images'
+
 let token: string | null = null
 let dataKey: Uint8Array | null = null
 let authKey: Uint8Array | null = null
@@ -24,6 +26,7 @@ export function clearSession(): void {
   dataKey = null
   authKey = null
   username = null
+  clearImageUrlCache()
 }
 
 export function getToken(): string | null {

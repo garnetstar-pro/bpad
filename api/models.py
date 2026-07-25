@@ -21,6 +21,24 @@ class Note(BaseModel):
     updated_at: Optional[datetime] = None
 
 
+class ImageRecord(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    # None = "pending": the blob is uploaded but the owning note isn't saved yet.
+    note_id: Optional[str] = None
+    blob_path: str
+    content_type: str
+    size_bytes: int
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ImageCreateRequest(BaseModel):
+    # The client sends the processed image's metadata; the bytes are PUT straight
+    # to Blob Storage via the returned SAS URL. 10 MiB is a hard input ceiling.
+    content_type: str = Field(max_length=100)
+    size_bytes: int = Field(gt=0, le=10 * 1024 * 1024)
+
+
 class NoteCreate(BaseModel):
     # Length caps bound per-note Cosmos storage/RU. ct is Base64 ciphertext:
     # 65536 chars ~= 48 KB encrypted ~= ~45 KB plaintext. iv is a 12-byte nonce
@@ -29,6 +47,9 @@ class NoteCreate(BaseModel):
     ct: str = Field(max_length=65536)
     # Optional: preserve an original timestamp on import; otherwise server-set.
     created_at: Optional[datetime] = None
+    # IDs of images (bpad-img:ID) the note's markdown references. The server can't
+    # read the encrypted content, so the client reports them for lifecycle/cleanup.
+    image_ids: list[str] = Field(default_factory=list, max_length=100)
 
 
 class User(BaseModel):

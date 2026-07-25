@@ -11,8 +11,14 @@ from models import (
     RegisterRequest, LoginRequest, RecoverRequest, ChangePasswordRequest,
     VerifyEmailRequest, PreferencesRequest,
     Feedback, FeedbackRequest,
+    ImageCreateRequest,
 )
-from repository import get_notes_repository, get_users_repository, get_feedback_repository
+from repository import (
+    get_notes_repository, get_users_repository, get_feedback_repository,
+    get_images_repository,
+)
+from blobstore import get_blob_store
+import images_ops
 from ratelimit import RateLimiter
 import auth
 import mailer
@@ -21,12 +27,15 @@ import pow
 _VERIFY_TTL = timedelta(hours=24)
 _UNVERIFIED_NOTE_LIMIT = 10  # unverified accounts may have at most this many notes
 _VERIFIED_NOTE_LIMIT = 1000  # hard per-account ceiling (bounds Cosmos storage/RU)
+_PENDING_IMAGE_TTL = timedelta(hours=24)  # lazy GC horizon for unclaimed image uploads
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
 notes_repo = get_notes_repository()
 users_repo = get_users_repository()
 feedback_repo = get_feedback_repository()
+images_repo = get_images_repository()
+blob_store = get_blob_store()
 
 # In production set ALLOWED_ORIGIN to your own domain; defaults to '*' in dev.
 _ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
@@ -43,6 +52,12 @@ _auth_limiter = RateLimiter(max_calls=20, window_seconds=60)
 # Keyed by username (we know who it is) rather than IP, so a shared network is
 # not punished for one chatty user.
 _feedback_limiter = RateLimiter(max_calls=5, window_seconds=600)
+
+# Per-user brake on image uploads: generous enough for pasting several
+# screenshots in a session, a brake against an authenticated account
+# inflating blob storage. The per-image size cap is client-side (see design
+# doc); this bounds the upload *rate*.
+_image_limiter = RateLimiter(max_calls=60, window_seconds=600)
 
 
 def _client_ip(req: func.HttpRequest) -> str:
@@ -399,6 +414,7 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
     # A new note's modification time starts equal to its creation time.
     note.updated_at = note.created_at
     notes_repo.save_note(note)
+    images_ops.reconcile_note(images_repo, blob_store, user, note.id, data.image_ids)
     return _json(note.model_dump(mode="json"), 201)
 
 
@@ -430,6 +446,7 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
     note.ct = data.ct
     note.updated_at = datetime.utcnow()
     notes_repo.save_note(note)
+    images_ops.reconcile_note(images_repo, blob_store, user, note.id, data.image_ids)
     return _json(note.model_dump(mode="json"), 200)
 
 
@@ -438,9 +455,41 @@ def delete_note(req: func.HttpRequest) -> func.HttpResponse:
     user = _require_user(req)
     if isinstance(user, func.HttpResponse):
         return user
-    if not notes_repo.delete_note(user, req.route_params.get("id")):
+    note_id = req.route_params.get("id")
+    if not notes_repo.delete_note(user, note_id):
         return _error("Note not found", 404)
+    images_ops.cascade_delete_note(images_repo, blob_store, user, note_id)
     return func.HttpResponse(status_code=204, headers=_CORS)
+
+
+# ---------------------------------------------------------------- images
+
+@app.route(route="images", methods=["POST"])
+def create_image(req: func.HttpRequest) -> func.HttpResponse:
+    user = _require_user(req)
+    if isinstance(user, func.HttpResponse):
+        return user
+    if not _image_limiter.allow(user):
+        return _error("Too many uploads, try again later", 429)
+    try:
+        data = ImageCreateRequest(**req.get_json())
+    except Exception as e:
+        return _error(f"Invalid data: {str(e)}", 400)
+    # Lazy GC: clear this user's abandoned pending uploads on the way in.
+    images_ops.sweep_pending(images_repo, blob_store, user, datetime.utcnow() - _PENDING_IMAGE_TTL)
+    result = images_ops.issue_upload(images_repo, blob_store, user, data.content_type, data.size_bytes)
+    return _json(result, 201)
+
+
+@app.route(route="images/{id}/url", methods=["GET"])
+def image_url(req: func.HttpRequest) -> func.HttpResponse:
+    user = _require_user(req)
+    if isinstance(user, func.HttpResponse):
+        return user
+    url = images_ops.issue_read_url(images_repo, blob_store, user, req.route_params.get("id"))
+    if url is None:
+        return _error("Image not found", 404)
+    return _json({"url": url}, 200)
 
 
 # ------------------------------------------------------------- feedback
