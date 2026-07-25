@@ -21,6 +21,11 @@ export const en = {
     fileIt: 'File it',
     saveFailed: 'Saving failed. Try again.',
   },
+  images: {
+    loading: 'loading image…',
+    failed: 'image unavailable',
+    alt: 'note image',
+  },
   composer: {
     newEntry: '+ New entry…',
   },
