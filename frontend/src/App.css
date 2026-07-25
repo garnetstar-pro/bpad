@@ -1397,3 +1397,11 @@ body {
   opacity: 0.6;
   font-style: italic;
 }
+
+/* "Add image" sits at the right end of the Write/Preview tab row. */
+.add-image-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
