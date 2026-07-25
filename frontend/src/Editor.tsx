@@ -180,7 +180,7 @@ function Editor({
           onChange={(e) => setDraft(e.target.value)}
           onPaste={handlePaste}
           placeholder={t('editor.bodyPlaceholder')}
-          disabled={submitting}
+          disabled={submitting || uploading}
         />
       ) : (
         <div className="capture-preview markdown-body">
