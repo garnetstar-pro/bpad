@@ -175,3 +175,65 @@ def test_blank_database_env_falls_back_to_default(monkeypatch):
     monkeypatch.setenv("COSMOS_CONNECTION_STRING", _FAKE_CS)
     monkeypatch.setenv("COSMOS_DATABASE", "   ")
     assert repository.get_notes_repository()._database_name == "bpad"
+
+
+from datetime import datetime, timedelta
+from models import ImageRecord
+from repository import InMemoryImagesRepository
+
+
+def _img(user_id="alice", note_id=None, **kw):
+    defaults = dict(user_id=user_id, note_id=note_id, blob_path=f"{user_id}/x",
+                    content_type="image/webp", size_bytes=10)
+    defaults.update(kw)
+    return ImageRecord(**defaults)
+
+
+def test_create_then_get_image_for_owner():
+    repo = InMemoryImagesRepository()
+    rec = _img()
+    repo.create_image(rec)
+    assert repo.get_image("alice", rec.id) is rec
+
+
+def test_get_image_isolated_between_users():
+    repo = InMemoryImagesRepository()
+    rec = _img(user_id="alice")
+    repo.create_image(rec)
+    assert repo.get_image("bob", rec.id) is None
+
+
+def test_set_note_id_binds_image_to_note():
+    repo = InMemoryImagesRepository()
+    rec = _img()
+    repo.create_image(rec)
+    repo.set_note_id("alice", rec.id, "note-1")
+    assert repo.get_image("alice", rec.id).note_id == "note-1"
+
+
+def test_images_for_note_returns_only_that_notes_images():
+    repo = InMemoryImagesRepository()
+    a = _img(note_id="note-1"); b = _img(note_id="note-1"); c = _img(note_id="note-2")
+    for r in (a, b, c):
+        repo.create_image(r)
+    assert {r.id for r in repo.images_for_note("alice", "note-1")} == {a.id, b.id}
+
+
+def test_delete_image_returns_blob_path_then_gone():
+    repo = InMemoryImagesRepository()
+    rec = _img(blob_path="alice/pic")
+    repo.create_image(rec)
+    assert repo.delete_image("alice", rec.id) == "alice/pic"
+    assert repo.get_image("alice", rec.id) is None
+    assert repo.delete_image("alice", rec.id) is None
+
+
+def test_pending_older_than_only_lists_old_unbound_images():
+    repo = InMemoryImagesRepository()
+    old = _img(created_at=datetime(2020, 1, 1))
+    fresh = _img(created_at=datetime(2999, 1, 1))
+    bound = _img(note_id="note-1", created_at=datetime(2020, 1, 1))
+    for r in (old, fresh, bound):
+        repo.create_image(r)
+    cutoff = datetime(2025, 1, 1)
+    assert {r.id for r in repo.pending_older_than("alice", cutoff)} == {old.id}
