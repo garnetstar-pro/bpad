@@ -53,6 +53,12 @@ _auth_limiter = RateLimiter(max_calls=20, window_seconds=60)
 # not punished for one chatty user.
 _feedback_limiter = RateLimiter(max_calls=5, window_seconds=600)
 
+# Per-user brake on image uploads: generous enough for pasting several
+# screenshots in a session, a brake against an authenticated account
+# inflating blob storage. The per-image size cap is client-side (see design
+# doc); this bounds the upload *rate*.
+_image_limiter = RateLimiter(max_calls=60, window_seconds=600)
+
 
 def _client_ip(req: func.HttpRequest) -> str:
     return req.headers.get("X-Forwarded-For", "").split(",")[0].strip() or "unknown"
@@ -463,6 +469,8 @@ def create_image(req: func.HttpRequest) -> func.HttpResponse:
     user = _require_user(req)
     if isinstance(user, func.HttpResponse):
         return user
+    if not _image_limiter.allow(user):
+        return _error("Too many uploads, try again later", 429)
     try:
         data = ImageCreateRequest(**req.get_json())
     except Exception as e:

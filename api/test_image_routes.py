@@ -62,3 +62,13 @@ def test_deleting_a_note_cascades_to_its_images():
     assert res.status_code == 204
     assert fa.images_repo.get_image("img-del", iid) is None
     assert fa.blob_store.deleted == [f"img-del/{iid}"]
+
+
+def test_create_image_rate_limited_after_the_cap():
+    token = auth.create_token("img-flood")
+    body = {"content_type": "image/webp", "size_bytes": 100}
+    # 60 allowed, the 61st is throttled. Unique username isolates the shared limiter.
+    codes = [fa.create_image(_req("POST", "/api/images", body, token)).status_code
+             for _ in range(60)]
+    assert all(c == 201 for c in codes)
+    assert fa.create_image(_req("POST", "/api/images", body, token)).status_code == 429
