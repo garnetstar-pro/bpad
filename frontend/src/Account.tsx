@@ -22,7 +22,7 @@ export default function Account() {
   const [account, setAccount] = useState<AccountData | null>(null)
   const [offline, setOffline] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [resend, setResend] = useState<'idle' | 'sent' | 'error'>('idle')
+  const [resend, setResend] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [feedback, setFeedback] = useState('')
   const [fbState, setFbState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [fbError, setFbError] = useState('')
@@ -164,13 +164,19 @@ export default function Account() {
                   <button
                     className="verify-resend"
                     type="button"
-                    onClick={() =>
+                    disabled={resend === 'sending'}
+                    onClick={() => {
+                      setResend('sending')
                       resendVerification()
                         .then(() => setResend('sent'))
                         .catch(() => setResend('error'))
-                    }
+                    }}
                   >
-                    {resend === 'error' ? t('account.sendFailed') : t('account.sendLink')}
+                    {resend === 'sending'
+                      ? t('account.sending')
+                      : resend === 'error'
+                        ? t('account.sendFailed')
+                        : t('account.sendLink')}
                   </button>
                 )}
               </div>
