@@ -5,7 +5,7 @@ import remarkGfm from 'remark-gfm'
 import type { Note } from './types'
 import { getNote, updateNote, deleteNote } from './api'
 import { contentWithoutTitleHeading } from './noteContent'
-import { markdownComponents } from './markdown'
+import { markdownComponents, bpadUrlTransform } from './markdown'
 import { isOfflineReadOnly } from './session'
 import Editor from './Editor'
 import { useTranslation, translate } from './i18n'
@@ -142,7 +142,7 @@ function NoteDetail() {
             </button>
           </div>
           <div className="markdown-body">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents} urlTransform={bpadUrlTransform}>
               {contentWithoutTitleHeading(note.content, note.title)}
             </ReactMarkdown>
           </div>

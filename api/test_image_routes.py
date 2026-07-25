@@ -40,6 +40,12 @@ def test_image_url_requires_ownership():
     assert denied.status_code == 404
 
 
+def test_create_image_rejects_malformed_body():
+    token = auth.create_token("img-bad")
+    res = fa.create_image(_req("POST", "/api/images", {"content_type": "image/webp"}, token))
+    assert res.status_code == 400
+
+
 def test_deleting_a_note_cascades_to_its_images():
     token = auth.create_token("img-del")
     iid = json.loads(fa.create_image(_req("POST", "/api/images",

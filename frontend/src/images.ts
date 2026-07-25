@@ -83,3 +83,7 @@ export async function resolveImageUrl(id: string): Promise<string> {
   urlCache.set(id, { url, expires: Date.now() + READ_TTL_MS })
   return url
 }
+
+export function clearImageUrlCache(): void {
+  urlCache.clear()
+}

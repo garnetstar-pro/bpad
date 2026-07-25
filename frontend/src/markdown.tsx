@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Components } from 'react-markdown'
+import { defaultUrlTransform } from 'react-markdown'
 import { resolveImageUrl } from './images'
 import { useTranslation } from './i18n'
 
@@ -25,6 +26,12 @@ function BpadImage({ id, alt }: { id: string; alt: string }) {
   if (!src) return <span className="note-image-loading">{t('images.loading')}</span>
   return <img className="note-image" src={src} alt={alt || t('images.alt')} loading="lazy" />
 }
+
+// react-markdown v10 sanitizes src through defaultUrlTransform before our custom
+// img renderer runs, blanking any non-standard protocol. Preserve bpad-img: refs
+// (BpadImage resolves them to a short-lived SAS URL) and delegate the rest.
+export const bpadUrlTransform = (value: string): string =>
+  value.startsWith('bpad-img:') ? value : defaultUrlTransform(value)
 
 // Open links in notes in a new tab (and safely: noopener/noreferrer). Render
 // bpad-img: sources through BpadImage; leave normal images to the browser.
