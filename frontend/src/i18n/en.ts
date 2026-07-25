@@ -115,6 +115,7 @@ export const en = {
     emailOffline: 'Your e-mail loads once you’re online.',
     verifyCta: 'Verify your e-mail to write without limits.',
     sendLink: 'Send verification link',
+    sending: 'Sending…',
     sent: 'Sent ✓',
     sendFailed: 'Failed, try again',
     whatCanDo: 'What bpad can do →',
@@ -198,6 +199,7 @@ export const en = {
     atLimit: 'You’ve hit the {limit}-note limit — verify your e-mail to keep writing.',
     sent: 'Sent ✓ — check your inbox',
     sendLink: 'Send verification link',
+    sending: 'Sending…',
     sendFailed: 'Failed, try again',
     softGate: 'Verify your e-mail for more than {limit} notes.', // mirror of backend message (see Task 7)
     title: 'Verify e-mail',
