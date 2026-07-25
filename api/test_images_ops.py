@@ -66,3 +66,14 @@ def test_sweep_pending_removes_only_old_unbound_images():
     assert repo.get_image("alice", old.id) is None
     assert repo.get_image("alice", fresh) is not None
     assert blob.deleted == ["alice/old"]
+
+
+def test_reconcile_skips_unowned_or_missing_referenced_ids():
+    repo, blob = _setup()
+    mine = images_ops.issue_upload(repo, blob, "alice", "image/webp", 100)["image_id"]
+    bobs = images_ops.issue_upload(repo, blob, "bob", "image/webp", 100)["image_id"]
+    # "ghost" doesn't exist; bobs isn't alice's — both must be ignored without error.
+    images_ops.reconcile_note(repo, blob, "alice", "note-1", [mine, "ghost", bobs])
+    assert repo.get_image("alice", mine).note_id == "note-1"
+    assert repo.get_image("bob", bobs).note_id is None  # untouched
+    assert blob.deleted == []

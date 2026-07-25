@@ -4,8 +4,16 @@ Kept out of function_app so the logic is unit-testable with in-memory fakes:
 every function takes the repository and blob store as arguments.
 """
 import uuid
+from typing import Optional
 
 from models import ImageRecord
+
+
+def _delete_record_and_blob(images_repo, blob_store, user: str, image_id: str) -> None:
+    """Delete an image's metadata record and, if it existed, its blob."""
+    blob_path = images_repo.delete_image(user, image_id)
+    if blob_path:
+        blob_store.delete(blob_path)
 
 
 def issue_upload(images_repo, blob_store, user: str, content_type: str, size_bytes: int) -> dict:
@@ -18,7 +26,7 @@ def issue_upload(images_repo, blob_store, user: str, content_type: str, size_byt
     return {"image_id": image_id, "upload_url": blob_store.upload_url(blob_path, content_type)}
 
 
-def issue_read_url(images_repo, blob_store, user: str, image_id: str):
+def issue_read_url(images_repo, blob_store, user: str, image_id: str) -> Optional[str]:
     rec = images_repo.get_image(user, image_id)
     if rec is None:
         return None
@@ -33,20 +41,14 @@ def reconcile_note(images_repo, blob_store, user: str, note_id: str, image_ids) 
             images_repo.set_note_id(user, iid, note_id)
     for rec in images_repo.images_for_note(user, note_id):
         if rec.id not in referenced:
-            blob_path = images_repo.delete_image(user, rec.id)
-            if blob_path:
-                blob_store.delete(blob_path)
+            _delete_record_and_blob(images_repo, blob_store, user, rec.id)
 
 
 def cascade_delete_note(images_repo, blob_store, user: str, note_id: str) -> None:
     for rec in images_repo.images_for_note(user, note_id):
-        blob_path = images_repo.delete_image(user, rec.id)
-        if blob_path:
-            blob_store.delete(blob_path)
+        _delete_record_and_blob(images_repo, blob_store, user, rec.id)
 
 
 def sweep_pending(images_repo, blob_store, user: str, cutoff) -> None:
     for rec in images_repo.pending_older_than(user, cutoff):
-        blob_path = images_repo.delete_image(user, rec.id)
-        if blob_path:
-            blob_store.delete(blob_path)
+        _delete_record_and_blob(images_repo, blob_store, user, rec.id)
