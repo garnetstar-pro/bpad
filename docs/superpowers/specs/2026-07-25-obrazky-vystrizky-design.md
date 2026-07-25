@@ -164,6 +164,15 @@ oznámí explicitně:
 | `BLOB_CONNECTION_STRING` | Azure Blob Storage. Nenastaveno → in-memory/no-op (testy, lokál). |
 | `IMAGES_CONTAINER` | Název kontejneru (default `note-images`). |
 
+**Nasazení blob backendu vyžaduje tři věci** (jinak upload tiše selže):
+1. **Storage account** + `BLOB_CONNECTION_STRING` na SWA (dev: `bpadimages` v `bpad-rg`).
+2. **CORS na storage accountu** — prohlížeč PUTuje přímo do blobu; povolit origin SWA
+   (`https://dev.bpad.pro`, resp. `https://bpad.pro`), metody `PUT GET OPTIONS HEAD`, headers `*`.
+3. **CSP `connect-src`** v `frontend/public/staticwebapp.config.json` musí obsahovat host blobu
+   (`https://bpadimages.blob.core.windows.net`) — jinak `connect-src 'self'` upload PUT zablokuje
+   (status 0, žádný preflight). `img-src` už `https:` povoluje, takže zobrazení funguje.
+   Pro prod přidat host prod storage accountu (pokud jiný).
+
 ## Vědomé hranice fáze 1 (out of scope)
 
 | Oblast | Fáze 1 | Poznámka |
