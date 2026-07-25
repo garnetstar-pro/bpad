@@ -47,6 +47,7 @@ function Editor({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Focus the textarea (only on desktop – on mobile it would pop up the keyboard).
   useEffect(() => {
@@ -107,13 +108,9 @@ function Editor({
     }
   }
 
-  // Paste an image (clipboard clipping) → upload → insert ![](bpad-img:ID) at the caret.
-  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith('image/'))
-    if (!item) return // let normal text paste through
-    e.preventDefault()
-    const file = item.getAsFile()
-    if (!file) return
+  // Upload an image and insert ![](bpad-img:ID) at the caret. Shared by the paste
+  // handler (desktop) and the "Add image" file picker (mobile + desktop).
+  const insertImageFromFile = async (file: File | Blob) => {
     const ta = textareaRef.current
     const start = ta ? ta.selectionStart : draft.length
     const end = ta ? ta.selectionEnd : draft.length
@@ -130,6 +127,24 @@ function Editor({
     } finally {
       setUploading(false)
     }
+  }
+
+  // Paste an image (clipboard clipping) → upload → insert at the caret.
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith('image/'))
+    if (!item) return // let normal text paste through
+    e.preventDefault()
+    const file = item.getAsFile()
+    if (file) insertImageFromFile(file)
+  }
+
+  // Pick an image from the device (photo library / screenshots / camera). No
+  // `capture` attribute on purpose, so the OS offers the library, not only the
+  // camera. Reset the value so re-picking the same file fires `change` again.
+  const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (file) insertImageFromFile(file)
   }
 
   return (
@@ -171,6 +186,26 @@ function Editor({
         >
           {t('editor.preview')}
         </button>
+        <button
+          className="capture-tab add-image-btn"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={submitting || uploading}
+          type="button"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <path d="M21 15l-5-5L5 21" />
+          </svg>
+          {t('editor.addImage')}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFilePick}
+          style={{ display: 'none' }}
+        />
       </div>
 
       {mode === 'write' ? (

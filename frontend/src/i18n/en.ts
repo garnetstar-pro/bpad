@@ -16,6 +16,7 @@ export const en = {
     titlePlaceholder: 'derived from the markdown when left empty',
     write: 'Write',
     preview: 'Preview',
+    addImage: 'Add image',
     bodyPlaceholder: 'Write a thought or paste a link…',
     nothingToPreview: 'nothing to preview',
     fileIt: 'File it',
