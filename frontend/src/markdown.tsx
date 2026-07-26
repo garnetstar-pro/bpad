@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
-import type { Components } from 'react-markdown'
+import type { Components, Options } from 'react-markdown'
 import { defaultUrlTransform } from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import { resolveImageUrl } from './images'
 import { useTranslation } from './i18n'
+
+// Shared by every place that renders note content, so the detail view and the
+// editor preview can never drift apart. remark-breaks makes a single newline a
+// <br>: notes are typed as lines, and plain CommonMark would silently join them
+// into one running paragraph. A blank line still starts a new paragraph.
+export const markdownPlugins: Options['remarkPlugins'] = [remarkGfm, remarkBreaks]
 
 const BPAD_IMG_PREFIX = 'bpad-img:'
 

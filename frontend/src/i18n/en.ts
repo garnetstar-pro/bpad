@@ -327,7 +327,7 @@ Write plain text, or sprinkle in a little Markdown. Toggle **Preview** to see it
 | \`\` \`code\` \`\` | inline \`code\` |
 | \`> quote\` | a blockquote |
 
-Leave a blank line between paragraphs.
+A single Enter breaks the line; a blank line starts a new paragraph.
 
 ## Save a link in one move
 Type \`{host}/\` in the address bar and a full URL right after it:
