@@ -1143,13 +1143,16 @@ body {
 .markdown-body h2 { font-size: 19px; }
 .markdown-body h3 { font-size: 16px; }
 
+/* A blank line in the source has to read as a blank line. Adjacent margins
+   collapse, so this is the whole gap between two blocks — keep it near the
+   1.8 line-height of the body text, or the paragraph break disappears. */
 .markdown-body p,
 .markdown-body ul,
 .markdown-body ol,
 .markdown-body blockquote,
 .markdown-body pre,
 .markdown-body table {
-  margin: 0.5em 0;
+  margin: 1em 0;
 }
 
 .markdown-body ul,

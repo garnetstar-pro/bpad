@@ -33,8 +33,9 @@ Rozpad `App.tsx` do menších, samostatně srozumitelných jednotek:
 - `src/Home.tsx` — routa `/`: editor pro novou poznámku + seznam. Položky
   seznamu jsou odkazy na `/notes/{id}`.
 - `src/NoteDetail.tsx` — routa `/notes/:id`: načte poznámku, vykreslí markdown
-  (`react-markdown` + `remark-gfm`), tlačítka **Edit** (přepne na `Editor`) a
-  **Delete** (potvrzení → smazání → návrat na `/`).
+  (`react-markdown` + sada pluginů `markdownPlugins` ze `src/markdown.tsx`),
+  tlačítka **Edit** (přepne na `Editor`) a **Delete** (potvrzení → smazání →
+  návrat na `/`).
 - `src/App.tsx` — jen router (`/` a `/notes/:id`).
 
 Chování editoru (auto-resize, Ctrl+Enter, fokus, náhled) se přesune beze změny

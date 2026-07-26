@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { markdownComponents, bpadUrlTransform } from './markdown'
+import { markdownComponents, markdownPlugins, bpadUrlTransform } from './markdown'
 import { canAutofocus } from './device'
 import { useTranslation } from './i18n'
 import { TagInput } from './TagInput'
@@ -220,7 +219,7 @@ function Editor({
       ) : (
         <div className="capture-preview markdown-body">
           {draft.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents} urlTransform={bpadUrlTransform}>{draft}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={markdownPlugins} components={markdownComponents} urlTransform={bpadUrlTransform}>{draft}</ReactMarkdown>
           ) : (
             <div className="empty-state">{t('editor.nothingToPreview')}</div>
           )}
