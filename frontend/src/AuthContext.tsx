@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { clearSession } from './session'
+import { rememberUser, forgetRememberedUser } from './rememberedUser'
 import { isTouchPrimary } from './device'
 
 interface AuthState {
@@ -81,10 +82,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: username !== null,
     locked,
     authenticate: (u) => {
+      // Remembered across page loads so a reload lands on the lock screen
+      // rather than the public landing page (see rememberedUser.ts).
+      rememberUser(u)
       setLocked(false)
       setUsername(u)
     },
     logout: () => {
+      // An explicit log out is the one case where we forget who was here; an
+      // expired token (bpad:unauthorized, above) deliberately does not.
+      forgetRememberedUser()
       clearSession()
       setLocked(false)
       setUsername(null)

@@ -230,6 +230,9 @@ export const en = {
   lock: {
     title: 'locked',
     sub: 'Idle too long — enter your password to unlock.',
+    // Cold load (reload, a pasted note link, a PWA start): the keys only ever
+    // lived in the page, so they went with it.
+    subReturning: 'Welcome back — enter your password to unlock.',
     password: 'password',
     unlock: 'Unlock',
     unlocking: 'unlocking…',
