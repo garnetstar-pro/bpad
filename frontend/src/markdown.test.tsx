@@ -57,6 +57,27 @@ describe('ZoomableImage', () => {
   })
 })
 
+describe('plain image title is preserved', () => {
+  // The fallback img branch used to spread ...props (carrying `title` from
+  // markdown's ![alt](url "title") syntax) straight onto a bare <img>. Routing
+  // it through ZoomableImage must not silently drop that attribute.
+  const html = renderToStaticMarkup(
+    <LanguageProvider>
+      <ReactMarkdown
+        remarkPlugins={markdownPlugins}
+        components={markdownComponents}
+        urlTransform={bpadUrlTransform}
+      >
+        {'![shot](https://example.com/a.png "Login screen")'}
+      </ReactMarkdown>
+    </LanguageProvider>,
+  )
+
+  it('renders the title attribute on the img', () => {
+    expect(html).toContain('title="Login screen"')
+  })
+})
+
 describe('bpad-img placeholders are not clickable', () => {
   // useEffect does not run under renderToStaticMarkup, so BpadImage stays in
   // its initial "loading" state here — exactly the state we want to assert is

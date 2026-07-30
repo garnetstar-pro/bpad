@@ -18,7 +18,15 @@ const BPAD_IMG_PREFIX = 'bpad-img:'
 // Any image in a note opens full-screen when clicked. The <button> wrapper is
 // what makes that reachable by keyboard and announced to screen readers —
 // cheaper and more correct than tabIndex + role + onKeyDown on the <img>.
-export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
+export function ZoomableImage({
+  src,
+  alt,
+  title,
+}: {
+  src: string
+  alt: string
+  title?: string
+}) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   // Stable identity: ImageLightbox's effects depend on onClose, and a fresh
@@ -33,7 +41,7 @@ export function ZoomableImage({ src, alt }: { src: string; alt: string }) {
         aria-label={t('images.zoom')}
         type="button"
       >
-        <img className="note-image" src={src} alt={alt} loading="lazy" />
+        <img className="note-image" src={src} alt={alt} title={title} loading="lazy" />
       </button>
       {open && <ImageLightbox src={src} alt={alt} onClose={close} />}
     </>
@@ -73,11 +81,11 @@ export const markdownComponents: Components = {
   a({ node: _node, ...props }) {
     return <a {...props} target="_blank" rel="noopener noreferrer" />
   },
-  img({ node: _node, src, alt, ...props }) {
+  img({ node: _node, src, alt, title, ...props }) {
     if (typeof src === 'string' && src.startsWith(BPAD_IMG_PREFIX)) {
       return <BpadImage id={src.slice(BPAD_IMG_PREFIX.length)} alt={alt ?? ''} />
     }
     if (typeof src !== 'string') return <img src={src} alt={alt} {...props} />
-    return <ZoomableImage src={src} alt={alt ?? ''} />
+    return <ZoomableImage src={src} alt={alt ?? ''} title={title} />
   },
 }
