@@ -52,8 +52,11 @@ v editoru (`Editor.tsx`), dostanou obě místa stejné chování a nemůžou se 
 
 ### Spouštěč: tlačítko, ne `onClick` na `<img>`
 
-Obrázek se obalí do `<button className="note-image-btn">` s `aria-label`
-z `t('images.zoom')`. Tlačítko dá klávesnicovou obsluhu (Tab, Enter/Space)
+Obrázek se obalí do `<button className="note-image-btn">` s `aria-label`.
+Tlačítko s `aria-label` **přebíjí** svůj obsah — čtečka by jinak přečetla jen
+label a alt obrázku by zmizel. Label proto alt pohltí:
+`alt ? t('images.zoomNamed', { alt }) : t('images.zoom')`.
+Tlačítko dá klávesnicovou obsluhu (Tab, Enter/Space)
 a screen-reader sémantiku zdarma — proti ručnímu `onClick` + `tabIndex` +
 `role="button"` + `onKeyDown` na `<img>`. Tlačítko je čistě průhledný obal:
 bez rámečku, výplně a vlastního paddingu, aby obrázek v textu vypadal stejně
@@ -84,7 +87,17 @@ sedí uvnitř markdownového `<p>` a `<div>` v odstavci je neplatné vnoření;
   ovlivnilo by layout celé appky. `max()` je tam proto, aby lightbox byl
   připravený, kdyby se to někdy změnilo.
 - Zavírací `✕` vpravo nahoře, `aria-label` z `t('images.close')`.
-- `role="dialog"`, `aria-modal="true"`.
+- `role="dialog"`, `aria-modal="true"`, a k tomu `aria-label`
+  (`alt || t('images.alt')`) — dialog bez jména by čtečka ohlásila jako pouhé
+  „dialog", a u vloženého výstřižku bývá `alt` prázdný.
+- `aria-modal` je slib, který musí něco držet: fokus se při otevření přesune
+  na `✕`, při zavření se vrátí na spouštěcí tlačítko, a `Tab` se v lightboxu
+  polyká. Bez toho Tab dojde na obrázek **za** overlayem a Enter otevře
+  **druhý** lightbox — a dva zároveň znamenají dvojité `history.back()`
+  (přesně ten dvojkrok, kterému se celý návrh vyhýbá) a natrvalo zamčený
+  scroll na `body`, protože cleanupy sourozenců běží v pořadí stromu a ten
+  druhý vrátí `overflow` na zachycené `hidden`. Uvnitř dialogu je jediný
+  interaktivní prvek, takže úplná past stojí pár řádků.
 - Na desktopu `cursor: zoom-in` na obrázku v poznámce a `cursor: zoom-out`
   na **celé ploše** lightboxu (viz Zavírání — zavírá klik kamkoliv, takže kurzor
   nikde neslibuje akci, která by se nestala).
@@ -118,8 +131,25 @@ window.history.pushState({ ...window.history.state, bpadLightbox: true }, '')
   klíče (`key`/`idx`); kdybychom je přepsali prázdným objektem, router by na
   `popstate` ztratil orientaci ve své historii.
 
-Na `popstate` se lightbox zavře. Cleanup efektu pak uklidí náš záznam, ale
-**jen když tam ještě je**:
+Na `popstate` se lightbox zavře — ale **jen když značka na aktuálním záznamu
+chybí**, ne při každém popu:
+
+```ts
+const onPop = () => {
+  if (!window.history.state?.bpadLightbox) onClose()
+}
+```
+
+Důvod je `<StrictMode>`: React 19 u nově připojené komponenty efekty zdvojuje.
+První mount pushne L1, simulovaný unmount naplánuje `back()` (traverzace je
+asynchronní), druhý mount pushne L2 a naplánovaný `back()` pak z L2 spadne na
+L1 a vystřelí `popstate` — bezpodmínečné `onClose()` by lightbox zavřelo snímek
+po otevření. Ve produkčním buildu se to neděje, ale ruční ověřování běží v
+`npm run dev`, tedy přesně tam, kde by to vypadalo jako rozbitá funkce.
+Nepřidávat k tomu ještě „nepushuj, když značka už je" — ta kombinace
+sebezavírání vrátí.
+
+Cleanup efektu pak uklidí náš záznam, ale **jen když tam ještě je**:
 
 ```ts
 return () => {
@@ -153,7 +183,8 @@ Do `frontend/src/i18n/en.ts` pod stávající sekci `images`:
 
 | Klíč | Text | Použití |
 |---|---|---|
-| `images.zoom` | `view image larger` | `aria-label` spouštěcího tlačítka |
+| `images.zoom` | `view image larger` | `aria-label` spouštěcího tlačítka, když obrázek nemá `alt` |
+| `images.zoomNamed` | `view image larger: {alt}` | totéž, když `alt` má — pohltí ho, ať ho čtečka neztratí |
 | `images.close` | `close image` | `aria-label` tlačítka `✕` |
 
 Žádný uživatelský text natvrdo v komponentě.
@@ -182,6 +213,6 @@ komponentě by zpomalilo celou suitu.
 | `frontend/src/ImageLightbox.tsx` | nový — overlay |
 | `frontend/src/markdown.tsx` | `ZoomableImage` wrapper, napojení obou větví `img` |
 | `frontend/src/App.css` | `.lightbox-*`, `.note-image-btn`, kurzory |
-| `frontend/src/i18n/en.ts` | `images.zoom`, `images.close` |
+| `frontend/src/i18n/en.ts` | `images.zoom`, `images.zoomNamed`, `images.close` |
 | `frontend/src/markdown.test.tsx` | testy wrapperu |
 | `frontend/src/ImageLightbox.test.tsx` | nový — testy overlaye |
