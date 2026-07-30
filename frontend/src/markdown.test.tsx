@@ -40,9 +40,9 @@ describe('ZoomableImage', () => {
     </LanguageProvider>,
   )
 
-  it('wraps the image in a labelled button', () => {
+  it('wraps the image in a button labelled with the image alt text', () => {
     expect(html).toContain('<button')
-    expect(html).toContain('aria-label="view image larger"')
+    expect(html).toContain('aria-label="view image larger: a screenshot"')
     expect(html).toContain('class="note-image-btn"')
   })
 
@@ -54,6 +54,18 @@ describe('ZoomableImage', () => {
 
   it('renders closed — no overlay until clicked', () => {
     expect(html).not.toContain('lightbox-overlay')
+  })
+})
+
+describe('ZoomableImage with no alt text', () => {
+  it('falls back to the generic zoom label', () => {
+    const html = renderToStaticMarkup(
+      <LanguageProvider>
+        <ZoomableImage src="https://example.com/a.webp" alt="" />
+      </LanguageProvider>,
+    )
+    expect(html).toContain('aria-label="view image larger"')
+    expect(html).not.toContain('view image larger:')
   })
 })
 

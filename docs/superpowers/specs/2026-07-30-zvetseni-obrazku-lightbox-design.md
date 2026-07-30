@@ -137,11 +137,15 @@ téhle podmínky je přesně ta chyba, po které tlačítko Zpět „skáče o d
 Dokud je lightbox otevřený, `document.body` dostane `overflow: hidden`
 (nastaveno a vráceno ve stejném `useEffect`).
 
-**Vědomě přijaté omezení:** na desktopu se scrolluje vnitřní sloupec, ne `body`
-(viz media query v `App.css`), takže kolečko nad overlayem posune obsah za ním.
-Pod neprůhledným overlayem to není vidět; po zavření zůstane poznámka
-odscrollovaná. Neřešíme to — spolehlivé blokování by znamenalo neprůhledné
-zásahy do scroll kontejnerů.
+Ani `html`, ani `body` si nenastavuje vlastní `overflow`, takže tenhle zámek
+platí pro celý viewport na mobilu i na desktopu — pravý sloupec s detailem
+poznámky nemá vlastní scroll kontejner, jede s celou stránkou (viz `App.css`).
+
+**Vědomě přijaté omezení:** kolečko nad levým panelem se seznamem pořád
+scrolluje ten seznam — `.list-pane .entries` je vlastní scroll kontejner
+(viz media query v `App.css`) a zámek na `body` do něj nezasahuje. Neřešíme
+to — spolehlivé blokování by znamenalo neprůhledné zásahy do scroll
+kontejnerů.
 
 ### i18n
 

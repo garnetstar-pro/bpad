@@ -30,4 +30,31 @@ describe('ImageLightbox', () => {
     const html = render()
     expect(html).toContain('aria-label="close image"')
   })
+
+  it('names the dialog from the image alt text', () => {
+    const html = render()
+    // The dialog's own aria-label, not the close button's — distinguish by
+    // checking it sits on the role="dialog" element.
+    expect(html).toContain('role="dialog" aria-modal="true" aria-label="a screenshot"')
+  })
+
+  it('falls back to the generic alt text when the image has none', () => {
+    const html = renderToStaticMarkup(
+      <LanguageProvider>
+        <ImageLightbox src="https://example.com/a.webp" alt="" onClose={() => {}} />
+      </LanguageProvider>,
+    )
+    expect(html).toContain('aria-label="note image"')
+  })
+
+  it('renders exactly one interactive element inside the dialog (the close button)', () => {
+    // Tab must have nowhere to go but the close button — that's what makes
+    // the focus trap in the history/focus effect complete. Verified
+    // statically: the dialog markup contains one <button> and one <img>, no
+    // other focusable element.
+    const html = render()
+    const buttonCount = (html.match(/<button/g) ?? []).length
+    expect(buttonCount).toBe(1)
+    expect(html).toContain('<img')
+  })
 })

@@ -30,6 +30,7 @@ export const en = {
     failed: 'image unavailable',
     alt: 'note image',
     zoom: 'view image larger',
+    zoomNamed: 'view image larger: {alt}',
     close: 'close image',
   },
   composer: {

@@ -38,7 +38,7 @@ export function ZoomableImage({
       <button
         className="note-image-btn"
         onClick={() => setOpen(true)}
-        aria-label={t('images.zoom')}
+        aria-label={alt ? t('images.zoomNamed', { alt }) : t('images.zoom')}
         type="button"
       >
         <img className="note-image" src={src} alt={alt} title={title} loading="lazy" />
