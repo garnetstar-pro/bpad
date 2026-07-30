@@ -66,26 +66,41 @@ tmavé pozadí, flex centrování) — ten pattern už v `App.css` je z biometri
 promptu. **Žádný portál**: žádný předek renderu poznámky nemá `transform`,
 `filter` ani `contain`, takže `position: fixed` se váže k viewportu.
 (Kdyby se to někdy změnilo, lightbox se „zasekne" uvnitř sloupce — to je
-tichý předpoklad, který stojí za komentář u CSS.)
+tichý předpoklad, který stojí za komentář u CSS. Portál by ten problém obešel,
+ale `react-dom/server` portály neumí a suita nemá jsdom, takže by nešel
+otestovat markup.)
+
+Kořenový element overlaye je `<span>` s `display: flex`, ne `<div>`. Obrázek
+sedí uvnitř markdownového `<p>` a `<div>` v odstavci je neplatné vnoření;
+`<span>` je phrasing content, stejně jako tlačítko `✕` a obrázek uvnitř.
 
 - Obrázek: `max-width: 100%`, `max-height: 100%`, `object-fit: contain`.
   Obrázky jsou už při uploadu omezené na 1600 px delší hrany, takže na
   fullscreenu je typicky vidět celý a v plném rozlišení.
-- Padding overlaye respektuje `env(safe-area-inset-*)` — appka běží jako PWA
-  a na mobilu s výřezem by jinak `✕` skončil pod čelistí.
+- Padding overlaye: `max(20px, env(safe-area-inset-*))`, aby `✕` neskončil pod
+  výřezem. **Poznámka:** `frontend/index.html` má viewport meta *bez*
+  `viewport-fit=cover`, takže dnes `env()` vrací nulu a uplatní se 20px základ —
+  prohlížeč sám odsazuje viewport od výřezu. `viewport-fit=cover` **nepřidáváme**,
+  ovlivnilo by layout celé appky. `max()` je tam proto, aby lightbox byl
+  připravený, kdyby se to někdy změnilo.
 - Zavírací `✕` vpravo nahoře, `aria-label` z `t('images.close')`.
 - `role="dialog"`, `aria-modal="true"`.
 - Na desktopu `cursor: zoom-in` na obrázku v poznámce a `cursor: zoom-out`
-  v lightboxu. To je jediná nápověda, že to jde — badge ani ikonu nepřidáváme,
+  na **celé ploše** lightboxu (viz Zavírání — zavírá klik kamkoliv, takže kurzor
+  nikde neslibuje akci, která by se nestala).
+  To je jediná nápověda, že to jde — badge ani ikonu nepřidáváme,
   poznámka má zůstat čistá a na dotyku je „tap na obrázek = zvětšit" zažité.
 
 ### Zavírání
 
 Čtyři cesty, všechny vedou do jednoho `onClose`:
 
-1. **Tap/klik na pozadí** — handler na overlayi. Na obrázku samotném
-   `stopPropagation`, aby klik do obrázku nezavíral.
-2. **Tlačítko `✕`**.
+1. **Tap/klik kamkoliv** — jediný handler na overlayi, **bez** `stopPropagation`
+   na obrázku. Uvnitř lightboxu není co ovládat (žádný zoom ani posun), takže
+   inertní obrázek by jen zmenšoval cíl; na telefonu zabere skoro celý viewport
+   a proužek pozadí kolem něj je úzký. Takhle se chovají běžné galerie.
+2. **Tlačítko `✕`** — `stopPropagation` tady také netřeba, obě cesty vedou
+   do stejného `onClose`.
 3. **Esc** — `keydown` listener na `window` v `useEffect`, odregistrovaný
    v cleanupu.
 4. **Systémové Zpět** (viz níže).
