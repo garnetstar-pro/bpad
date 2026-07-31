@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Components, Options } from 'react-markdown'
 import { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { resolveImageUrl } from './images'
+import ImageLightbox from './ImageLightbox'
 import { useTranslation } from './i18n'
 
 // Shared by every place that renders note content, so the detail view and the
@@ -13,6 +14,39 @@ import { useTranslation } from './i18n'
 export const markdownPlugins: Options['remarkPlugins'] = [remarkGfm, remarkBreaks]
 
 const BPAD_IMG_PREFIX = 'bpad-img:'
+
+// Any image in a note opens full-screen when clicked. The <button> wrapper is
+// what makes that reachable by keyboard and announced to screen readers —
+// cheaper and more correct than tabIndex + role + onKeyDown on the <img>.
+export function ZoomableImage({
+  src,
+  alt,
+  title,
+}: {
+  src: string
+  alt: string
+  title?: string
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  // Stable identity: ImageLightbox's effects depend on onClose, and a fresh
+  // closure each render would re-push a history entry.
+  const close = useCallback(() => setOpen(false), [])
+
+  return (
+    <>
+      <button
+        className="note-image-btn"
+        onClick={() => setOpen(true)}
+        aria-label={alt ? t('images.zoomNamed', { alt }) : t('images.zoom')}
+        type="button"
+      >
+        <img className="note-image" src={src} alt={alt} title={title} loading="lazy" />
+      </button>
+      {open && <ImageLightbox src={src} alt={alt} onClose={close} />}
+    </>
+  )
+}
 
 // Resolves a bpad-img:ID source to a short-lived SAS URL and renders it.
 function BpadImage({ id, alt }: { id: string; alt: string }) {
@@ -32,7 +66,7 @@ function BpadImage({ id, alt }: { id: string; alt: string }) {
 
   if (failed) return <span className="note-image-failed">{t('images.failed')}</span>
   if (!src) return <span className="note-image-loading">{t('images.loading')}</span>
-  return <img className="note-image" src={src} alt={alt || t('images.alt')} loading="lazy" />
+  return <ZoomableImage src={src} alt={alt || t('images.alt')} />
 }
 
 // react-markdown v10 sanitizes src through defaultUrlTransform before our custom
@@ -47,10 +81,11 @@ export const markdownComponents: Components = {
   a({ node: _node, ...props }) {
     return <a {...props} target="_blank" rel="noopener noreferrer" />
   },
-  img({ node: _node, src, alt, ...props }) {
+  img({ node: _node, src, alt, title, ...props }) {
     if (typeof src === 'string' && src.startsWith(BPAD_IMG_PREFIX)) {
       return <BpadImage id={src.slice(BPAD_IMG_PREFIX.length)} alt={alt ?? ''} />
     }
-    return <img src={src} alt={alt} {...props} />
+    if (typeof src !== 'string') return <img src={src} alt={alt} {...props} />
+    return <ZoomableImage src={src} alt={alt ?? ''} title={title} />
   },
 }

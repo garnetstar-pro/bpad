@@ -29,6 +29,9 @@ export const en = {
     loading: 'loading image…',
     failed: 'image unavailable',
     alt: 'note image',
+    zoom: 'view image larger',
+    zoomNamed: 'view image larger: {alt}',
+    close: 'close image',
   },
   composer: {
     newEntry: '+ New entry…',

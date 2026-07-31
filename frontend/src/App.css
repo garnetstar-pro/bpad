@@ -1414,6 +1414,21 @@ body {
   border-radius: 8px;
   display: block;
   margin: 0.5rem 0;
+  cursor: zoom-in;
+}
+/* Transparent wrapper: the button exists for keyboard and screen-reader
+   access, so it must not show up at all. */
+.note-image-btn {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  max-width: 100%;
+}
+.note-image-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .note-image-loading,
 .note-image-failed {
@@ -1422,6 +1437,49 @@ body {
   opacity: 0.6;
   font-style: italic;
 }
+
+/* Full-screen image view. Rendered inline in the note tree, not through a
+   portal: position:fixed resolves against the viewport only because no
+   ancestor creates a containing block (no transform/filter/contain on the
+   layout panes). If that ever changes, the lightbox will be trapped inside
+   the column — this is the first place to look. (A portal would sidestep that,
+   but react-dom/server cannot render portals and the test suite has no jsdom.)
+   The element is a <span>; display:flex is what makes it the overlay. */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(6, 11, 22, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* env() is 0 today (index.html has no viewport-fit=cover, so the browser
+     already insets the viewport); max() keeps the 20px base and stays correct
+     if that ever changes. */
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  cursor: zoom-out;
+}
+.lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.lightbox-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  padding: 10px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.lightbox-close:hover { opacity: 1; }
 
 /* "Add image" sits at the right end of the Write/Preview tab row. */
 .add-image-btn {

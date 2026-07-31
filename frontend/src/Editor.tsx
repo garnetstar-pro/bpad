@@ -8,6 +8,7 @@ import { getKnownTags } from './api'
 import { isPremium } from './entitlements'
 import { FREE_TAG_LIMIT, distinctTagCount } from './tags'
 import { processImage, uploadImage } from './images'
+import { insertAt } from './textInsert'
 
 // Config: how many rows the textarea grows to with content.
 // Past this limit the height is fixed and a scrollbar appears.
@@ -47,6 +48,8 @@ function Editor({
   const [error, setError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Where the caret belongs once an inserted image lands in the draft.
+  const pendingCaret = useRef<number | null>(null)
 
   // Focus the textarea (only on desktop – on mobile it would pop up the keyboard).
   useEffect(() => {
@@ -78,8 +81,33 @@ function Editor({
     autoResize()
   }, [draft, mode])
 
+  // Put the caret back after an inserted image. The upload is async, so by the
+  // time the snippet reaches the draft the textarea may not be focused any
+  // more: the "Add image" picker takes focus, and the caret would otherwise sit
+  // wherever the re-render left it (the end of the text). Ctrl+Enter is handled
+  // on the wrapper div, so losing focus silently breaks saving from the
+  // keyboard — which is exactly what a paste used to do.
+  //
+  // The ref is only cleared once it is applied: with the picker used from the
+  // preview tab there is no textarea yet, and the caret is placed when the user
+  // switches back to Write.
+  useEffect(() => {
+    const caret = pendingCaret.current
+    if (caret === null) return
+    const ta = textareaRef.current
+    if (!ta) return
+    pendingCaret.current = null
+    // Focusing on mobile would pop the keyboard up over the note, the same
+    // reason the initial autofocus is desktop-only.
+    if (canAutofocus()) ta.focus()
+    ta.setSelectionRange(caret, caret)
+  }, [draft, mode])
+
   const submit = async () => {
-    if (!draft.trim() || submitting) return
+    // uploading blocks the save the way it already blocks the Save button: the
+    // textarea stays focused during an upload now, so Ctrl+Enter could otherwise
+    // save a draft that the image snippet has not reached yet, dropping it.
+    if (!draft.trim() || submitting || uploading) return
     setSubmitting(true)
     setError(null)
     try {
@@ -119,7 +147,13 @@ function Editor({
       const processed = await processImage(file)
       const id = await uploadImage(processed)
       const snippet = `![](bpad-img:${id})`
-      setDraft((d) => d.slice(0, start) + snippet + d.slice(end))
+      setDraft((d) => {
+        const next = insertAt(d, start, end, snippet)
+        // Written from the updater so it follows the same clamped bounds as the
+        // text. Idempotent, so StrictMode's double-invoke is harmless.
+        pendingCaret.current = next.caret
+        return next.text
+      })
     } catch (err) {
       const code = err instanceof Error ? err.message : ''
       setError(code === 'too-large' ? t('editor.imageTooLarge') : t('editor.imageFailed'))
@@ -214,7 +248,12 @@ function Editor({
           onChange={(e) => setDraft(e.target.value)}
           onPaste={handlePaste}
           placeholder={t('editor.bodyPlaceholder')}
-          disabled={submitting || uploading}
+          disabled={submitting}
+          // readOnly, not disabled, while an image uploads: disabling a focused
+          // element blurs it, and nothing would bring the focus back — Ctrl+Enter
+          // then stops saving because the handler sits on the wrapper div. The
+          // footer hint carries the "uploading" cue either way.
+          readOnly={uploading}
         />
       ) : (
         <div className="capture-preview markdown-body">
