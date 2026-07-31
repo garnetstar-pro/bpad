@@ -1,7 +1,10 @@
 # Zvětšení obrázku při prohlížení (lightbox) — návrh
 
 **Datum:** 2026-07-30
-**Stav:** návrh odsouhlasen, čeká na implementační plán
+**Stav:** implementováno (desktop ověřen ručně; mobilní kontroly — tap, systémové
+Zpět, safe-area — zbývají na `dev.bpad.pro`, lokálně je nejdou udělat: dev server
+běží po HTTP, takže na telefonu chybí `crypto.subtle`, a DEV base API míří na
+`localhost:7071`)
 **Navazuje na:** `2026-07-25-obrazky-vystrizky-design.md` (inline obrázky, `bpad-img:` schéma),
 `2026-07-25-pridat-obrazek-tlacitko-design.md` (vkládání přes file input)
 
@@ -217,8 +220,13 @@ z detailu i z náhledu v editoru, obě větve `img` (`https://` i nahraný
 `bpad-img:`), zavření Escem / tapem na obrázek / `✕` / tlačítkem Zpět, návrat
 fokusu na spouštěcí tlačítko, `Tab` uvnitř overlaye, zámek a obnovení scrollu,
 tři cykly otevřít–zavřít bez růstu historie, a jedno stisknutí Zpět po zavření
-Escem, které odejde z poznámky (ne dvojkrok). Zbývá mobil: tap, systémové
-Zpět a safe-area.
+Escem, které odejde z poznámky (ne dvojkrok).
+
+Zbývá mobil: tap, systémové Zpět a safe-area. **Lokálně to ověřit nejde** —
+dev server jede po HTTP na LAN IP, což není secure context, takže na telefonu
+je `crypto.subtle` undefined a registrace spadne na `crypto.ts:66`; a `api.ts`
+s `authApi.ts` mají v DEV natvrdo `http://localhost:7071`, což na telefonu
+ukazuje na telefon. Odloženo na `dev.bpad.pro`, kde je HTTPS i relativní `/api`.
 
 ## Dotčené soubory
 
