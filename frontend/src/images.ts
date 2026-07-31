@@ -4,8 +4,9 @@
 
 import { getToken } from './session'
 
-// Matches an image (not a link): ![alt](bpad-img:ID). IDs are uuid-shaped.
-const IMG_RE = /!\[[^\]]*\]\(bpad-img:([A-Za-z0-9-]+)\)/g
+// The pure reference helpers live in imageRefs.ts; re-exported here so existing
+// importers (api.ts) keep their import path.
+export { parseImageIds } from './imageRefs'
 
 const API_URL = import.meta.env.DEV ? 'http://localhost:7071/api/images' : '/api/images'
 export const MAX_EDGE = 1600
@@ -14,12 +15,6 @@ export const MAX_INPUT_BYTES = 10 * 1024 * 1024 // 10 MiB
 function authHeaders(): Record<string, string> {
   const token = getToken()
   return token ? { 'X-Auth-Token': token } : {}
-}
-
-export function parseImageIds(markdown: string): string[] {
-  const ids = new Set<string>()
-  for (const m of markdown.matchAll(IMG_RE)) ids.add(m[1])
-  return [...ids]
 }
 
 // Fit (w,h) within a max longest-edge, never upscaling.
