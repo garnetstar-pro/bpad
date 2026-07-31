@@ -178,7 +178,7 @@ oznámí explicitně:
 | Oblast | Fáze 1 | Poznámka |
 |---|---|---|
 | Šifrování obrázků | ❌ plaintext blob | fáze 2 — schéma připravené |
-| Backup/restore | obrázky nezahrnuty; `bpad-img:` odkaz v exportu po restore na jiném účtu neukáže obrázek | dokumentované omezení |
+| Backup/restore | ✅ vyřešeno | obrázky jsou součástí zálohy — viz `2026-07-31-export-import-s-obrazky-design.md` |
 | Offline čtení | best-effort přes SW cache, nezaručeno | text poznámek funguje dál |
 | Free/premium limit | bez gatingu, jen technický strop na obrázek | entitlement lze přidat později |
 | Editace obrázku (crop) | ❌ | |

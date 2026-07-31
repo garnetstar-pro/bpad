@@ -20,7 +20,7 @@
 - **There is no jsdom.** Tests run in plain Node. Never use `document`, `window`, `localStorage` or `URL.createObjectURL` in a test without stubbing the global yourself (`vi.stubGlobal`) — see `frontend/src/backupFile.test.ts` for the established pattern. `Blob`, `File`, `TextEncoder`, `crypto.subtle` and `fetch` **are** available natively in Node and need no stub.
 - **Argon2id is slow on purpose.** Any test that calls `encryptBackup`, `deriveBackupKey` or `buildArchive` with a passphrase must pass an explicit timeout: `it('…', async () => { … }, 30_000)`. Derive the key **once** per archive — never once per image.
 - **The backup format is a long-lived contract.** Never change the meaning of an existing field; add fields and bump `BACKUP_VERSION`. Reading a `version: 1` file must keep working forever.
-- **Verification gate:** `npm run test`, `npm run lint` and `npm run build` must all pass before the final commit of each task that changes code.
+- **Verification gate:** `npm run test`, `npm run lint` and `npm run build` must all pass before the final commit of each task that changes code. **One documented exception:** `npm run build` is expected to fail from the end of Task 10 until Task 13, because `backupFile.ts` drops `downloadBackup`/`readTextFile` before `Account.tsx` and `Restore.tsx` stop importing them. Tasks 10, 11 and 12 say so in their own gates and require `npm run test` and `npm run lint` to pass regardless. Task 13 restores the full gate. This is not licence to skip the gate anywhere else.
 
 ---
 
@@ -158,12 +158,15 @@ Expected: FAIL — `Failed to resolve import "./imageRefs"`.
 
 // Matches an image (not a link): ![alt](bpad-img:ID). IDs are uuid-shaped.
 // Built fresh per call: a shared /g regex carries lastIndex between calls.
-const IMG_PATTERN = '!\\[[^\\]]*\\]\\(bpad-img:([A-Za-z0-9-]+)\\)'
+// Three capture groups so a rewrite can be anchored at the reference rather
+// than searched for — alt text is free-form and may itself contain the
+// literal "bpad-img:ID", which a substring replace would clobber instead.
+const IMG_PATTERN = '(!\\[[^\\]]*\\]\\()bpad-img:([A-Za-z0-9-]+)(\\))'
 const imgRe = () => new RegExp(IMG_PATTERN, 'g')
 
 export function parseImageIds(markdown: string): string[] {
   const ids = new Set<string>()
-  for (const m of markdown.matchAll(imgRe())) ids.add(m[1])
+  for (const m of markdown.matchAll(imgRe())) ids.add(m[2])
   return [...ids]
 }
 
@@ -171,9 +174,9 @@ export function parseImageIds(markdown: string): string[] {
 // left as it is: on import that means one broken picture, which beats losing
 // the note it sits in.
 export function rewriteImageRefs(markdown: string, map: Map<string, string>): string {
-  return markdown.replace(imgRe(), (whole, id: string) => {
+  return markdown.replace(imgRe(), (whole, open: string, id: string, close: string) => {
     const next = map.get(id)
-    return next ? whole.replace(`bpad-img:${id}`, `bpad-img:${next}`) : whole
+    return next ? `${open}bpad-img:${next}${close}` : whole
   })
 }
 
@@ -182,22 +185,22 @@ export function rewriteImageRefs(markdown: string, map: Map<string, string>): st
 // note it has already restored — the normalised form can.
 export function normalizeImageRefs(markdown: string): string {
   const seen = new Map<string, number>()
-  return markdown.replace(imgRe(), (whole, id: string) => {
+  return markdown.replace(imgRe(), (_whole, open: string, id: string, close: string) => {
     let idx = seen.get(id)
     if (idx === undefined) {
       idx = seen.size + 1
       seen.set(id, idx)
     }
-    return whole.replace(`bpad-img:${id}`, `bpad-img:#${idx}`)
+    return `${open}bpad-img:#${idx}${close}`
   })
 }
 
 // Swap the scheme for a plain relative path. Only the human-readable markdown
 // export uses this — nothing produced by it is ever imported back.
 export function localizeImageRefs(markdown: string, paths: Map<string, string>): string {
-  return markdown.replace(imgRe(), (whole, id: string) => {
+  return markdown.replace(imgRe(), (whole, open: string, id: string, close: string) => {
     const path = paths.get(id)
-    return path ? whole.replace(`bpad-img:${id}`, path) : whole
+    return path ? `${open}${path}${close}` : whole
   })
 }
 ```
@@ -205,7 +208,7 @@ export function localizeImageRefs(markdown: string, paths: Map<string, string>):
 - [ ] **Step 4: Run the test and confirm it passes**
 
 Run: `cd frontend && npm run test -- imageRefs`
-Expected: PASS, 12 tests.
+Expected: PASS.
 
 - [ ] **Step 5: Point `images.ts` at the new module**
 
@@ -590,15 +593,29 @@ describe('version 2 manifest', () => {
   }, 30_000)
 
   it('reads a version 1 encrypted payload that has no images key', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
     const kdf = newBackupKdf()
     const key = await deriveBackupKey('a passphrase here', kdf)
-    const legacy = await encryptBackupWithKey(
-      { ...serializeBackup([note], { username: 'jan' }), images: [] },
-      kdf,
+    // Build the historical wire shape by hand: version 1 encrypted only ever
+    // wrote { notes } into the ciphertext. Going through encryptBackupWithKey
+    // would emit "images": [] and prove nothing about the missing-key branch.
+    const { iv, ct } = await encryptBytes(
+      new TextEncoder().encode(JSON.stringify({ notes: plain.notes })),
       key,
     )
+    const legacy = {
+      format: 'bpad-backup' as const,
+      version: 1,
+      exported_at: plain.exported_at,
+      username: 'jan',
+      encrypted: true as const,
+      kdf,
+      cipher: 'AES-256-GCM' as const,
+      iv,
+      ct,
+    }
     await expect(decryptBackupWithKey(legacy, key)).resolves.toEqual({
-      notes: serializeBackup([note], { username: 'jan' }).notes,
+      notes: plain.notes,
       images: [],
     })
   }, 30_000)

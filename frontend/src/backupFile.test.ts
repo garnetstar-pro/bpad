@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { backupFilename, downloadBackup, readTextFile } from './backupFile'
-import { serializeBackup } from './backup'
+import { archiveFilename, downloadArchive, openBackupFile } from './backupFile'
+import { buildArchive } from './backupArchive'
+import { serializeBackup, isEncrypted } from './backup'
+import { toArrayBuffer } from './crypto'
 import type { Note } from './types'
 
 const note: Note = {
@@ -13,41 +15,23 @@ const note: Note = {
   tags: [],
 }
 
-const plain = () =>
-  serializeBackup([note], { username: 'jan', exportedAt: '2026-07-20T10:00:00Z' })
-
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('backupFilename', () => {
-  it('uses the .json extension for a plain backup', () => {
-    expect(backupFilename(plain())).toBe('bpad-backup-2026-07-20.json')
+describe('archiveFilename', () => {
+  it('names a plain archive by its export date', () => {
+    expect(archiveFilename('2026-07-20T10:00:00Z', false)).toBe('bpad-backup-2026-07-20.zip')
   })
 
-  it('uses the .bpad extension for an encrypted backup', () => {
-    const enc = {
-      ...plain(),
-      encrypted: true as const,
-      kdf: {
-        algorithm: 'argon2id' as const,
-        salt: '',
-        iterations: 3,
-        memory_size: 65536,
-        parallelism: 1,
-        hash_length: 32,
-      },
-      cipher: 'AES-256-GCM' as const,
-      iv: '',
-      ct: '',
-    }
-    expect(backupFilename(enc)).toBe('bpad-backup-2026-07-20.bpad')
+  it('marks an encrypted archive', () => {
+    expect(archiveFilename('2026-07-20T10:00:00Z', true)).toBe('bpad-backup-2026-07-20-enc.zip')
   })
 })
 
 // The suite runs in plain Node, so the handful of DOM calls are stubbed
 // rather than pulling in jsdom for one test.
-describe('downloadBackup', () => {
+describe('downloadArchive', () => {
   it('clicks an anchor pointing at a blob URL and revokes it', () => {
     const anchor = { click: vi.fn(), href: '', download: '' }
     vi.stubGlobal('document', { createElement: vi.fn().mockReturnValue(anchor) })
@@ -55,16 +39,16 @@ describe('downloadBackup', () => {
     const revokeObjectURL = vi.fn()
     vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
 
-    downloadBackup(plain())
+    downloadArchive(new Uint8Array([1, 2, 3]), 'bpad-backup-2026-07-20.zip')
 
     expect(createObjectURL).toHaveBeenCalled()
     expect(anchor.href).toBe('blob:fake')
-    expect(anchor.download).toBe('bpad-backup-2026-07-20.json')
+    expect(anchor.download).toBe('bpad-backup-2026-07-20.zip')
     expect(anchor.click).toHaveBeenCalled()
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake')
   })
 
-  it('writes the backup as the blob contents', async () => {
+  it('writes the archive bytes as the blob contents', async () => {
     let captured: Blob | null = null
     vi.stubGlobal('document', { createElement: () => ({ click: () => {}, href: '', download: '' }) })
     vi.stubGlobal('URL', {
@@ -75,16 +59,36 @@ describe('downloadBackup', () => {
       revokeObjectURL: () => {},
     })
 
-    downloadBackup(plain())
+    downloadArchive(new Uint8Array([1, 2, 3]), 'a.zip')
 
     expect(captured).not.toBeNull()
-    expect(JSON.parse(await captured!.text()).notes[0].title).toBe('T')
+    expect(new Uint8Array(await captured!.arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]))
   })
 })
 
-describe('readTextFile', () => {
-  it('resolves with the file contents', async () => {
-    const f = new File(['{"hello":1}'], 'b.json', { type: 'application/json' })
-    await expect(readTextFile(f)).resolves.toBe('{"hello":1}')
+describe('openBackupFile', () => {
+  it('opens a version 2 archive', async () => {
+    const archive = await buildArchive({ notes: [note], images: [], username: 'jan' })
+    const picked = new File([toArrayBuffer(archive)], 'b.zip', { type: 'application/zip' })
+    const handle = await openBackupFile(picked)
+    expect(handle.file.username).toBe('jan')
+    expect(isEncrypted(handle.file)).toBe(false)
+  })
+
+  it('opens a legacy version 1 JSON file with no entries', async () => {
+    const v1 = JSON.stringify({
+      ...serializeBackup([note], { username: 'jan' }),
+      version: 1,
+      images: undefined,
+    })
+    const picked = new File([v1], 'b.json', { type: 'application/json' })
+    const handle = await openBackupFile(picked)
+    expect(handle.file.version).toBe(1)
+    expect(handle.entries).toEqual({})
+  })
+
+  it('rejects a file that is neither a zip nor JSON', async () => {
+    const picked = new File(['definitely not a backup'], 'b.txt', { type: 'text/plain' })
+    await expect(openBackupFile(picked)).rejects.toThrow(/couldn’t be read/i)
   })
 })
