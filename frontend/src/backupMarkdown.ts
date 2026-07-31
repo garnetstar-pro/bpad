@@ -8,6 +8,16 @@ import type { BackupNote } from './backup'
 
 const MAX_SLUG = 50
 
+// created_at is an ISO timestamp everywhere it comes from today, but this
+// module is pure and the value ends up in a ZIP entry name — a stray "../"
+// would be path traversal on extraction. Validate rather than trust.
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
+
+function dayOf(iso: string): string {
+  const day = iso.slice(0, 10)
+  return ISO_DAY.test(day) ? day : 'undated'
+}
+
 export function slugify(title: string): string {
   const slug = title
     .normalize('NFD')
@@ -29,8 +39,8 @@ export function renderNoteMarkdown(note: BackupNote, paths: Map<string, string>)
   const front = [
     '---',
     `title: ${yamlString(note.title)}`,
-    `created: ${note.created_at}`,
-    `updated: ${note.updated_at}`,
+    `created: ${yamlString(note.created_at)}`,
+    `updated: ${yamlString(note.updated_at)}`,
     `tags: [${note.tags.map(yamlString).join(', ')}]`,
     '---',
     '',
@@ -44,7 +54,7 @@ export function buildMarkdownFiles(
 ): Record<string, string> {
   const files: Record<string, string> = {}
   for (const note of notes) {
-    const base = `${note.created_at.slice(0, 10)}-${slugify(note.title)}`
+    const base = `${dayOf(note.created_at)}-${slugify(note.title)}`
     let name = `${base}.md`
     for (let n = 2; name in files; n++) name = `${base}-${n}.md`
     files[name] = renderNoteMarkdown(note, paths)

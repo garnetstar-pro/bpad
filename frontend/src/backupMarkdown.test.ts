@@ -41,8 +41,8 @@ describe('renderNoteMarkdown', () => {
   it('writes front matter and the body', () => {
     const out = renderNoteMarkdown(bn(), new Map())
     expect(out).toBe(
-      '---\ntitle: "Groceries"\ncreated: 2026-01-02T03:04:05Z\n' +
-        'updated: 2026-01-03T03:04:05Z\ntags: ["home"]\n---\n\nmilk\n',
+      '---\ntitle: "Groceries"\ncreated: "2026-01-02T03:04:05Z"\n' +
+        'updated: "2026-01-03T03:04:05Z"\ntags: ["home"]\n---\n\nmilk\n',
     )
   })
 
@@ -65,6 +65,11 @@ describe('renderNoteMarkdown', () => {
     const out = renderNoteMarkdown(bn({ content: '![](bpad-img:missing)' }), new Map())
     expect(out).toContain('![](bpad-img:missing)')
   })
+
+  it('quotes the timestamps so odd values cannot reshape the front matter', () => {
+    const out = renderNoteMarkdown(bn({ created_at: 'x": evil' }), new Map())
+    expect(out).toContain('created: "x\\": evil"')
+  })
 })
 
 describe('buildMarkdownFiles', () => {
@@ -84,5 +89,10 @@ describe('buildMarkdownFiles', () => {
 
   it('handles an empty vault', () => {
     expect(buildMarkdownFiles([], new Map())).toEqual({})
+  })
+
+  it('falls back for a created_at that is not an ISO day', () => {
+    const files = buildMarkdownFiles([bn({ created_at: '../../etc/passwd' })], new Map())
+    expect(Object.keys(files)).toEqual(['undated-groceries.md'])
   })
 })
