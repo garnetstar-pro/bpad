@@ -15,6 +15,10 @@ describe('parseImageIds', () => {
   it('ignores plain images and links', () => {
     expect(parseImageIds('![p](https://x/y.png) [l](bpad-img:nope)')).toEqual([])
   })
+
+  it('does not extract the scheme from alt text', () => {
+    expect(parseImageIds('![bpad-img:a](https://x/y.png)')).toEqual([])
+  })
 })
 
 describe('rewriteImageRefs', () => {
@@ -37,6 +41,12 @@ describe('rewriteImageRefs', () => {
   it('does not touch anything outside the scheme', () => {
     const md = 'see [bpad-img:a](http://x) and ![](https://y/z.png)'
     expect(rewriteImageRefs(md, new Map([['a', 'x']]))).toBe(md)
+  })
+
+  it('rewrites the reference, not matching text inside the alt', () => {
+    expect(rewriteImageRefs('![bpad-img:a](bpad-img:a)', new Map([['a', 'x']]))).toBe(
+      '![bpad-img:a](bpad-img:x)',
+    )
   })
 })
 
@@ -62,6 +72,12 @@ describe('normalizeImageRefs', () => {
   it('leaves text without images untouched', () => {
     expect(normalizeImageRefs('plain note')).toBe('plain note')
   })
+
+  it('normalizes the reference, not matching text inside the alt', () => {
+    expect(normalizeImageRefs('![bpad-img:a](bpad-img:a)')).toBe(
+      '![bpad-img:a](bpad-img:#1)',
+    )
+  })
 })
 
 describe('localizeImageRefs', () => {
@@ -72,5 +88,12 @@ describe('localizeImageRefs', () => {
 
   it('leaves an id with no path alone', () => {
     expect(localizeImageRefs('![](bpad-img:a)', new Map())).toBe('![](bpad-img:a)')
+  })
+
+  it('localizes the reference, not matching text inside the alt', () => {
+    const paths = new Map([['a', '../images/a.webp']])
+    expect(localizeImageRefs('![bpad-img:a](bpad-img:a)', paths)).toBe(
+      '![bpad-img:a](../images/a.webp)',
+    )
   })
 })
