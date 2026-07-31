@@ -10,6 +10,8 @@ import {
   encryptJSON,
   decryptJSON,
   toBase64,
+  sealBytes,
+  openBytes,
 } from './crypto'
 
 const sameBytes = (a: Uint8Array, b: Uint8Array) => toBase64(a) === toBase64(b)
@@ -99,5 +101,38 @@ describe('generateRecoveryCode', () => {
 
   it('normalizes user input (dashes, spaces, case)', () => {
     expect(normalizeRecoveryCode('abcd-ef gh')).toBe('ABCDEFGH')
+  })
+})
+
+describe('sealBytes / openBytes', () => {
+  const key = new Uint8Array(32).fill(7)
+
+  it('round-trips binary data', async () => {
+    const data = new Uint8Array([0, 1, 2, 250, 251, 255])
+    const sealed = await sealBytes(data, key)
+    await expect(openBytes(sealed, key)).resolves.toEqual(data)
+  })
+
+  it('carries the IV in the first 12 bytes and the tag on the end', async () => {
+    const data = new Uint8Array(100)
+    const sealed = await sealBytes(data, key)
+    // 12-byte IV + 100 bytes of ciphertext + 16-byte GCM tag
+    expect(sealed.length).toBe(128)
+  })
+
+  it('uses a fresh IV every time', async () => {
+    const data = new Uint8Array([1, 2, 3])
+    const a = await sealBytes(data, key)
+    const b = await sealBytes(data, key)
+    expect(a.slice(0, 12)).not.toEqual(b.slice(0, 12))
+  })
+
+  it('rejects the wrong key', async () => {
+    const sealed = await sealBytes(new Uint8Array([1, 2, 3]), key)
+    await expect(openBytes(sealed, new Uint8Array(32).fill(8))).rejects.toThrow()
+  })
+
+  it('rejects a payload too short to hold an IV and a tag', async () => {
+    await expect(openBytes(new Uint8Array(10), key)).rejects.toThrow(/too short/i)
   })
 })
