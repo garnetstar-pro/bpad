@@ -131,36 +131,42 @@ window.history.pushState({ ...window.history.state, bpadLightbox: true }, '')
   klíče (`key`/`idx`); kdybychom je přepsali prázdným objektem, router by na
   `popstate` ztratil orientaci ve své historii.
 
-Na `popstate` se lightbox zavře — ale **jen když značka na aktuálním záznamu
-chybí**, ne při každém popu:
+Klíčové pravidlo: **z cleanupu efektu se nepopuje**. Záznam odstraňují jen
+zavírací cesty, které běží z reálné uživatelské akce:
 
 ```ts
-const onPop = () => {
-  if (!window.history.state?.bpadLightbox) onClose()
+const requestClose = useCallback(() => {
+  if (owned.current) {
+    owned.current = false
+    window.history.back()   // Esc / tap / ✕ spolknou náš záznam
+  }
+  onClose()
+}, [onClose])
+
+const onPop = () => {   // systémové Zpět: záznam si vzal prohlížeč
+  owned.current = false
+  onClose()
 }
 ```
 
-Důvod je `<StrictMode>`: React 19 u nově připojené komponenty efekty zdvojuje.
-První mount pushne L1, simulovaný unmount naplánuje `back()` (traverzace je
-asynchronní), druhý mount pushne L2 a naplánovaný `back()` pak z L2 spadne na
-L1 a vystřelí `popstate` — bezpodmínečné `onClose()` by lightbox zavřelo snímek
-po otevření. Ve produkčním buildu se to neděje, ale ruční ověřování běží v
-`npm run dev`, tedy přesně tam, kde by to vypadalo jako rozbitá funkce.
-Nepřidávat k tomu ještě „nepushuj, když značka už je" — ta kombinace
-sebezavírání vrátí.
+`owned` je `useRef` — přežije simulovaný unmount ve `<StrictMode>` (je to
+tentýž fiber) a drží push idempotentní, takže v devu i v produkci existuje
+právě jeden náš záznam.
 
-Cleanup efektu pak uklidí náš záznam, ale **jen když tam ještě je**:
+Proč ne `back()` v cleanupu, jak to vypadá přirozeněji: React 19 ve
+`<StrictMode>` efekty nově připojené komponenty zruší a znovu vytvoří.
+`back()` naplánovaný tím simulovaným unmountem si **deltu počítá vůči
+záznamu, který byl aktuální ve chvíli volání**, ne ve chvíli, kdy traverzace
+doběhne. Ověřeno v Chrome: po sekvenci `push L1` → `back()` → `push L2`
+přistane `popstate` na *výchozím* záznamu, ne na L1 — tedy pod tím, co pushnul
+druhý mount. Značka je pryč, podmínka „zavři, když značka chybí" se vyhodnotí
+jako pravda a lightbox se zavře snímek po otevření. Je to jev jen v devu, ale
+ruční ověřování běží právě tam a vypadá to jako rozbitá funkce. Podmínka na
+značku ten problém neřeší, jen ho maskuje jinam.
 
-```ts
-return () => {
-  window.removeEventListener('popstate', onPop)
-  if (window.history.state?.bpadLightbox) window.history.back()
-}
-```
-
-Když uživatel zavřel Zpětem, náš záznam už je pryč, podmínka neplatí a `back()`
-se nezavolá. Když zavřel Escem, tapem nebo `✕`, uklidíme ho sami. Vynechání
-téhle podmínky je přesně ta chyba, po které tlačítko Zpět „skáče o dva kroky".
+**Známá mezera:** když se lightbox odmountuje bez zavírací cesty (zmizí pod
+ním rodičovská route), náš záznam zůstane a jedno stisknutí Zpět se spolkne.
+Odlišit takový unmount od toho StrictModového nejde.
 
 ### Zámek scrollu
 
@@ -205,6 +211,14 @@ Zpět ani zámek scrollu nejsou automatizovaně ověřené. Ověřit ručně v b
 appce — na desktopu (Esc, klik na pozadí) i na mobilu (tap, systémové Zpět,
 safe-area). Tohle je vědomá mezera, ne přehlédnutí: přidat jsdom kvůli jedné
 komponentě by zpomalilo celou suitu.
+
+Ručně ověřeno v Chrome proti `npm run dev` (tedy se `<StrictMode>`): otevření
+z detailu i z náhledu v editoru, obě větve `img` (`https://` i nahraný
+`bpad-img:`), zavření Escem / tapem na obrázek / `✕` / tlačítkem Zpět, návrat
+fokusu na spouštěcí tlačítko, `Tab` uvnitř overlaye, zámek a obnovení scrollu,
+tři cykly otevřít–zavřít bez růstu historie, a jedno stisknutí Zpět po zavření
+Escem, které odejde z poznámky (ne dvojkrok). Zbývá mobil: tap, systémové
+Zpět a safe-area.
 
 ## Dotčené soubory
 
