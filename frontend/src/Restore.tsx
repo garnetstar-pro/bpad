@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from './i18n'
 import {
   parseBackup,
-  notesOf,
+  contentOf,
   isEncrypted,
   diffAgainst,
   type BackupFile,
@@ -55,7 +55,8 @@ export default function Restore() {
     setOpening(true)
     setError('')
     try {
-      const opened = await notesOf(target, pass)
+      // Restore.tsx — minimal change to keep the build green; the real rework is Task 13.
+      const opened = (await contentOf(target, pass)).notes
       setNotes(opened)
       setPassphrase('')
       if (canImport) await prepareImport(opened)

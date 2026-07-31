@@ -8,7 +8,7 @@ import { translate } from './i18n/translate'
 import { toBase64, fromBase64, randomBytes, encryptBytes, decryptBytes } from './crypto'
 
 export const BACKUP_FORMAT = 'bpad-backup'
-export const BACKUP_VERSION = 1
+export const BACKUP_VERSION = 2
 export const MIN_PASSPHRASE_LENGTH = 12
 
 // A note as it is written to the file. The server-side id is deliberately
@@ -22,6 +22,23 @@ export interface BackupNote {
   tags: string[]
 }
 
+// An image as it is listed in the manifest. `path` locates its bytes inside the
+// archive; `size_bytes` is the size of the picture itself, not of the sealed
+// file, so it stays meaningful in an encrypted backup.
+export interface BackupImage {
+  id: string
+  content_type: string
+  size_bytes: number
+  path: string
+}
+
+// What a backup actually holds, once opened. Plain and encrypted backups both
+// resolve to this.
+export interface BackupContent {
+  notes: BackupNote[]
+  images: BackupImage[]
+}
+
 interface BackupHeader {
   format: typeof BACKUP_FORMAT
   version: number
@@ -32,6 +49,7 @@ interface BackupHeader {
 export interface PlainBackup extends BackupHeader {
   encrypted: false
   notes: BackupNote[]
+  images: BackupImage[]
 }
 
 // Argon2id parameters travel inside the file so that raising them in the app
@@ -50,7 +68,7 @@ export interface EncryptedBackup extends BackupHeader {
   kdf: BackupKdf
   cipher: 'AES-256-GCM'
   iv: string // base64
-  ct: string // base64 — the encrypted JSON of { notes: BackupNote[] }
+  ct: string // base64 — the encrypted JSON of { notes: BackupNote[], images: BackupImage[] }
 }
 
 export type BackupFile = PlainBackup | EncryptedBackup
@@ -61,7 +79,7 @@ export function isEncrypted(file: BackupFile): file is EncryptedBackup {
 
 export function serializeBackup(
   notes: Note[],
-  meta: { username: string; exportedAt?: string },
+  meta: { username: string; exportedAt?: string; images?: BackupImage[] },
 ): PlainBackup {
   return {
     format: BACKUP_FORMAT,
@@ -77,6 +95,7 @@ export function serializeBackup(
       updated_at: n.updated_at,
       tags: n.tags,
     })),
+    images: meta.images ?? [],
   }
 }
 
@@ -114,7 +133,11 @@ export function parseBackup(text: string): BackupFile {
   if (!Array.isArray(raw.notes)) {
     throw new Error(translate('errors.backupDamaged'))
   }
-  return raw as unknown as PlainBackup
+  // A version 1 file has no images key at all.
+  return {
+    ...(raw as unknown as PlainBackup),
+    images: Array.isArray(raw.images) ? (raw.images as BackupImage[]) : [],
+  }
 }
 
 const textEncoder = new TextEncoder()
@@ -130,12 +153,30 @@ const BACKUP_KDF: Omit<BackupKdf, 'salt'> = {
   hash_length: 32,
 }
 
+// Extension by content type so the human-readable export links to something a
+// picture viewer recognises. Encrypted archives are always .bin — the bytes are
+// not an image until they are opened.
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/webp': 'webp',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+}
+
+export function imagePath(id: string, contentType: string, encrypted: boolean): string {
+  const ext = encrypted ? 'bin' : (IMAGE_EXTENSIONS[contentType] ?? 'bin')
+  return `images/${id}.${ext}`
+}
+
+export function newBackupKdf(): BackupKdf {
+  return { ...BACKUP_KDF, salt: toBase64(randomBytes(16)) }
+}
+
 // Derives the AES key from the backup passphrase. Unlike the login path in
 // crypto.ts there is no HKDF step: a backup needs one key, not an enc/auth
 // pair, and fewer moving parts means the format can be reimplemented from the
 // spec years from now. Runs on the calling thread — a backup is a one-off
 // action, not something the user waits on repeatedly.
-async function deriveBackupKey(passphrase: string, kdf: BackupKdf): Promise<Uint8Array> {
+export async function deriveBackupKey(passphrase: string, kdf: BackupKdf): Promise<Uint8Array> {
   return argon2id({
     password: passphrase,
     salt: fromBase64(kdf.salt),
@@ -147,13 +188,14 @@ async function deriveBackupKey(passphrase: string, kdf: BackupKdf): Promise<Uint
   })
 }
 
-export async function encryptBackup(
+// Takes an already-derived key: an archive seals its manifest and every image
+// with the same key, and Argon2id must run once, not once per file.
+export async function encryptBackupWithKey(
   backup: PlainBackup,
-  passphrase: string,
+  kdf: BackupKdf,
+  key: Uint8Array,
 ): Promise<EncryptedBackup> {
-  const kdf: BackupKdf = { ...BACKUP_KDF, salt: toBase64(randomBytes(16)) }
-  const key = await deriveBackupKey(passphrase, kdf)
-  const body = textEncoder.encode(JSON.stringify({ notes: backup.notes }))
+  const body = textEncoder.encode(JSON.stringify({ notes: backup.notes, images: backup.images }))
   const { iv, ct } = await encryptBytes(body, key)
   return {
     format: backup.format,
@@ -168,11 +210,18 @@ export async function encryptBackup(
   }
 }
 
-export async function decryptBackup(
-  file: EncryptedBackup,
+export async function encryptBackup(
+  backup: PlainBackup,
   passphrase: string,
-): Promise<BackupNote[]> {
-  const key = await deriveBackupKey(passphrase, file.kdf)
+): Promise<EncryptedBackup> {
+  const kdf = newBackupKdf()
+  return encryptBackupWithKey(backup, kdf, await deriveBackupKey(passphrase, kdf))
+}
+
+export async function decryptBackupWithKey(
+  file: EncryptedBackup,
+  key: Uint8Array,
+): Promise<BackupContent> {
   let bytes: Uint8Array
   try {
     bytes = await decryptBytes({ iv: file.iv, ct: file.ct }, key)
@@ -181,13 +230,21 @@ export async function decryptBackup(
     // check. The passphrase is by far the likelier cause, so lead with it.
     throw new Error(translate('errors.backupWrongPassphrase'))
   }
-  const body = JSON.parse(textDecoder.decode(bytes)) as { notes?: BackupNote[] }
+  const body = JSON.parse(textDecoder.decode(bytes)) as Partial<BackupContent>
   if (!Array.isArray(body.notes)) throw new Error(translate('errors.backupDamaged'))
-  return body.notes
+  return { notes: body.notes, images: Array.isArray(body.images) ? body.images : [] }
 }
 
-export async function notesOf(file: BackupFile, passphrase?: string): Promise<BackupNote[]> {
-  if (!isEncrypted(file)) return file.notes
+export async function decryptBackup(
+  file: EncryptedBackup,
+  passphrase: string,
+): Promise<BackupContent> {
+  return decryptBackupWithKey(file, await deriveBackupKey(passphrase, file.kdf))
+}
+
+// Replaces notesOf: a backup is notes *and* images now.
+export async function contentOf(file: BackupFile, passphrase?: string): Promise<BackupContent> {
+  if (!isEncrypted(file)) return { notes: file.notes, images: file.images }
   if (!passphrase) throw new Error(translate('errors.backupNeedsPassphrase'))
   return decryptBackup(file, passphrase)
 }
