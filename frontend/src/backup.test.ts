@@ -9,13 +9,13 @@ import {
   imagePath,
   newBackupKdf,
   deriveBackupKey,
-  encryptBackupWithKey,
   decryptBackupWithKey,
   diffAgainst,
   BACKUP_VERSION,
   type BackupNote,
   type BackupImage,
 } from './backup'
+import { encryptBytes } from './crypto'
 import type { Note } from './types'
 
 const note: Note = {
@@ -260,15 +260,27 @@ describe('version 2 manifest', () => {
   }, 30_000)
 
   it('reads a version 1 encrypted payload that has no images key', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
     const kdf = newBackupKdf()
     const key = await deriveBackupKey('a passphrase here', kdf)
-    const legacy = await encryptBackupWithKey(
-      { ...serializeBackup([note], { username: 'jan' }), images: [] },
-      kdf,
+    // The historical wire shape: version 1 encrypted only ever wrote { notes }.
+    const { iv, ct } = await encryptBytes(
+      new TextEncoder().encode(JSON.stringify({ notes: plain.notes })),
       key,
     )
+    const legacy = {
+      format: 'bpad-backup' as const,
+      version: 1,
+      exported_at: plain.exported_at,
+      username: 'jan',
+      encrypted: true as const,
+      kdf,
+      cipher: 'AES-256-GCM' as const,
+      iv,
+      ct,
+    }
     await expect(decryptBackupWithKey(legacy, key)).resolves.toEqual({
-      notes: serializeBackup([note], { username: 'jan' }).notes,
+      notes: plain.notes,
       images: [],
     })
   }, 30_000)
