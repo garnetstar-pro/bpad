@@ -6,6 +6,7 @@ import { argon2id } from 'hash-wasm'
 import type { Note } from './types'
 import { translate } from './i18n/translate'
 import { toBase64, fromBase64, randomBytes, encryptBytes, decryptBytes } from './crypto'
+import { normalizeImageRefs } from './imageRefs'
 
 export const BACKUP_FORMAT = 'bpad-backup'
 export const BACKUP_VERSION = 2
@@ -256,9 +257,11 @@ export interface BackupDiff {
 
 // Identity of a note for import purposes. The server-side id is not in the
 // file, so a note is "the same note" when it was created at the same instant
-// and still says the same thing.
+// and still says the same thing. Image references are normalised first: an
+// import re-uploads every image and rewrites its id, so the raw text of a note
+// that has already been restored no longer matches the file it came from.
 function identity(n: { created_at: string; content: string }): string {
-  return `${n.created_at} ${n.content}`
+  return `${n.created_at} ${normalizeImageRefs(n.content)}`
 }
 
 // Splits an incoming backup into what is genuinely new and what the vault

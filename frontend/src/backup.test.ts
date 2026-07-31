@@ -350,4 +350,27 @@ describe('diffAgainst', () => {
   it('handles an empty backup', () => {
     expect(diffAgainst([note], [])).toEqual({ toImport: [], duplicates: [] })
   })
+
+  it('recognises a note whose image ids were rewritten by an earlier import', () => {
+    const stored: Note = {
+      ...note,
+      content: '# Recipe\n![](bpad-img:new-id-from-server)',
+    }
+    const incomingNote = incoming({ content: '# Recipe\n![](bpad-img:id-from-the-file)' })
+    const d = diffAgainst([stored], [incomingNote])
+    expect(d.toImport).toHaveLength(0)
+    expect(d.duplicates).toHaveLength(1)
+  })
+
+  it('still separates notes that differ in more than their image ids', () => {
+    const stored: Note = { ...note, content: '# Recipe\n![](bpad-img:a)' }
+    const incomingNote = incoming({ content: '# Dinner\n![](bpad-img:b)' })
+    expect(diffAgainst([stored], [incomingNote]).toImport).toHaveLength(1)
+  })
+
+  it('separates notes that reference a different number of images', () => {
+    const stored: Note = { ...note, content: 'x ![](bpad-img:a)' }
+    const incomingNote = incoming({ content: 'x ![](bpad-img:a) ![](bpad-img:b)' })
+    expect(diffAgainst([stored], [incomingNote]).toImport).toHaveLength(1)
+  })
 })
