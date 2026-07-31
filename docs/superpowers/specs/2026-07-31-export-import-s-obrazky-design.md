@@ -206,23 +206,35 @@ Import zůstává **idempotentní** — opakované spuštění dojede zbytek.
 
 | Soubor | Role | Závislosti |
 |---|---|---|
-| `backup.ts` | typy v2, manifest, `rewriteImageRefs()`, normalizovaná identita | čisté |
-| `backupZip.ts` *(nový)* | balení/rozbalení nad `Uint8Array` | fflate |
+| `imageRefs.ts` *(nový)* | schéma `bpad-img:` — `parseImageIds`, `rewriteImageRefs`, `normalizeImageRefs` | čisté |
+| `backupZip.ts` *(nový)* | balení/rozbalení nad `Uint8Array`, sniff ZIPu | fflate |
+| `backup.ts` | typy v2, manifest, šifrování manifestu, normalizovaná identita | čisté |
+| `backupArchive.ts` *(nový)* | sestavení a čtení celého archivu (manifest + obrázky + `notes/`) | čisté |
 | `backupMarkdown.ts` *(nový)* | `notes/*.md` — slug, front-matter, relativní odkazy | čisté |
-| `backupExport.ts` *(nový)* | orchestrace exportu | `api.ts`, `images.ts` |
+| `backupExport.ts` *(nový)* | orchestrace exportu (síť + progress) | `api.ts`, `images.ts` |
 | `backupFile.ts` | download Blobu, `openBackupFile()` se sniffem ZIP/JSON | DOM |
 | `backupImport.ts` | dvoufázový import | `api.ts`, `images.ts` |
-| `images.ts` | + `downloadImage(id): Promise<Blob>` | — |
+| `images.ts` | + `downloadImage(id): Promise<Uint8Array>` | — |
+| `crypto.ts` | + `sealBytes` / `openBytes` (raw bajty, IV v prvních 12 B) | — |
+
+`imageRefs.ts` vzniká proto, že `images.ts` tahá `session.ts` a síť; formátové
+moduly musí zůstat čisté. `images.ts` `parseImageIds` re-exportuje, takže se
+stávajících importérů (`api.ts`) změna nedotkne.
 
 Dělení drží dnešní pravidlo: formátová logika je čistá a testovatelná bez
 prohlížeče, síť a DOM žijí v samostatných modulech.
 
 ### Nová závislost
 
-**fflate** (~8 kB min+gzip, bez tranzitivních závislostí). Použít asynchronní
-`zip()` / `unzip()`, ne `zipSync`/`unzipSync` — velký archiv jinak zablokuje
-hlavní vlákno. Komprese: JSON a markdown normálně, `images/*` s `level: 0`
-(WebP i šifrotext jsou nestlačitelné, komprese by jen pálila čas).
+**fflate** (~8 kB min+gzip, bez tranzitivních závislostí). Použít **synchronní**
+`zipSync` / `unzipSync`. Asynchronní varianta si v prohlížeči zakládá Worker
+z `blob:` URL, což naše CSP (`worker-src 'self'` ve `staticwebapp.config.json`)
+zablokuje — v produkci by tedy nefungovala. Zablokování hlavního vlákna je při
+osobním měřítku (jednotky MB, `level: 0` na obrázcích) v řádu desetin sekundy;
+export i tak běží za progress indikátorem kvůli stahování obrázků.
+
+Komprese: JSON a markdown normálně, `images/*` s `level: 0` — WebP i šifrotext
+jsou nestlačitelné, komprese by jen pálila čas.
 
 ## Testy
 
