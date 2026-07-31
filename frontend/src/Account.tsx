@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 import { getAccount, resendVerification, type Account as AccountData } from './authApi'
-import { getKnownNoteCount, listNotes } from './api'
-import { serializeBackup, encryptBackup, MIN_PASSPHRASE_LENGTH } from './backup'
-import { downloadBackup } from './backupFile'
+import { getKnownNoteCount } from './api'
+import { MIN_PASSPHRASE_LENGTH } from './backup'
+import { exportBackup, type ExportProgress } from './backupExport'
+import { archiveFilename, downloadArchive } from './backupFile'
 import { sendFeedback, FEEDBACK_MAX_LENGTH } from './feedbackApi'
 import { UNVERIFIED_NOTE_LIMIT } from './verifyStatus'
 import { getUsername } from './session'
@@ -33,6 +34,9 @@ export default function Account() {
   const [bkState, setBkState] = useState<'idle' | 'working' | 'done' | 'error'>('idle')
   const [bkError, setBkError] = useState('')
   const [bkCount, setBkCount] = useState(0)
+  const [bkImages, setBkImages] = useState(0)
+  const [bkMissing, setBkMissing] = useState(0)
+  const [bkProgress, setBkProgress] = useState<ExportProgress | null>(null)
 
   useEffect(() => {
     getAccount()
@@ -70,25 +74,40 @@ export default function Account() {
       return
     }
     setBkState('working')
+    setBkProgress(null)
     try {
-      // listNotes() falls back to the offline cache, so a backup still works
-      // without the network — it just backs up what this device knows.
-      const notes = await listNotes()
-      if (notes.length === 0) {
+      const result = await exportBackup({
+        username: getUsername() ?? '',
+        passphrase: bkMode === 'plain' ? undefined : bkPass,
+        onProgress: setBkProgress,
+      })
+      if (result.noteCount === 0) {
         setBkError(t('account.backupEmpty'))
         setBkState('error')
         return
       }
-      const plain = serializeBackup(notes, { username: getUsername() ?? '' })
-      downloadBackup(bkMode === 'plain' ? plain : await encryptBackup(plain, bkPass))
-      setBkCount(notes.length)
+      downloadArchive(result.archive, archiveFilename(result.exportedAt, bkMode !== 'plain'))
+      setBkCount(result.noteCount)
+      setBkImages(result.imageCount)
+      setBkMissing(result.missingImages.length)
       setBkPass('')
       setBkPass2('')
       setBkState('done')
     } catch (e) {
       setBkError(e instanceof Error ? e.message : t('errors.loadFailed'))
       setBkState('error')
+    } finally {
+      setBkProgress(null)
     }
+  }
+
+  function backupButtonLabel(): string {
+    if (bkState !== 'working') return t('account.backupDownload')
+    if (bkProgress?.phase === 'images') {
+      return t('account.backupImages', { done: bkProgress.done, total: bkProgress.total })
+    }
+    if (bkProgress?.phase === 'packing') return t('account.backupPacking')
+    return t('account.backupWorking')
   }
 
   const noteCount = getKnownNoteCount()
@@ -260,11 +279,20 @@ export default function Account() {
             disabled={bkState === 'working' || (bkMode === 'plain' && !bkAck)}
             onClick={downloadBackupFile}
           >
-            {bkState === 'working' ? t('account.backupWorking') : t('account.backupDownload')}
+            {backupButtonLabel()}
           </button>
 
           {bkState === 'done' && (
-            <div className="verify-sent">{t('account.backupDone', { count: bkCount })}</div>
+            <>
+              <div className="verify-sent">
+                {t('account.backupDone', { count: bkCount, images: bkImages })}
+              </div>
+              {bkMissing > 0 && (
+                <div className="account-note">
+                  {t('account.backupImagesMissing', { count: bkMissing })}
+                </div>
+              )}
+            </>
           )}
           {bkState === 'error' && <div className="account-note">{bkError}</div>}
 

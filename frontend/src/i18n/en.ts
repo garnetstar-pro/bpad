@@ -142,7 +142,7 @@ export const en = {
     feedbackSendAnother: 'Send another',
     backupTitle: 'backup',
     backupIntro:
-      'Download all your notes as a file and keep it somewhere safe — a USB stick, an encrypted drive. If you ever lose both your password and your recovery code, this file is what gets your notes back.',
+      'Download all your notes and the images in them as a single file and keep it somewhere safe — a USB stick, an encrypted drive. If you ever lose both your password and your recovery code, this file is what gets your notes back.',
     backupProtected: 'Protect with a passphrase (recommended)',
     backupPlain: 'Plain, unencrypted file',
     backupPassphrase: 'Backup passphrase',
@@ -154,8 +154,12 @@ export const en = {
     backupPlainWarning: 'I understand anyone who finds this file can read every note in it.',
     backupDownload: 'Download backup',
     backupWorking: 'preparing…',
+    backupImages: 'downloading images {done}/{total}…',
+    backupPacking: 'packing the file…',
     backupEmpty: 'There’s nothing to back up yet.',
-    backupDone: 'Backup downloaded: {count} notes ✓',
+    backupDone: 'Backup downloaded: {count} notes, {images} images ✓',
+    backupImagesMissing:
+      '{count} images couldn’t be downloaded and are missing from the file. The notes were saved anyway.',
     backupRestoreLink: 'Restore from a backup →',
   },
   restore: {
