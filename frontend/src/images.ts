@@ -46,6 +46,16 @@ export async function processImage(file: Blob): Promise<Blob> {
   )
 }
 
+// A restore uploads one image per note reference and the API allows 60 per 10
+// minutes, so hitting the limit is expected on a large vault — the importer has
+// to tell it apart from a genuine failure and stop cleanly.
+export class UploadRateLimited extends Error {
+  constructor() {
+    super('image-upload-rate-limited')
+    this.name = 'UploadRateLimited'
+  }
+}
+
 // Upload a processed image; returns its stable bpad image id.
 export async function uploadImage(blob: Blob): Promise<string> {
   const init = await fetch(API_URL, {
@@ -53,6 +63,7 @@ export async function uploadImage(blob: Blob): Promise<string> {
     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ content_type: blob.type, size_bytes: blob.size }),
   })
+  if (init.status === 429) throw new UploadRateLimited()
   if (!init.ok) throw new Error('upload-init-failed')
   const { image_id, upload_url } = await init.json()
   const put = await fetch(upload_url, {
@@ -77,6 +88,20 @@ export async function resolveImageUrl(id: string): Promise<string> {
   const { url } = await res.json()
   urlCache.set(id, { url, expires: Date.now() + READ_TTL_MS })
   return url
+}
+
+// Fetch an image's bytes through a fresh read URL. Used by the backup export;
+// rendering goes straight to the URL and never needs the bytes.
+export async function downloadImage(
+  id: string,
+): Promise<{ bytes: Uint8Array; contentType: string }> {
+  const url = await resolveImageUrl(id)
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('image-download-failed')
+  return {
+    bytes: new Uint8Array(await res.arrayBuffer()),
+    contentType: res.headers.get('Content-Type') || 'image/webp',
+  }
 }
 
 export function clearImageUrlCache(): void {
