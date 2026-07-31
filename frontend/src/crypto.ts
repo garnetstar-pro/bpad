@@ -22,7 +22,8 @@ export function fromBase64(b64: string): Uint8Array {
 
 // Web Crypto wants a BufferSource over an ArrayBuffer (not ArrayBufferLike/Shared).
 // Copies the bytes into a fresh ArrayBuffer so both the types and the runtime line up.
-function buf(bytes: Uint8Array): ArrayBuffer {
+// Exported because Blob construction hits the same friction.
+export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const ab = new ArrayBuffer(bytes.byteLength)
   new Uint8Array(ab).set(bytes)
   return ab
@@ -63,9 +64,9 @@ export function normalizeRecoveryCode(code: string): string {
 // the second-long derivation doesn't freeze the UI.
 
 async function hkdf(keyMaterial: Uint8Array, info: string): Promise<Uint8Array> {
-  const base = await crypto.subtle.importKey('raw', buf(keyMaterial), 'HKDF', false, ['deriveBits'])
+  const base = await crypto.subtle.importKey('raw', toArrayBuffer(keyMaterial), 'HKDF', false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits(
-    { name: 'HKDF', hash: 'SHA-256', salt: new ArrayBuffer(0), info: buf(textEncoder.encode(info)) },
+    { name: 'HKDF', hash: 'SHA-256', salt: new ArrayBuffer(0), info: toArrayBuffer(textEncoder.encode(info)) },
     base,
     256,
   )
@@ -96,22 +97,51 @@ export interface Encrypted {
 }
 
 async function importAesKey(keyBytes: Uint8Array): Promise<CryptoKey> {
-  return crypto.subtle.importKey('raw', buf(keyBytes), 'AES-GCM', false, ['encrypt', 'decrypt'])
+  return crypto.subtle.importKey('raw', toArrayBuffer(keyBytes), 'AES-GCM', false, ['encrypt', 'decrypt'])
 }
 
 export async function encryptBytes(plaintext: Uint8Array, keyBytes: Uint8Array): Promise<Encrypted> {
   const iv = randomBytes(12)
   const key = await importAesKey(keyBytes)
-  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: buf(iv) }, key, buf(plaintext))
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, key, toArrayBuffer(plaintext))
   return { iv: toBase64(iv), ct: toBase64(new Uint8Array(ct)) }
 }
 
 export async function decryptBytes(enc: Encrypted, keyBytes: Uint8Array): Promise<Uint8Array> {
   const key = await importAesKey(keyBytes)
   const pt = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: buf(fromBase64(enc.iv)) },
+    { name: 'AES-GCM', iv: toArrayBuffer(fromBase64(enc.iv)) },
     key,
-    buf(fromBase64(enc.ct)),
+    toArrayBuffer(fromBase64(enc.ct)),
+  )
+  return new Uint8Array(pt)
+}
+
+// Raw-byte AES-GCM for payloads that travel as files rather than as JSON: the
+// IV rides in the first 12 bytes instead of a separate base64 field, so a
+// sealed image is one self-contained blob.
+const IV_BYTES = 12
+const GCM_TAG_BYTES = 16
+
+export async function sealBytes(plaintext: Uint8Array, keyBytes: Uint8Array): Promise<Uint8Array> {
+  const iv = randomBytes(IV_BYTES)
+  const key = await importAesKey(keyBytes)
+  const ct = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, key, toArrayBuffer(plaintext)),
+  )
+  const out = new Uint8Array(iv.length + ct.length)
+  out.set(iv)
+  out.set(ct, iv.length)
+  return out
+}
+
+export async function openBytes(sealed: Uint8Array, keyBytes: Uint8Array): Promise<Uint8Array> {
+  if (sealed.length < IV_BYTES + GCM_TAG_BYTES) throw new Error('sealed payload is too short')
+  const key = await importAesKey(keyBytes)
+  const pt = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: toArrayBuffer(sealed.subarray(0, IV_BYTES)) },
+    key,
+    toArrayBuffer(sealed.subarray(IV_BYTES)),
   )
   return new Uint8Array(pt)
 }
