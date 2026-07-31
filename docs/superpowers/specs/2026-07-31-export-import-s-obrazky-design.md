@@ -1,7 +1,7 @@
 # Export a import dat včetně obrázků — návrh
 
 **Datum:** 2026-07-31
-**Stav:** návrh odsouhlasen, čeká na implementační plán
+**Stav:** implementováno
 
 ## Cíl
 

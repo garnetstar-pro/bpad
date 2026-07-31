@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { parseImageIds, fitDimensions, uploadImage, resolveImageUrl, processImage, MAX_INPUT_BYTES } from './images'
+import { parseImageIds, fitDimensions, uploadImage, resolveImageUrl, processImage, MAX_INPUT_BYTES, downloadImage, UploadRateLimited, clearImageUrlCache } from './images'
 import { setSession, clearSession } from './session'
 
 describe('parseImageIds', () => {
@@ -81,5 +81,89 @@ describe('processImage', () => {
   it('rejects input over the hard cap without touching a canvas', async () => {
     const big = { size: MAX_INPUT_BYTES + 1, type: 'image/png' } as Blob
     await expect(processImage(big)).rejects.toThrow('too-large')
+  })
+})
+
+describe('downloadImage', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    clearImageUrlCache()
+  })
+
+  it('resolves the read URL and returns the bytes with their content type', async () => {
+    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
+    const bytes = new Uint8Array([1, 2, 3, 4])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) => {
+        if (input.endsWith('/url')) {
+          return { ok: true, json: async () => ({ url: 'https://blob/x?sas' }) } as never
+        }
+        return {
+          ok: true,
+          headers: new Headers({ 'Content-Type': 'image/webp' }),
+          arrayBuffer: async () => bytes.buffer,
+        } as never
+      }),
+    )
+    await expect(downloadImage('pic-1')).resolves.toEqual({
+      bytes,
+      contentType: 'image/webp',
+    })
+    clearSession()
+  })
+
+  it('falls back to image/webp when the blob reports no content type', async () => {
+    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) =>
+        input.endsWith('/url')
+          ? ({ ok: true, json: async () => ({ url: 'https://blob/x?sas' }) } as never)
+          : ({
+              ok: true,
+              headers: new Headers(),
+              arrayBuffer: async () => new Uint8Array([9]).buffer,
+            } as never),
+      ),
+    )
+    await expect(downloadImage('pic-2')).resolves.toMatchObject({ contentType: 'image/webp' })
+    clearSession()
+  })
+
+  it('throws when the blob cannot be fetched', async () => {
+    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string) =>
+        input.endsWith('/url')
+          ? ({ ok: true, json: async () => ({ url: 'https://blob/x?sas' }) } as never)
+          : ({ ok: false, status: 404 } as never),
+      ),
+    )
+    await expect(downloadImage('pic-3')).rejects.toThrow(/download/i)
+    clearSession()
+  })
+})
+
+describe('uploadImage rate limiting', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('throws UploadRateLimited on a 429', async () => {
+    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 429 }) as never))
+    await expect(uploadImage(new Blob([new Uint8Array([1])]))).rejects.toBeInstanceOf(
+      UploadRateLimited,
+    )
+    clearSession()
+  })
+
+  it('throws a plain error on any other failure', async () => {
+    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as never))
+    const err = await uploadImage(new Blob([new Uint8Array([1])])).catch((e) => e)
+    expect(err).toBeInstanceOf(Error)
+    expect(err).not.toBeInstanceOf(UploadRateLimited)
+    clearSession()
   })
 })
