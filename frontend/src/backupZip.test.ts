@@ -33,6 +33,24 @@ describe('zipFiles / unzipFiles', () => {
     const archive = zipFiles({ 'images/n.webp': { bytes: noise, compress: false } })
     expect(unzipFiles(archive)['images/n.webp']).toEqual(noise)
   })
+
+  it('stores entries marked compress: false and deflates the rest', () => {
+    // Highly redundant: deflate should shrink it a lot, storing should not.
+    const redundant = enc.encode('a'.repeat(10_000))
+    const stored = zipFiles({ 'x.bin': { bytes: redundant, compress: false } })
+    const deflated = zipFiles({ 'x.bin': { bytes: redundant } })
+    expect(deflated.length).toBeLessThan(stored.length / 2)
+    // Both must still round-trip to the same bytes.
+    expect(unzipFiles(stored)['x.bin']).toEqual(redundant)
+    expect(unzipFiles(deflated)['x.bin']).toEqual(redundant)
+  })
+
+  it('treats compress: true the same as the omitted case', () => {
+    const redundant = enc.encode('a'.repeat(10_000))
+    const explicit = zipFiles({ 'x.bin': { bytes: redundant, compress: true } })
+    const omitted = zipFiles({ 'x.bin': { bytes: redundant } })
+    expect(explicit.length).toBe(omitted.length)
+  })
 })
 
 describe('looksLikeZip', () => {
