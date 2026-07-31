@@ -20,7 +20,7 @@
 - **There is no jsdom.** Tests run in plain Node. Never use `document`, `window`, `localStorage` or `URL.createObjectURL` in a test without stubbing the global yourself (`vi.stubGlobal`) — see `frontend/src/backupFile.test.ts` for the established pattern. `Blob`, `File`, `TextEncoder`, `crypto.subtle` and `fetch` **are** available natively in Node and need no stub.
 - **Argon2id is slow on purpose.** Any test that calls `encryptBackup`, `deriveBackupKey` or `buildArchive` with a passphrase must pass an explicit timeout: `it('…', async () => { … }, 30_000)`. Derive the key **once** per archive — never once per image.
 - **The backup format is a long-lived contract.** Never change the meaning of an existing field; add fields and bump `BACKUP_VERSION`. Reading a `version: 1` file must keep working forever.
-- **Verification gate:** `npm run test`, `npm run lint` and `npm run build` must all pass before the final commit of each task that changes code.
+- **Verification gate:** `npm run test`, `npm run lint` and `npm run build` must all pass before the final commit of each task that changes code. **One documented exception:** `npm run build` is expected to fail from the end of Task 10 until Task 13, because `backupFile.ts` drops `downloadBackup`/`readTextFile` before `Account.tsx` and `Restore.tsx` stop importing them. Tasks 10, 11 and 12 say so in their own gates and require `npm run test` and `npm run lint` to pass regardless. Task 13 restores the full gate. This is not licence to skip the gate anywhere else.
 
 ---
 
