@@ -5,29 +5,24 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from './i18n'
-import {
-  parseBackup,
-  contentOf,
-  isEncrypted,
-  diffAgainst,
-  type BackupFile,
-  type BackupNote,
-} from './backup'
-import { readTextFile } from './backupFile'
-import { importNotes, type ImportSummary } from './backupImport'
+import { diffAgainst, isEncrypted, type BackupNote } from './backup'
+import { openBackupFile } from './backupFile'
+import { openArchive, type ArchiveHandle, type ArchiveImage } from './backupArchive'
+import { importBackup, type ImportSummary, type ImportProgress } from './backupImport'
 import { listNotes } from './api'
 import { getDataKey, getToken } from './session'
 
 export default function Restore() {
   const { t } = useTranslation()
-  const [file, setFile] = useState<BackupFile | null>(null)
+  const [handle, setHandle] = useState<ArchiveHandle | null>(null)
+  const [images, setImages] = useState<Map<string, ArchiveImage>>(new Map())
   const [passphrase, setPassphrase] = useState('')
   const [notes, setNotes] = useState<BackupNote[] | null>(null)
   const [opening, setOpening] = useState(false)
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState<number | null>(null)
   const [importing, setImporting] = useState(false)
-  const [progress, setProgress] = useState<[number, number] | null>(null)
+  const [progress, setProgress] = useState<ImportProgress | null>(null)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
   const [diff, setDiff] = useState<{ fresh: number; dupes: number } | null>(null)
   const [toImport, setToImport] = useState<BackupNote[]>([])
@@ -40,26 +35,27 @@ export default function Restore() {
     setNotes(null)
     setSummary(null)
     setDiff(null)
+    setImages(new Map())
     try {
-      const parsed = parseBackup(await readTextFile(picked))
-      setFile(parsed)
+      const opened = await openBackupFile(picked)
+      setHandle(opened)
       // A plain backup needs no passphrase, so open it straight away.
-      if (!isEncrypted(parsed)) await open(parsed, '')
+      if (!isEncrypted(opened.file)) await open(opened, '')
     } catch (e) {
-      setFile(null)
+      setHandle(null)
       setError(e instanceof Error ? e.message : String(e))
     }
   }
 
-  async function open(target: BackupFile, pass: string) {
+  async function open(target: ArchiveHandle, pass: string) {
     setOpening(true)
     setError('')
     try {
-      // Restore.tsx — minimal change to keep the build green; the real rework is Task 13.
-      const opened = (await contentOf(target, pass)).notes
-      setNotes(opened)
+      const opened = await openArchive(target, pass || undefined)
+      setNotes(opened.notes)
+      setImages(opened.images)
       setPassphrase('')
-      if (canImport) await prepareImport(opened)
+      if (canImport) await prepareImport(opened.notes)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -82,9 +78,9 @@ export default function Restore() {
 
   async function runImport() {
     setImporting(true)
-    setProgress([0, toImport.length])
+    setProgress({ phase: 'images', done: 0, total: 0 })
     try {
-      setSummary(await importNotes(toImport, (done, total) => setProgress([done, total])))
+      setSummary(await importBackup(toImport, images, setProgress))
       // Re-diff so a second run offers only what is genuinely still missing.
       if (notes) await prepareImport(notes)
     } catch (e) {
@@ -96,10 +92,18 @@ export default function Restore() {
   }
 
   function summaryLine(s: ImportSummary): string {
+    if (s.stoppedByLimit === 'images') return t('restore.importLimitedImages', { count: s.imported })
     if (s.stoppedByLimit === 'unverified') return t('restore.importLimited', { count: s.imported })
     if (s.stoppedByLimit === 'hard') return t('restore.importLimitedHard', { count: s.imported })
     if (s.failed > 0) return t('restore.importPartial', { count: s.imported, failed: s.failed })
     return t('restore.importDone', { count: s.imported })
+  }
+
+  function importButtonLabel(): string {
+    if (!importing || !progress) return t('restore.importStart', { count: diff?.fresh ?? 0 })
+    return progress.phase === 'images'
+      ? t('restore.importImages', { done: progress.done, total: progress.total })
+      : t('restore.importProgress', { done: progress.done, total: progress.total })
   }
 
   const dates = notes && notes.length > 0 ? notes.map((n) => n.created_at).sort() : null
@@ -115,12 +119,12 @@ export default function Restore() {
         <input
           className="backup-input"
           type="file"
-          accept=".json,.bpad,application/json"
+          accept=".zip,.json,.bpad,application/zip,application/json"
           aria-label={t('restore.pick')}
           onChange={(e) => pick(e.target.files?.[0])}
         />
 
-        {file && isEncrypted(file) && !notes && (
+        {handle && isEncrypted(handle.file) && !notes && (
           <>
             <input
               className="backup-input"
@@ -134,7 +138,7 @@ export default function Restore() {
               className="ghost-btn"
               type="button"
               disabled={opening || passphrase === ''}
-              onClick={() => open(file, passphrase)}
+              onClick={() => open(handle, passphrase)}
             >
               {opening ? t('restore.opening') : t('restore.open')}
             </button>
@@ -156,6 +160,11 @@ export default function Restore() {
                 to: dates[dates.length - 1].slice(0, 10),
               })}
             </div>
+            {images.size > 0 && (
+              <div className="account-note">
+                {t('restore.summaryImages', { count: images.size })}
+              </div>
+            )}
             <ul className="restore-list">
               {notes.map((n, i) => (
                 <li key={i}>
@@ -189,9 +198,7 @@ export default function Restore() {
             </div>
             {diff.fresh > 0 && (
               <button className="ghost-btn" type="button" disabled={importing} onClick={runImport}>
-                {importing && progress
-                  ? t('restore.importProgress', { done: progress[0], total: progress[1] })
-                  : t('restore.importStart', { count: diff.fresh })}
+                {importButtonLabel()}
               </button>
             )}
             {summary && <div className="verify-sent">{summaryLine(summary)}</div>}

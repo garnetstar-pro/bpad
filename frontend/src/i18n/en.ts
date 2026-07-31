@@ -165,24 +165,28 @@ export const en = {
   restore: {
     title: 'Restore from a backup',
     intro:
-      'Open a bpad backup file. Everything happens in this browser — the file is never uploaded.',
+      'Open a bpad backup file — a .zip archive, or an older .json/.bpad file. Everything happens in this browser until you choose to import.',
     pick: 'Choose a backup file',
     passphrase: 'Backup passphrase',
     open: 'Open',
     opening: 'opening…',
     summary: '{count} notes, {from} to {to}',
+    summaryImages: '{count} images in this file.',
     emptyBackup: 'This backup contains no notes.',
     importTitle: 'import into your account',
     importIntro: '{fresh} new, {dupes} already in your account.',
     importNothing: 'Every note in this backup is already in your account.',
     importStart: 'Import {count} notes',
     importProgress: 'importing {done} of {total}…',
+    importImages: 'uploading images {done} of {total}…',
     importDone: '{count} notes imported ✓',
     importPartial: '{count} imported, {failed} failed. Run the import again to retry.',
     importLimited:
       '{count} imported, then your account hit the limit for unverified e-mail. Verify your e-mail and run the import again.',
     importLimitedHard:
       '{count} imported, then your account reached its note limit. Some notes were not imported.',
+    importLimitedImages:
+      '{count} imported, then the image upload limit was reached. Run the import again in a few minutes to finish the rest — nothing gets duplicated.',
     lockedHint: 'Unlock your vault to import these notes into your account.',
     loggedOutHint: 'Log in to import these notes into your account.',
   },
