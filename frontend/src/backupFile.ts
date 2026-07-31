@@ -1,23 +1,31 @@
-// The browser side of backups: turning a BackupFile into a download, and a
-// picked File back into text. Isolated from backup.ts so that the format
-// logic stays testable without touching browser APIs.
-import { isEncrypted, type BackupFile } from './backup'
+// The browser side of backups: turning an archive into a download, and a picked
+// File into something the format layer can read. Isolated from backup.ts and
+// backupArchive.ts so the format logic stays testable without DOM APIs.
+import { looksLikeZip } from './backupZip'
+import { readArchive, type ArchiveHandle } from './backupArchive'
+import { parseBackup } from './backup'
+import { toArrayBuffer } from './crypto'
 
-export function backupFilename(file: BackupFile): string {
-  const day = file.exported_at.slice(0, 10)
-  return `bpad-backup-${day}.${isEncrypted(file) ? 'bpad' : 'json'}`
+export function archiveFilename(exportedAt: string, encrypted: boolean): string {
+  const day = exportedAt.slice(0, 10)
+  return `bpad-backup-${day}${encrypted ? '-enc' : ''}.zip`
 }
 
-export function downloadBackup(file: BackupFile): void {
-  const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' })
+export function downloadArchive(archive: Uint8Array, filename: string): void {
+  const blob = new Blob([toArrayBuffer(archive)], { type: 'application/zip' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = backupFilename(file)
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
 }
 
-export function readTextFile(file: File): Promise<string> {
-  return file.text()
+// Accepts both a version 2 archive and a version 1 JSON/.bpad file. The old
+// format has no images, so it opens as an archive with no entries and every
+// caller downstream works unchanged.
+export async function openBackupFile(file: File): Promise<ArchiveHandle> {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  if (looksLikeZip(bytes)) return readArchive(bytes)
+  return { file: parseBackup(new TextDecoder().decode(bytes)), entries: {} }
 }
