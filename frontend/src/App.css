@@ -465,6 +465,13 @@ body {
   opacity: 0.65;
   margin-top: 1px;
 }
+/* Flags a note that embeds a picture. Sits under the timestamp, so rows
+   without one keep the date column aligned and lose no width. */
+.entry-image-flag {
+  display: block;
+  margin-top: 5px;
+  opacity: 0.55;
+}
 
 .entry-body {
   flex: 1;

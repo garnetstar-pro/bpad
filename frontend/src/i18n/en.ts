@@ -47,6 +47,7 @@ export const en = {
     sortLabel: 'Sort entries by',
     sortCreated: 'created',
     sortModified: 'modified',
+    hasImage: 'Contains an image',
   },
   notes: {
     save: 'Save',
