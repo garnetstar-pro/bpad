@@ -81,8 +81,8 @@ který blob vrátí při čtení. `downloadImage` proto přestane číst
 
 | Soubor | Změna |
 |---|---|
-| `frontend/src/imageCache.ts` *(nový)* | LRU `image id → objectURL`, `loadImage(id)`, revokace URL |
-| `frontend/src/images.ts` | `uploadImage` pečetí, `downloadImage` odpečeťuje |
+| `frontend/src/imageCache.ts` *(nový)* | Čistá LRU `image id → objectURL` s revokací; žádné importy |
+| `frontend/src/images.ts` | `uploadImage` pečetí, `downloadImage` odpečeťuje, nové `loadImage(id)` |
 | `frontend/src/session.ts` | `clearSession()` vyprázdní i novou cache |
 | `frontend/src/markdown.tsx` | `BpadImage` volá `loadImage(id)` místo `resolveImageUrl(id)` |
 | `frontend/src/crypto.ts` | Beze změny — `sealBytes`/`openBytes` už existují |
@@ -92,18 +92,22 @@ který blob vrátí při čtení. `downloadImage` proto přestane číst
 (řádově desítky obrázků po přeškálování); `size` je jen účetnictví pro strop,
 bajty samotné vlastní `Blob` za objectURL. Při vystrnadění z cache i při
 vyprázdnění volá `URL.revokeObjectURL` — jinak blob v paměti záložky přežije
-navždy. `loadImage` sdílí rozdělaný slib, aby tři výskyty téhož obrázku v jedné
-poznámce nespustily tři stahování.
+navždy.
 
-Cache je záměrně mimo `images.ts`, aby zůstala čitelná hranice: `images.ts` je
-síť, `imageCache.ts` je paměť. Závislost vede jedním směrem —
-`imageCache.ts` → `images.ts` (`downloadImage`) — a nikdy zpátky.
+Modul je **čistě paměťový a nemá jediný import**: umí jen `getCachedImage`,
+`putCachedImage` a `clearImageCache`. O síť i o pořadí kroků se stará
+`loadImage(id)` v `images.ts` — cache hit → stáhnout → dešifrovat →
+`createObjectURL` → uložit — a tam se taky sdílí rozdělaný slib, aby tři
+výskyty téhož obrázku v jedné poznámce nespustily tři stahování.
+
+Tahle hranice je zvolená kvůli závislostem: `session.ts` musí cache umět
+vyprázdnit a `images.ts` už `session.ts` importuje (`getToken`). Kdyby cache
+sahala na `downloadImage`, vznikl by kruh `session → imageCache → images →
+session`. Čistý modul bez importů ho vylučuje.
 
 **Napojení na odhlášení:** `session.ts:clearSession()` už dnes volá
 `clearImageUrlCache()` a běží při odhlášení, při idle locku i při vypršení
-tokenu. Přibude vedle ní volání `clearImageCache()` z `imageCache.ts`; nová
-cache se **nečistí z `images.ts`**, aby mezi těmi dvěma moduly nevznikl
-kruhový import.
+tokenu. Přibude vedle ní volání `clearImageCache()`.
 
 ## Backup
 
@@ -187,12 +191,14 @@ podle vzoru v `backupFile.test.ts`. `Blob`, `TextEncoder`, `crypto.subtle`
 i `fetch` jsou v Node nativně.
 
 **`imageCache.test.ts`** (nový)
-- cache hit vrátí tutéž URL a nesáhne na síť
-- dva souběžné požadavky na tentýž id stáhnou jednou
-- překročení stropu vystrnadí nejstarší položku a revokuje její URL
+- uložená položka se vrátí, neznámé id vrátí `undefined`
+- překročení stropu vystrnadí nejdéle nepoužitou položku a revokuje její URL
+- čtení položku osvěží, takže se vystrnadí ta druhá
 - vyprázdnění revokuje všechny URL
 
 **`images.test.ts`** (rozšíření)
+- `loadImage` stáhne jednou a druhé volání obslouží z cache
+- dva souběžné požadavky na tentýž id stáhnou jednou
 - nahrané bajty **nejsou** plaintext (ciphertext ≠ vstup) a mají délku +28 B
 - `downloadImage` vrátí původní bajty (round-trip)
 - poškozený ciphertext skončí chybou, ne tichým prázdným obrázkem
