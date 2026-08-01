@@ -16,7 +16,7 @@ místě kurzoru. Binární data se ukládají do **Azure Blob Storage**.
 |---|---|
 | Vkládání | Vložení ze schránky (Ctrl+V) jako hlavní cesta |
 | Umístění v poznámce | Inline v markdownu, na pozici kurzoru |
-| Šifrování obrázků | **Ne** — plaintext blob (vědomé zjednodušení fáze 1) |
+| Šifrování obrázků | **Ne** — plaintext blob (vědomé zjednodušení fáze 1; vyřešeno ve fázi 2, viz `2026-08-01-sifrovani-obrazku-design.md`) |
 | Přístup k blobu | Privátní kontejner + krátkodobá SAS URL, klient ↔ blob přímo |
 | Zpracování | Klientské přeškálování (max 1600 px, WebP ~0.85), vstupní strop 10 MB |
 | Backup/export | Obrázky nezahrnuty; dokumentované omezení |

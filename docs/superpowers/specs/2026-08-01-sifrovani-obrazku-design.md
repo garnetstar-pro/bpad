@@ -1,7 +1,7 @@
 # Klientské šifrování obrázků — návrh (fáze 2)
 
 **Datum:** 2026-08-01
-**Stav:** návrh odsouhlasen, čeká na implementační plán
+**Stav:** implementováno (klient); zbývá jednorázové smazání starých blobů — viz níže
 **Navazuje na:** `2026-07-25-obrazky-vystrizky-design.md` (fáze 1)
 
 ## Cíl
