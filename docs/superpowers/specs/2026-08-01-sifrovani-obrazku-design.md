@@ -82,8 +82,7 @@ který blob vrátí při čtení. `downloadImage` proto přestane číst
 | Soubor | Změna |
 |---|---|
 | `frontend/src/imageCache.ts` *(nový)* | Čistá LRU `image id → objectURL` s revokací; žádné importy |
-| `frontend/src/images.ts` | `uploadImage` pečetí, `downloadImage` odpečeťuje, nové `loadImage(id)` |
-| `frontend/src/session.ts` | `clearSession()` vyprázdní i novou cache |
+| `frontend/src/images.ts` | `uploadImage` pečetí, `downloadImage` odpečeťuje, nové `loadImage(id)`, `clearImageUrlCache` čistí i blob cache |
 | `frontend/src/markdown.tsx` | `BpadImage` volá `loadImage(id)` místo `resolveImageUrl(id)` |
 | `frontend/src/crypto.ts` | Beze změny — `sealBytes`/`openBytes` už existují |
 | `api/**` | Beze změny |
@@ -105,9 +104,10 @@ vyprázdnit a `images.ts` už `session.ts` importuje (`getToken`). Kdyby cache
 sahala na `downloadImage`, vznikl by kruh `session → imageCache → images →
 session`. Čistý modul bez importů ho vylučuje.
 
-**Napojení na odhlášení:** `session.ts:clearSession()` už dnes volá
-`clearImageUrlCache()` a běží při odhlášení, při idle locku i při vypršení
-tokenu. Přibude vedle ní volání `clearImageCache()`.
+**Napojení na odhlášení je zadarmo:** `session.ts:clearSession()` už dnes volá
+`clearImageUrlCache()` z `images.ts` a běží při odhlášení, při idle locku
+i při vypršení tokenu. Stačí, aby `clearImageUrlCache()` nově vyprázdnila
+i blob cache — `session.ts` se tak nemusí měnit vůbec.
 
 ## Backup
 
