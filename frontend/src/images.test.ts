@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { parseImageIds, fitDimensions, uploadImage, resolveImageUrl, processImage, MAX_INPUT_BYTES, downloadImage, UploadRateLimited, clearImageUrlCache, loadImage } from './images'
 import { setSession, clearSession } from './session'
-import { sealBytes } from './crypto'
+import { sealBytes, toArrayBuffer } from './crypto'
 
 describe('parseImageIds', () => {
   it('finds every bpad-img reference and dedups', () => {
@@ -249,5 +249,43 @@ describe('loadImage', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as never))
     await expect(loadImage('pic-3')).rejects.toThrow()
     await expect(loadImage('pic-3')).rejects.toThrow()
+  })
+
+  it('discards a download that finishes after the session was cleared, without leaking the object URL', async () => {
+    withSession()
+    const picture = new Uint8Array([7, 8, 9])
+    const sealed = await sealBytes(picture, key)
+    // Gate the blob GET so we control exactly when the download "lands",
+    // after clearSession() has already run.
+    let resolveBytes!: (buf: ArrayBuffer) => void
+    const bytesPromise = new Promise<ArrayBuffer>((resolve) => {
+      resolveBytes = resolve
+    })
+    const fetchMock = vi.fn(async (input: string) =>
+      input.endsWith('/url')
+        ? ({ ok: true, json: async () => ({ url: 'https://blob/x?sas' }) } as never)
+        : ({ ok: true, arrayBuffer: () => bytesPromise } as never),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:mid-flight'), revokeObjectURL })
+
+    const inFlight = loadImage('pic-cleared')
+    clearSession() // logout/idle-lock mid-download: clears the cache via clearImageUrlCache()
+    resolveBytes(toArrayBuffer(sealed))
+
+    await expect(inFlight).rejects.toThrow()
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mid-flight')
+
+    // The discarded job must not have left a blob-cache entry behind: a fresh
+    // request for the same id gets its own freshly created object URL, not
+    // the one the discarded job leaked and revoked.
+    withSession()
+    const fetchMock2 = await stubTransport(picture)
+    const url = await loadImage('pic-cleared')
+    expect(url).toBe('blob:made-1')
+    expect(url).not.toBe('blob:mid-flight')
+    // The blob itself was re-fetched — proof there was no stale cache entry to serve from.
+    expect(fetchMock2.mock.calls.some(([input]) => !String(input).endsWith('/url'))).toBe(true)
   })
 })

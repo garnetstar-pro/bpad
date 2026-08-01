@@ -117,7 +117,14 @@ export async function downloadImage(
   return { bytes: await openBytes(sealed, key), contentType: IMAGE_CONTENT_TYPE }
 }
 
+// Bumped on every clear, so a loadImage job started before a logout can tell,
+// once its download finally lands, that the cache it was about to join has
+// since been emptied — pending.clear() alone only drops the tracking entry,
+// it does not stop the closure already running.
+let generation = 0
+
 export function clearImageUrlCache(): void {
+  generation++
   urlCache.clear()
   pending.clear()
   clearImageCache()
@@ -136,14 +143,26 @@ export async function loadImage(id: string): Promise<string> {
   if (cached) return cached
   const inFlight = pending.get(id)
   if (inFlight) return inFlight
+  const startedAt = generation
   const job = (async () => {
     const { bytes, contentType } = await downloadImage(id)
     const url = URL.createObjectURL(new Blob([toArrayBuffer(bytes)], { type: contentType }))
+    if (generation !== startedAt) {
+      // The session was cleared while this download was in flight: the data
+      // key that decrypted it is gone and the cache belongs to whatever comes
+      // next. Revoke the URL instead of leaking decrypted bytes past logout.
+      URL.revokeObjectURL(url)
+      throw new Error('session-cleared')
+    }
     putCachedImage(id, url, bytes.length)
     return url
   })()
   pending.set(id, job)
   // A failure is not cached — the next render retries. finally() keeps the
-  // rejection on the returned promise instead of swallowing it.
-  return job.finally(() => pending.delete(id))
+  // rejection on the returned promise instead of swallowing it. Only drop our
+  // own entry: clearImageUrlCache may have already cleared pending and a new
+  // loadImage call for the same id may have inserted its own job by now.
+  return job.finally(() => {
+    if (pending.get(id) === job) pending.delete(id)
+  })
 }
