@@ -7,6 +7,9 @@
   --accent: #22B183;
   --blue: #2E56A0;
   --danger: #E0574A;
+  /* Lighter than --blue, which sinks into --surface at icon size. */
+  --sky: #5B8DEF;
+  --amber: #F2C14E;
   --hairline: rgba(238, 242, 250, 0.09);
   --font: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
@@ -466,11 +469,23 @@ body {
   margin-top: 1px;
 }
 /* Flags a note that embeds a picture. Sits under the timestamp, so rows
-   without one keep the date column aligned and lose no width. */
+   without one keep the date column aligned and lose no width. Colours live
+   here rather than on the SVG: CSS beats presentation attributes, so a theme
+   can restyle the icon without touching the component. */
 .entry-image-flag {
   display: block;
   margin-top: 5px;
-  opacity: 0.55;
+}
+.entry-image-flag .flag-frame {
+  stroke: var(--sky);
+  fill: rgba(91, 141, 239, 0.14);
+}
+.entry-image-flag .flag-sun {
+  fill: var(--amber);
+  stroke: none;
+}
+.entry-image-flag .flag-hill {
+  stroke: var(--accent);
 }
 
 .entry-body {
