@@ -1,7 +1,12 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { parseImageIds, fitDimensions, uploadImage, resolveImageUrl, processImage, MAX_INPUT_BYTES, downloadImage, UploadRateLimited, clearImageUrlCache, loadImage } from './images'
 import { setSession, clearSession } from './session'
-import { sealBytes, toArrayBuffer } from './crypto'
+import { sealBytes, openBytes, toArrayBuffer } from './crypto'
+
+// Distinguishable from the auth key so a test that accidentally seals/opens
+// with the wrong key fails loudly instead of passing by coincidence.
+const DATA_KEY = new Uint8Array(32).fill(7)
+const AUTH_KEY = new Uint8Array(32).fill(3)
 
 describe('parseImageIds', () => {
   it('finds every bpad-img reference and dedups', () => {
@@ -33,9 +38,12 @@ describe('fitDimensions', () => {
   })
 })
 
-// session.ts reads no DOM; only a data key + token are needed.
+// session.ts reads no DOM; only a data key + token are needed. The data key
+// and auth key are deliberately different byte patterns (see DATA_KEY /
+// AUTH_KEY above) so a regression that seals or opens with the wrong one
+// fails a test instead of passing unnoticed.
 function withSession() {
-  setSession('tok', new Uint8Array(32), new Uint8Array(32), 'alice')
+  setSession('tok', DATA_KEY, AUTH_KEY, 'alice')
 }
 
 describe('uploadImage', () => {
@@ -79,7 +87,9 @@ describe('uploadImage', () => {
     await uploadImage(new Blob([plaintext], { type: 'image/webp' }))
 
     expect(uploaded.length).toBe(plaintext.length + 28)
-    expect(uploaded.subarray(12, 16)).not.toEqual(plaintext)
+    // Proves the right key sealed the right bytes, not just that the raw
+    // ciphertext happens to differ from the plaintext.
+    await expect(openBytes(uploaded, DATA_KEY)).resolves.toEqual(plaintext)
   })
 
   it('refuses to upload without a data key', async () => {
@@ -120,8 +130,8 @@ describe('downloadImage', () => {
     clearSession()
   })
 
-  // The whole session key is 32 zero bytes, the same one withSession() installs.
-  const key = new Uint8Array(32)
+  // The same distinguishable data key withSession() installs.
+  const key = DATA_KEY
 
   async function serving(sealed: Uint8Array) {
     return vi.fn(async (input: string) =>
@@ -196,7 +206,7 @@ describe('uploadImage rate limiting', () => {
 })
 
 describe('loadImage', () => {
-  const key = new Uint8Array(32)
+  const key = DATA_KEY
 
   afterEach(() => {
     vi.unstubAllGlobals()

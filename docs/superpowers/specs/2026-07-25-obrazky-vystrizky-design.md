@@ -177,12 +177,12 @@ oznámí explicitně:
 
 | Oblast | Fáze 1 | Poznámka |
 |---|---|---|
-| Šifrování obrázků | ❌ plaintext blob | fáze 2 — schéma připravené |
+| Šifrování obrázků | ✅ vyřešeno ve fázi 2 | viz `2026-08-01-sifrovani-obrazku-design.md` |
 | Backup/restore | ✅ vyřešeno | obrázky jsou součástí zálohy — viz `2026-07-31-export-import-s-obrazky-design.md` |
 | Offline čtení | best-effort přes SW cache, nezaručeno | text poznámek funguje dál |
 | Free/premium limit | bez gatingu, jen technický strop na obrázek | entitlement lze přidat později |
 | Editace obrázku (crop) | ❌ | |
-| Strop velikosti obrázku | **klientský** (10 MB / přeškálování) — write SAS ho nevynucuje | skutečné vynucení velikosti až fáze 2 / infra; upload je ale rate-limitovaný (viz níže) |
+| Strop velikosti obrázku | **klientský** (10 MB / přeškálování) — write SAS ho nevynucuje | fáze 2 přidala šifrování, ne server-side vynucení velikosti; to zůstává mimo scope, upload je ale rate-limitovaný (viz níže) |
 | Sdílený blob mezi poznámkami | ❌ jeden obrázek = jedna poznámka (viz omezení výše) | reference-counting mimo scope |
 
 **Rate-limit uploadu:** `POST /api/images` má per-user sliding-window limit
