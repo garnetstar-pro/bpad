@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { parseImageIds, fitDimensions, uploadImage, resolveImageUrl, processImage, MAX_INPUT_BYTES, downloadImage, UploadRateLimited, clearImageUrlCache } from './images'
 import { setSession, clearSession } from './session'
+import { sealBytes } from './crypto'
 
 describe('parseImageIds', () => {
   it('finds every bpad-img reference and dedups', () => {
@@ -40,23 +41,51 @@ function withSession() {
 describe('uploadImage', () => {
   afterEach(() => { clearSession(); vi.restoreAllMocks() })
 
-  it('inits the upload then PUTs the blob and returns the id', async () => {
+  it('inits the upload then PUTs the sealed blob and returns the id', async () => {
     withSession()
     const calls: string[] = []
+    let posted: Record<string, unknown> = {}
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       calls.push(`${init?.method ?? 'GET'} ${url}`)
       if (String(url).endsWith('/api/images')) {
+        posted = JSON.parse(String(init?.body))
         return { ok: true, json: async () => ({ image_id: 'img1', upload_url: 'https://blob/put' }) } as Response
       }
       return { ok: true } as Response // the PUT to blob storage
     })
     vi.stubGlobal('fetch', fetchMock)
 
-    const id = await uploadImage(new Blob(['x'], { type: 'image/webp' }))
+    const id = await uploadImage(new Blob([new Uint8Array([1, 2, 3])], { type: 'image/webp' }))
 
     expect(id).toBe('img1')
     expect(calls[0]).toContain('POST http://localhost:7071/api/images')
     expect(calls[1]).toBe('PUT https://blob/put')
+    // The server is told nothing about the picture: 12-byte IV + 3 bytes + 16-byte tag.
+    expect(posted).toEqual({ content_type: 'application/octet-stream', size_bytes: 31 })
+  })
+
+  it('uploads ciphertext, not the picture', async () => {
+    withSession()
+    const plaintext = new Uint8Array([10, 20, 30, 40])
+    let uploaded = new Uint8Array()
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).endsWith('/api/images')) {
+        return { ok: true, json: async () => ({ image_id: 'img1', upload_url: 'https://blob/put' }) } as Response
+      }
+      uploaded = new Uint8Array(init?.body as ArrayBuffer)
+      return { ok: true } as Response
+    }))
+
+    await uploadImage(new Blob([plaintext], { type: 'image/webp' }))
+
+    expect(uploaded.length).toBe(plaintext.length + 28)
+    expect(uploaded.subarray(12, 16)).not.toEqual(plaintext)
+  })
+
+  it('refuses to upload without a data key', async () => {
+    clearSession()
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true }) as Response))
+    await expect(uploadImage(new Blob([new Uint8Array([1])]))).rejects.toThrow(/locked/i)
   })
 })
 
@@ -88,51 +117,45 @@ describe('downloadImage', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     clearImageUrlCache()
+    clearSession()
   })
 
-  it('resolves the read URL and returns the bytes with their content type', async () => {
-    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
-    const bytes = new Uint8Array([1, 2, 3, 4])
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string) => {
-        if (input.endsWith('/url')) {
-          return { ok: true, json: async () => ({ url: 'https://blob/x?sas' }) } as never
-        }
-        return {
-          ok: true,
-          headers: new Headers({ 'Content-Type': 'image/webp' }),
-          arrayBuffer: async () => bytes.buffer,
-        } as never
-      }),
+  // The whole session key is 32 zero bytes, the same one withSession() installs.
+  const key = new Uint8Array(32)
+
+  async function serving(sealed: Uint8Array) {
+    return vi.fn(async (input: string) =>
+      input.endsWith('/url')
+        ? ({ ok: true, json: async () => ({ url: 'https://blob/x?sas' }) } as never)
+        : ({ ok: true, arrayBuffer: async () => sealed.buffer } as never),
     )
+  }
+
+  it('opens the sealed bytes and reports image/webp', async () => {
+    withSession()
+    const picture = new Uint8Array([1, 2, 3, 4])
+    vi.stubGlobal('fetch', await serving(await sealBytes(picture, key)))
+
     await expect(downloadImage('pic-1')).resolves.toEqual({
-      bytes,
+      bytes: picture,
       contentType: 'image/webp',
     })
-    clearSession()
   })
 
-  it('falls back to image/webp when the blob reports no content type', async () => {
-    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: string) =>
-        input.endsWith('/url')
-          ? ({ ok: true, json: async () => ({ url: 'https://blob/x?sas' }) } as never)
-          : ({
-              ok: true,
-              headers: new Headers(),
-              arrayBuffer: async () => new Uint8Array([9]).buffer,
-            } as never),
-      ),
-    )
-    await expect(downloadImage('pic-2')).resolves.toMatchObject({ contentType: 'image/webp' })
-    clearSession()
+  it('rejects bytes that were not sealed with this key', async () => {
+    withSession()
+    vi.stubGlobal('fetch', await serving(await sealBytes(new Uint8Array([1]), new Uint8Array(32).fill(9))))
+    await expect(downloadImage('pic-2')).rejects.toThrow()
+  })
+
+  it('rejects a blob that is not sealed at all', async () => {
+    withSession()
+    vi.stubGlobal('fetch', await serving(new Uint8Array([0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4])))
+    await expect(downloadImage('pic-3')).rejects.toThrow()
   })
 
   it('throws when the blob cannot be fetched', async () => {
-    setSession('token', new Uint8Array(32), new Uint8Array(32), 'jan')
+    withSession()
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: string) =>
@@ -141,8 +164,12 @@ describe('downloadImage', () => {
           : ({ ok: false, status: 404 } as never),
       ),
     )
-    await expect(downloadImage('pic-3')).rejects.toThrow(/download/i)
+    await expect(downloadImage('pic-4')).rejects.toThrow(/download/i)
+  })
+
+  it('refuses to download without a data key', async () => {
     clearSession()
+    await expect(downloadImage('pic-5')).rejects.toThrow(/locked/i)
   })
 })
 
