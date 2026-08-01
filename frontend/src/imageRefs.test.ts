@@ -1,10 +1,26 @@
 import { describe, it, expect } from 'vitest'
 import {
+  hasImageRef,
   parseImageIds,
   rewriteImageRefs,
   normalizeImageRefs,
   localizeImageRefs,
 } from './imageRefs'
+
+describe('hasImageRef', () => {
+  it('spots a reference anywhere in the note', () => {
+    expect(hasImageRef('text\n\n![](bpad-img:aaa)\n\nmore')).toBe(true)
+  })
+
+  it('is false for a note with no picture', () => {
+    expect(hasImageRef('just text with a [link](bpad-img:nope)')).toBe(false)
+  })
+
+  it('gives the same answer when called repeatedly', () => {
+    const md = '![](bpad-img:aaa)'
+    expect([hasImageRef(md), hasImageRef(md), hasImageRef(md)]).toEqual([true, true, true])
+  })
+})
 
 describe('parseImageIds', () => {
   it('finds every reference and dedups', () => {

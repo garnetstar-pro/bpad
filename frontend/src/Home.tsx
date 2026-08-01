@@ -13,6 +13,7 @@ import { getSortPref, setSortPref, type SortField } from './preferences'
 import { savePreferences, getAccount } from './authApi'
 import { useWideLayout } from './device'
 import { shouldAutoOpenTop } from './noteSelection'
+import { hasImageRef } from './imageRefs'
 
 function Home() {
   const { t } = useTranslation()
@@ -252,6 +253,27 @@ function Home() {
                     minute: '2-digit',
                   })}
                 </div>
+                {/* Generic marker only — the picture itself is encrypted and
+                    would cost a download plus a decrypt per row to show. */}
+                {hasImageRef(note.content) && (
+                  <svg
+                    className="entry-image-flag"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    role="img"
+                    aria-label={t('home.hasImage')}
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="m21 15-5-5L5 21" />
+                  </svg>
+                )}
               </div>
               <div className="entry-body">
                 <div className="entry-title">{note.title}</div>

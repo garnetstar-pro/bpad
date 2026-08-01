@@ -8,6 +8,16 @@
 const IMG_PATTERN = '(!\\[[^\\]]*\\]\\()bpad-img:([A-Za-z0-9-]+)(\\))'
 const imgRe = () => new RegExp(IMG_PATTERN, 'g')
 
+// Does the note show a picture at all? The list renders this per row on every
+// keystroke of the search box, so it stays a test (early exit, no allocation)
+// rather than parseImageIds().length. Safe as a module constant: without /g a
+// regex keeps no lastIndex between calls.
+const imgTestRe = new RegExp(IMG_PATTERN)
+
+export function hasImageRef(markdown: string): boolean {
+  return imgTestRe.test(markdown)
+}
+
 export function parseImageIds(markdown: string): string[] {
   const ids = new Set<string>()
   for (const m of markdown.matchAll(imgRe())) ids.add(m[2])
