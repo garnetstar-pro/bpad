@@ -5,6 +5,7 @@
 
 import { getDataKey, getToken } from './session'
 import { sealBytes, openBytes, toArrayBuffer } from './crypto'
+import { getCachedImage, putCachedImage, clearImageCache } from './imageCache'
 
 // The pure reference helpers live in imageRefs.ts; re-exported here so existing
 // importers (api.ts) keep their import path.
@@ -118,4 +119,31 @@ export async function downloadImage(
 
 export function clearImageUrlCache(): void {
   urlCache.clear()
+  pending.clear()
+  clearImageCache()
+}
+
+// In-flight downloads, so the three occurrences of one picture in a note cause
+// one download. Cleared with the cache: a job started before a logout must not
+// put its object URL into a cache that has already been emptied.
+const pending = new Map<string, Promise<string>>()
+
+// Resolve a bpad image id to a blob: URL of the decrypted picture, cached in
+// memory for the rest of the session. This is what rendering uses; the SAS URL
+// never reaches an <img> any more, because the blob behind it is ciphertext.
+export async function loadImage(id: string): Promise<string> {
+  const cached = getCachedImage(id)
+  if (cached) return cached
+  const inFlight = pending.get(id)
+  if (inFlight) return inFlight
+  const job = (async () => {
+    const { bytes, contentType } = await downloadImage(id)
+    const url = URL.createObjectURL(new Blob([toArrayBuffer(bytes)], { type: contentType }))
+    putCachedImage(id, url, bytes.length)
+    return url
+  })()
+  pending.set(id, job)
+  // A failure is not cached — the next render retries. finally() keeps the
+  // rejection on the returned promise instead of swallowing it.
+  return job.finally(() => pending.delete(id))
 }

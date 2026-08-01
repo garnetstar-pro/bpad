@@ -3,7 +3,7 @@ import type { Components, Options } from 'react-markdown'
 import { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import { resolveImageUrl } from './images'
+import { loadImage } from './images'
 import ImageLightbox from './ImageLightbox'
 import { useTranslation } from './i18n'
 
@@ -56,7 +56,7 @@ function BpadImage({ id, alt }: { id: string; alt: string }) {
 
   useEffect(() => {
     let active = true
-    resolveImageUrl(id)
+    loadImage(id)
       .then((url) => active && setSrc(url))
       .catch(() => active && setFailed(true))
     return () => {

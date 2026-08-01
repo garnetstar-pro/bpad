@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
-import { parseImageIds, fitDimensions, uploadImage, resolveImageUrl, processImage, MAX_INPUT_BYTES, downloadImage, UploadRateLimited, clearImageUrlCache } from './images'
+import { parseImageIds, fitDimensions, uploadImage, resolveImageUrl, processImage, MAX_INPUT_BYTES, downloadImage, UploadRateLimited, clearImageUrlCache, loadImage } from './images'
 import { setSession, clearSession } from './session'
 import { sealBytes } from './crypto'
 
@@ -192,5 +192,62 @@ describe('uploadImage rate limiting', () => {
     expect(err).toBeInstanceOf(Error)
     expect(err).not.toBeInstanceOf(UploadRateLimited)
     clearSession()
+  })
+})
+
+describe('loadImage', () => {
+  const key = new Uint8Array(32)
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    clearImageUrlCache()
+    clearSession()
+  })
+
+  async function stubTransport(picture: Uint8Array) {
+    const sealed = await sealBytes(picture, key)
+    const fetchMock = vi.fn(async (input: string) =>
+      input.endsWith('/url')
+        ? ({ ok: true, json: async () => ({ url: `https://blob/x?sas=${Math.random()}` }) } as never)
+        : ({ ok: true, arrayBuffer: async () => sealed.buffer } as never),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    let made = 0
+    vi.stubGlobal('URL', {
+      createObjectURL: vi.fn(() => `blob:made-${++made}`),
+      revokeObjectURL: vi.fn(),
+    })
+    return fetchMock
+  }
+
+  it('downloads once and serves the second call from the cache', async () => {
+    withSession()
+    const fetchMock = await stubTransport(new Uint8Array([1, 2, 3]))
+
+    const first = await loadImage('pic-1')
+    const second = await loadImage('pic-1')
+
+    expect(first).toBe('blob:made-1')
+    expect(second).toBe('blob:made-1')
+    // One /url call and one blob GET, not two of each.
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('collapses concurrent requests for the same id into one download', async () => {
+    withSession()
+    const fetchMock = await stubTransport(new Uint8Array([4, 5, 6]))
+
+    const [a, b] = await Promise.all([loadImage('pic-2'), loadImage('pic-2')])
+
+    expect(a).toBe(b)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('lets a failure be retried rather than caching it', async () => {
+    withSession()
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:x'), revokeObjectURL: vi.fn() })
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500 }) as never))
+    await expect(loadImage('pic-3')).rejects.toThrow()
+    await expect(loadImage('pic-3')).rejects.toThrow()
   })
 })
