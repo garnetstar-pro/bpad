@@ -91,3 +91,24 @@ def verify_token_hash(token: str, stored: str) -> bool:
 def decoy_salt(username: str) -> str:
     mac = hmac.new(_signing_key().encode(), username.encode(), hashlib.sha256).digest()
     return _b64(mac[:16])
+
+
+def decoy_recovery_material(username: str) -> dict:
+    """Return stable fake recovery material for a non-existent username.
+
+    Uses separate HMAC tags (different contexts) so the decoy iv and ct have
+    the same shape as real Encrypted values but are deterministically derived
+    from the username, making user-existence enumeration via this endpoint
+    impossible (same anti-enumeration pattern as decoy_salt for auth/salt).
+    """
+    key = _signing_key().encode()
+    iv_bytes = hmac.new(key, f"decoy-rec-iv:{username}".encode(), hashlib.sha256).digest()[:12]
+    ct_bytes = hmac.new(key, f"decoy-rec-ct:{username}".encode(), hashlib.sha256).digest()
+    salt_bytes = hmac.new(key, f"decoy-rec-salt:{username}".encode(), hashlib.sha256).digest()[:16]
+    return {
+        "recoverySalt": _b64(salt_bytes),
+        "wrappedDataKeyRec": {
+            "iv": _b64(iv_bytes),
+            "ct": _b64(ct_bytes),
+        },
+    }

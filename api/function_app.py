@@ -62,7 +62,13 @@ _image_limiter = RateLimiter(max_calls=60, window_seconds=600)
 
 
 def _client_ip(req: func.HttpRequest) -> str:
-    return req.headers.get("X-Forwarded-For", "").split(",")[0].strip() or "unknown"
+    # Azure SWA/Functions appends the verified client IP as the RIGHTMOST hop in
+    # X-Forwarded-For; left-side values are client-supplied and must not be trusted.
+    # Taking the first (leftmost) value would allow any client to spoof their IP
+    # and bypass rate limiting entirely.
+    header = req.headers.get("X-Forwarded-For", "")
+    parts = [p.strip() for p in header.split(",") if p.strip()]
+    return parts[-1] if parts else "unknown"
 
 
 def _rate_limited(req: func.HttpRequest) -> Optional[func.HttpResponse]:
@@ -228,7 +234,8 @@ def verify_email(req: func.HttpRequest) -> func.HttpResponse:
 
     user = users_repo.get_user(data.username)
     if user is None:
-        return _error("Invalid link", 400)
+        # Do not reveal whether the username exists (anti-enumeration).
+        return _error("The link is invalid or expired", 400)
     if user.email_verified:
         return _json({"verified": True}, 200)
     if (
@@ -271,9 +278,12 @@ def recovery_material(req: func.HttpRequest) -> func.HttpResponse:
     limited = _rate_limited(req)
     if limited:
         return limited
-    user = users_repo.get_user(req.params.get("username", ""))
+    username = req.params.get("username", "")
+    user = users_repo.get_user(username)
     if user is None:
-        return _error("User not found", 404)
+        # Return a deterministic decoy so the caller cannot distinguish a missing
+        # account from an existing one (anti-enumeration, same pattern as auth/salt).
+        return _json(auth.decoy_recovery_material(username), 200)
     return _json(
         {"recoverySalt": user.recovery_salt,
          "wrappedDataKeyRec": user.wrapped_data_key_rec.model_dump()},
