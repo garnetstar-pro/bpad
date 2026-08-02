@@ -213,7 +213,10 @@ export async function updateNote(id: string, content: string, title?: string, ta
     throw new Error(translate('errors.offlineWrite'))
   }
   checkAuth(res)
-  if (!res.ok) throw new Error(translate('errors.saveFailed'))
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || translate('errors.saveFailed'))
+  }
   const enc: EncryptedNote = await res.json()
   const username = getUsername()
   if (username) upsertCachedNote(username, enc)

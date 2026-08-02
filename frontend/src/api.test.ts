@@ -16,7 +16,7 @@ const store = new Map<string, string>()
   dispatchEvent: () => true,
 }
 
-const { listNotesCached, getKnownTags, createNote } = await import('./api')
+const { listNotesCached, getKnownTags, createNote, updateNote } = await import('./api')
 const { encryptJSON, decryptJSON, generateDataKey } = await import('./crypto')
 const { cacheNotes } = await import('./offlineCache')
 const { setSession, clearSession } = await import('./session')
@@ -134,5 +134,40 @@ describe('createNote with import options', () => {
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body)
     expect(body).not.toHaveProperty('created_at')
+  })
+})
+
+// A rejected save has to say why — the images-per-note quota returns a 403 whose
+// message names the number. createNote already forwards it; updateNote used to
+// replace it with a generic failure.
+describe('updateNote error reporting', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('forwards the server’s error message', async () => {
+    setSession('token', dataKey, new Uint8Array(32), 'alice')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 403,
+        json: async () => ({ error: 'A note can hold at most 10 images.' }),
+      }),
+    )
+
+    await expect(updateNote('note-1', '# body')).rejects.toThrow(
+      'A note can hold at most 10 images.',
+    )
+  })
+
+  it('falls back to a generic message when the body carries none', async () => {
+    setSession('token', dataKey, new Uint8Array(32), 'alice')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) }),
+    )
+
+    await expect(updateNote('note-1', '# body')).rejects.toThrow(/saving failed/i)
   })
 })
