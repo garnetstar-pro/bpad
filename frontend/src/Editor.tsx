@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { markdownComponents, markdownPlugins, bpadUrlTransform } from './markdown'
 import { canAutofocus } from './device'
@@ -8,6 +8,8 @@ import { getKnownTags } from './api'
 import { isPremium } from './entitlements'
 import { FREE_TAG_LIMIT, distinctTagCount } from './tags'
 import { processImage, uploadImage } from './images'
+import { parseImageIds } from './imageRefs'
+import { getMaxImagesPerNote } from './entitlements'
 import { insertAt } from './textInsert'
 
 // Config: how many rows the textarea grows to with content.
@@ -50,6 +52,14 @@ function Editor({
   const fileInputRef = useRef<HTMLInputElement>(null)
   // Where the caret belongs once an inserted image lands in the draft.
   const pendingCaret = useRef<number | null>(null)
+
+  // Per-account quota, enforced here so an over-limit upload never starts; the
+  // API rejects one anyway (403), which is the backstop for a stale cache.
+  const imageLimit = getMaxImagesPerNote()
+  const atImageLimit = useMemo(
+    () => parseImageIds(draft).length >= imageLimit,
+    [draft, imageLimit],
+  )
 
   // Focus the textarea (only on desktop – on mobile it would pop up the keyboard).
   useEffect(() => {
@@ -138,6 +148,11 @@ function Editor({
   // Upload an image and insert ![](bpad-img:ID) at the caret. Shared by the paste
   // handler (desktop) and the "Add image" file picker (mobile + desktop).
   const insertImageFromFile = async (file: File | Blob) => {
+    // Covers the paste path too, where a disabled button is no help.
+    if (atImageLimit) {
+      setError(t('editor.imageLimit', { limit: imageLimit }))
+      return
+    }
     const ta = textareaRef.current
     const start = ta ? ta.selectionStart : draft.length
     const end = ta ? ta.selectionEnd : draft.length
@@ -222,7 +237,7 @@ function Editor({
         <button
           className="capture-tab add-image-btn"
           onClick={() => fileInputRef.current?.click()}
-          disabled={submitting || uploading}
+          disabled={submitting || uploading || atImageLimit}
           type="button"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
