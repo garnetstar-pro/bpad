@@ -277,9 +277,12 @@ def recovery_material(req: func.HttpRequest) -> func.HttpResponse:
     limited = _rate_limited(req)
     if limited:
         return limited
-    user = users_repo.get_user(req.params.get("username", ""))
+    username = req.params.get("username", "")
+    user = users_repo.get_user(username)
     if user is None:
-        return _error("User not found", 404)
+        # Return a deterministic decoy so the caller cannot distinguish a missing
+        # account from an existing one (anti-enumeration, same pattern as auth/salt).
+        return _json(auth.decoy_recovery_material(username), 200)
     return _json(
         {"recoverySalt": user.recovery_salt,
          "wrappedDataKeyRec": user.wrapped_data_key_rec.model_dump()},
