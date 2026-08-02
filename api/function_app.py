@@ -62,7 +62,13 @@ _image_limiter = RateLimiter(max_calls=60, window_seconds=600)
 
 
 def _client_ip(req: func.HttpRequest) -> str:
-    return req.headers.get("X-Forwarded-For", "").split(",")[0].strip() or "unknown"
+    # Azure SWA/Functions appends the verified client IP as the RIGHTMOST hop in
+    # X-Forwarded-For; left-side values are client-supplied and must not be trusted.
+    # Taking the first (leftmost) value would allow any client to spoof their IP
+    # and bypass rate limiting entirely.
+    header = req.headers.get("X-Forwarded-For", "")
+    parts = [p.strip() for p in header.split(",") if p.strip()]
+    return parts[-1] if parts else "unknown"
 
 
 def _rate_limited(req: func.HttpRequest) -> Optional[func.HttpResponse]:
