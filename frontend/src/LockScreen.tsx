@@ -5,9 +5,21 @@ import { useTranslation } from './i18n'
 import { canAutofocus } from './device'
 import BpadMark from './BpadMark'
 
-// Shown after an idle lock: the content is gone (keys cleared) and we ask for
-// the password to unlock the remembered user — or offer a full login.
-export default function LockScreen({ username }: { username: string }) {
+// Shown when the keys are gone but we still know whose vault this is: after an
+// idle lock, or on a cold page load (App resolves that via coldStart.ts). Asks
+// for the password to unlock — or offers a full login.
+export default function LockScreen({
+  username,
+  sub,
+  onSwitchUser,
+}: {
+  username: string
+  // Why the vault is locked; defaults to the idle-lock explanation.
+  sub?: string
+  // Extra cleanup for the caller when the user wants a different account —
+  // `logout()` below already clears the session and the remembered user.
+  onSwitchUser?: () => void
+}) {
   const { t } = useTranslation()
   const { authenticate, logout } = useAuth()
   const [password, setPassword] = useState('')
@@ -37,11 +49,22 @@ export default function LockScreen({ username }: { username: string }) {
             <div className="lock-user">{username}</div>
           </div>
         </div>
-        <p className="auth-sub">{t('lock.sub')}</p>
+        <p className="auth-sub">{sub ?? t('lock.sub')}</p>
         {error && <div className="error-banner">{error}</div>}
         <form onSubmit={submit}>
+          {/* Hidden username so a password manager can match the right entry
+              on this re-auth screen — it fills nothing without it. */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value={username}
+            readOnly
+            hidden
+          />
           <input
             className="auth-input"
+            name="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -55,7 +78,14 @@ export default function LockScreen({ username }: { username: string }) {
           </button>
         </form>
         <div className="auth-links">
-          <button className="auth-link accent" onClick={logout} type="button">
+          <button
+            className="auth-link accent"
+            onClick={() => {
+              logout()
+              onSwitchUser?.()
+            }}
+            type="button"
+          >
             {t('lock.notYou')}
           </button>
           <span />

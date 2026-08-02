@@ -17,6 +17,7 @@ import { cacheAuth, getCachedAuth } from './offlineCache'
 import { solvePow } from './pow'
 import { translate } from './i18n'
 import { setSortPref, type SortField } from './preferences'
+import { setMaxImagesPerNote } from './entitlements'
 
 const AUTH_URL = import.meta.env.DEV ? 'http://localhost:7071/api/auth' : '/api/auth'
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -36,6 +37,7 @@ export interface Account {
   emailVerified: boolean
   createdAt: string | null
   sortBy: SortField
+  maxImagesPerNote: number
 }
 
 export async function getAccount(): Promise<Account> {
@@ -46,6 +48,7 @@ export async function getAccount(): Promise<Account> {
   if (!res.ok) throw new Error(translate('errors.accountLoadFailed'))
   const account: Account = await res.json()
   setSortPref(account.sortBy)
+  setMaxImagesPerNote(account.maxImagesPerNote)
   return account
 }
 

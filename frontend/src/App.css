@@ -7,8 +7,18 @@
   --accent: #22B183;
   --blue: #2E56A0;
   --danger: #E0574A;
+  /* Lighter than --blue, which sinks into --surface at icon size. */
+  --sky: #5B8DEF;
+  --amber: #F2C14E;
   --hairline: rgba(238, 242, 250, 0.09);
   --font: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Type scale for everything that isn't note content (which stays at 16px).
+     --text-xs is the floor — nothing in the UI goes below it. Keep new rules on
+     these three tokens rather than reintroducing literal small pixel sizes. */
+  --text-xs: 12px; /* uppercase eyebrows, micro-labels, badges */
+  --text-sm: 13px; /* secondary prose: hints, metadata, banners */
+  --text-md: 14px; /* controls and default UI text */
 }
 
 * { box-sizing: border-box; }
@@ -56,7 +66,7 @@ body {
 }
 
 .case-number {
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.14em;
   color: var(--accent);
   font-weight: 600;
@@ -69,11 +79,16 @@ body {
   letter-spacing: -0.01em;
 }
 
+/* A row, not a stack: at a readable size the stacked links formed a column that
+   out-measured the wordmark. Wraps on narrow screens rather than squeezing. */
 .app-meta {
-  text-align: right;
-  font-size: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 4px 14px;
+  font-size: var(--text-xs);
   color: var(--ink-dim);
-  line-height: 1.8;
 }
 
 .logout-link {
@@ -81,7 +96,7 @@ body {
   border: none;
   color: var(--ink-dim);
   font-family: var(--font);
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
@@ -140,21 +155,21 @@ body {
   padding-bottom: 12px;
   margin-bottom: 22px;
 }
-.brand-kicker { font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+.brand-kicker { font-size: var(--text-xs); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
 
 /* Idle lock screen */
 .lock-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .lock-user { font-size: 15px; font-weight: 800; letter-spacing: -0.01em; color: var(--ink); margin-top: 2px; }
 .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; line-height: 1; margin-top: 2px; }
-.brand-meta { font-size: 9px; color: var(--ink-dim); text-align: right; }
+.brand-meta { font-size: var(--text-xs); color: var(--ink-dim); text-align: right; }
 
 .auth-title { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 4px; }
-.auth-sub { font-size: 11px; color: var(--ink-dim); margin: 0 0 20px; line-height: 1.6; }
+.auth-sub { font-size: var(--text-sm); color: var(--ink-dim); margin: 0 0 20px; line-height: 1.6; }
 
 .auth-field { display: block; margin-bottom: 14px; }
 .auth-label {
   display: block;
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -186,7 +201,7 @@ body {
   color: #06130D;
   font-family: var(--font);
   font-weight: 700;
-  font-size: 11px;
+  font-size: var(--text-sm);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   cursor: pointer;
@@ -197,14 +212,14 @@ body {
   display: flex;
   justify-content: space-between;
   margin-top: 16px;
-  font-size: 11px;
+  font-size: var(--text-sm);
 }
 .auth-link {
   background: transparent;
   border: none;
   color: var(--ink-dim);
   font-family: var(--font);
-  font-size: 11px;
+  font-size: var(--text-sm);
   cursor: pointer;
   padding: 0;
   border-bottom: 1px dotted var(--hairline);
@@ -212,7 +227,7 @@ body {
 .auth-link.accent { color: var(--accent); border-bottom-color: rgba(34, 177, 131, 0.4); }
 
 .auth-hint {
-  font-size: 10px;
+  font-size: var(--text-sm);
   color: var(--ink-dim);
   line-height: 1.6;
   margin-top: 14px;
@@ -240,7 +255,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   color: var(--ink-dim);
   margin: 14px 0 4px;
   cursor: pointer;
@@ -255,7 +270,7 @@ body {
 }
 
 .capture-label {
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -288,14 +303,14 @@ body {
 }
 
 .capture-hint {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--ink-dim);
 }
 
 .save-btn {
   font-family: var(--font);
   font-weight: 700;
-  font-size: 11px;
+  font-size: var(--text-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: var(--accent);
@@ -306,7 +321,7 @@ body {
 }
 
 .section-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -316,11 +331,15 @@ body {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  /* Wrap rather than squeeze: label + sort toggle + count is tight in the
+     320px desktop list pane once they're at the readable size. */
+  flex-wrap: wrap;
+  gap: 4px 12px;
   margin-bottom: 12px;
 }
 
 .section-count {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--ink-dim);
 }
 
@@ -333,7 +352,7 @@ body {
   background: none;
   border: none;
   padding: 2px 6px;
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -401,7 +420,7 @@ body {
 }
 
 .empty-state {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--ink-dim);
   padding: 20px 0;
 }
@@ -438,15 +457,35 @@ body {
 }
 
 .entry-stamp {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--ink-dim);
-  min-width: 76px;
+  /* Wide enough for a full locale date at --text-xs; the column is nowrap. */
+  min-width: 92px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .entry-time {
   opacity: 0.65;
   margin-top: 1px;
+}
+/* Flags a note that embeds a picture. Sits under the timestamp, so rows
+   without one keep the date column aligned and lose no width. Colours live
+   here rather than on the SVG: CSS beats presentation attributes, so a theme
+   can restyle the icon without touching the component. */
+.entry-image-flag {
+  display: block;
+  margin-top: 5px;
+}
+.entry-image-flag .flag-frame {
+  stroke: var(--sky);
+  fill: rgba(91, 141, 239, 0.14);
+}
+.entry-image-flag .flag-sun {
+  fill: var(--amber);
+  stroke: none;
+}
+.entry-image-flag .flag-hill {
+  stroke: var(--accent);
 }
 
 .entry-body {
@@ -485,7 +524,7 @@ body {
 /* Note detail */
 .back-link {
   display: inline-block;
-  font-size: 11px;
+  font-size: var(--text-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -523,7 +562,7 @@ body {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--hairline);
-  font-size: 11px;
+  font-size: var(--text-sm);
   color: var(--ink-dim);
 }
 .detail-footer-meta {
@@ -638,7 +677,7 @@ body {
 }
 
 .note-detail-stamp {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--ink-dim);
   margin-bottom: 6px;
 }
@@ -668,7 +707,7 @@ body {
 .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
 .copy-btn.is-done { color: var(--accent); border-color: var(--accent); }
 .copy-done {
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1;
@@ -698,7 +737,7 @@ body {
 .ghost-btn {
   font-family: var(--font);
   font-weight: 700;
-  font-size: 11px;
+  font-size: var(--text-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: transparent;
@@ -722,7 +761,7 @@ body {
   border: 1px solid var(--danger);
   color: var(--danger);
   padding: 10px 14px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   border-radius: 8px;
   margin-bottom: 20px;
 }
@@ -732,7 +771,7 @@ body {
   border: 1px solid var(--blue);
   color: var(--ink);
   padding: 8px 14px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   border-radius: 8px;
@@ -745,7 +784,7 @@ body {
   border: 1px solid var(--accent);
   color: var(--ink);
   padding: 9px 14px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   border-radius: 8px;
   margin-bottom: 20px;
   display: flex;
@@ -759,7 +798,7 @@ body {
   border: none;
   color: var(--accent);
   font-family: var(--font);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
   padding: 0;
@@ -795,7 +834,7 @@ body {
   border: none;
   color: var(--ground);
   font-family: var(--font);
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
   padding: 6px 12px;
@@ -812,13 +851,18 @@ body {
 }
 
 /* User profile */
+/* The account link is the primary target in the header meta — the two actions
+   beside it stay at --text-xs. */
 .app-user-link {
+  font-size: var(--text-sm);
+  font-weight: 700;
   color: var(--ink);
   text-decoration: none;
   border-bottom: 1px dotted var(--hairline);
 }
 .app-user-link:hover {
   color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .account-card {
@@ -842,7 +886,7 @@ body {
   font-size: 14px;
 }
 .account-key {
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -855,7 +899,7 @@ body {
 }
 .account-badge {
   display: inline-block;
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--danger);
@@ -960,7 +1004,7 @@ body {
   color: #06130D;
   font-family: var(--font);
   font-weight: 700;
-  font-size: 12px;
+  font-size: var(--text-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 12px 22px;
@@ -973,7 +1017,7 @@ body {
   color: var(--ink);
   font-family: var(--font);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--text-sm);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 12px 20px;
@@ -986,7 +1030,7 @@ body {
   border-bottom: 1px solid var(--hairline);
 }
 .landing-h2 {
-  font-size: 12px;
+  font-size: var(--text-sm);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--accent);
@@ -1021,7 +1065,7 @@ body {
 .landing-footer {
   text-align: center;
   color: var(--ink-dim);
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding-top: 28px;
@@ -1037,7 +1081,7 @@ body {
   border: none;
   color: var(--ink-dim);
   font-family: var(--font);
-  font-size: 11px;
+  font-size: var(--text-sm);
   letter-spacing: 0.06em;
   cursor: pointer;
   padding: 6px 8px;
@@ -1051,7 +1095,7 @@ body {
 
 .title-label {
   display: block;
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -1090,7 +1134,7 @@ body {
 
 .capture-tab {
   font-family: var(--font);
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-dim);
@@ -1143,13 +1187,16 @@ body {
 .markdown-body h2 { font-size: 19px; }
 .markdown-body h3 { font-size: 16px; }
 
+/* A blank line in the source has to read as a blank line. Adjacent margins
+   collapse, so this is the whole gap between two blocks — keep it near the
+   1.8 line-height of the body text, or the paragraph break disappears. */
 .markdown-body p,
 .markdown-body ul,
 .markdown-body ol,
 .markdown-body blockquote,
 .markdown-body pre,
 .markdown-body table {
-  margin: 0.5em 0;
+  margin: 1em 0;
 }
 
 .markdown-body ul,
@@ -1226,7 +1273,7 @@ body {
   border: 1px solid rgba(34, 177, 131, 0.4);
   border-radius: 6px;
   padding: 2px 4px 2px 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 600;
 }
 .tag-chip-x {
@@ -1275,7 +1322,7 @@ body {
   cursor: pointer;
 }
 .tag-suggest-item:hover { background: var(--surface-hover); color: var(--accent); }
-.tag-nudge { font-size: 11px; color: var(--ink-dim); margin: 4px 2px 0; }
+.tag-nudge { font-size: var(--text-sm); color: var(--ink-dim); margin: 4px 2px 0; }
 
 .tag-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .tag-pill {
@@ -1284,7 +1331,7 @@ body {
   border: 1px solid rgba(34, 177, 131, 0.35);
   border-radius: 6px;
   padding: 1px 8px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-decoration: none;
 }
@@ -1297,7 +1344,7 @@ body {
   border: 1px solid var(--hairline);
   border-radius: 6px;
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font);
@@ -1381,4 +1428,85 @@ body {
   margin: 4px 0 12px;
   font-size: 0.85rem;
   opacity: 0.85;
+}
+
+.note-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 0.5rem 0;
+  cursor: zoom-in;
+}
+/* Transparent wrapper: the button exists for keyboard and screen-reader
+   access, so it must not show up at all. */
+.note-image-btn {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  max-width: 100%;
+}
+.note-image-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.note-image-loading,
+.note-image-failed {
+  display: inline-block;
+  font-size: 0.85em;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Full-screen image view. Rendered inline in the note tree, not through a
+   portal: position:fixed resolves against the viewport only because no
+   ancestor creates a containing block (no transform/filter/contain on the
+   layout panes). If that ever changes, the lightbox will be trapped inside
+   the column — this is the first place to look. (A portal would sidestep that,
+   but react-dom/server cannot render portals and the test suite has no jsdom.)
+   The element is a <span>; display:flex is what makes it the overlay. */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(6, 11, 22, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* env() is 0 today (index.html has no viewport-fit=cover, so the browser
+     already insets the viewport); max() keeps the 20px base and stays correct
+     if that ever changes. */
+  padding: max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  cursor: zoom-out;
+}
+.lightbox-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.lightbox-close {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  padding: 10px;
+  cursor: pointer;
+  opacity: 0.75;
+}
+.lightbox-close:hover { opacity: 1; }
+
+/* "Add image" sits at the right end of the Write/Preview tab row. */
+.add-image-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }

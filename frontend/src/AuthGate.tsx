@@ -30,8 +30,14 @@ function Shell({ meta, children }: { meta: string; children: ReactNode }) {
   )
 }
 
+// `name` and `autoComplete` are required, not defaulted: a password manager that
+// can't fill or save is a real hazard here, because a forgotten password means
+// the vault is gone for good. Every field has to say what it holds — use "off"
+// only where filling would be wrong (the recovery code).
 function Field({
   label,
+  name,
+  autoComplete,
   type = 'text',
   value,
   onChange,
@@ -40,6 +46,8 @@ function Field({
   disabled,
 }: {
   label: string
+  name: string
+  autoComplete: string
   type?: string
   value: string
   onChange: (v: string) => void
@@ -53,12 +61,13 @@ function Field({
       <input
         className="auth-input"
         type={type}
+        name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
         disabled={disabled}
-        autoComplete="off"
+        autoComplete={autoComplete}
       />
     </label>
   )
@@ -91,8 +100,8 @@ function LoginForm({ onMode }: { onMode: (m: Mode) => void }) {
       <p className="auth-sub">{t('auth.loginSub')}</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label={t('auth.username')} value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
-        <Field label={t('auth.password')} type="password" value={password} onChange={setPassword} disabled={busy} />
+        <Field label={t('auth.username')} name="username" autoComplete="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
+        <Field label={t('auth.password')} name="password" autoComplete="current-password" type="password" value={password} onChange={setPassword} disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
           {busy ? t('auth.unlocking') : t('auth.login')}
         </button>
@@ -183,10 +192,10 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
       <p className="auth-sub">{t('auth.createSub')}</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label={t('auth.username')} value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
-        <Field label={t('auth.email')} type="email" value={email} onChange={setEmail} placeholder={t('auth.emailPlaceholder')} disabled={busy} />
-        <Field label={t('auth.password')} type="password" value={password} onChange={setPassword} placeholder={t('auth.strongPassword')} disabled={busy} />
-        <Field label={t('auth.passwordAgain')} type="password" value={confirm} onChange={setConfirm} placeholder={t('auth.repeatPassword')} disabled={busy} />
+        <Field label={t('auth.username')} name="username" autoComplete="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
+        <Field label={t('auth.email')} name="email" autoComplete="email" type="email" value={email} onChange={setEmail} placeholder={t('auth.emailPlaceholder')} disabled={busy} />
+        <Field label={t('auth.password')} name="new-password" autoComplete="new-password" type="password" value={password} onChange={setPassword} placeholder={t('auth.strongPassword')} disabled={busy} />
+        <Field label={t('auth.passwordAgain')} name="confirm-password" autoComplete="new-password" type="password" value={confirm} onChange={setConfirm} placeholder={t('auth.repeatPassword')} disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !password}>
           {solving ? t('auth.solvingRobot') : busy ? t('auth.creatingVault') : t('auth.createAccount')}
         </button>
@@ -229,9 +238,10 @@ function RecoverForm({ onMode }: { onMode: (m: Mode) => void }) {
       <p className="auth-sub">{t('auth.recoverSub')}</p>
       {error && <div className="error-banner">{error}</div>}
       <form onSubmit={submit}>
-        <Field label={t('auth.username')} value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
-        <Field label={t('auth.recoveryCode')} value={code} onChange={setCode} placeholder="XXXX-XXXX-…" disabled={busy} />
-        <Field label={t('auth.newPassword')} type="password" value={password} onChange={setPassword} placeholder={t('auth.newPasswordPlaceholder')} disabled={busy} />
+        <Field label={t('auth.username')} name="username" autoComplete="username" value={username} onChange={setUsername} autoFocus={canAutofocus()} disabled={busy} />
+        {/* The recovery code is written down, not stored by a password manager. */}
+        <Field label={t('auth.recoveryCode')} name="recovery-code" autoComplete="off" value={code} onChange={setCode} placeholder="XXXX-XXXX-…" disabled={busy} />
+        <Field label={t('auth.newPassword')} name="new-password" autoComplete="new-password" type="password" value={password} onChange={setPassword} placeholder={t('auth.newPasswordPlaceholder')} disabled={busy} />
         <button className="auth-btn" type="submit" disabled={busy || !username || !code || !password}>
           {busy ? t('auth.recovering') : t('auth.recoverSubmit')}
         </button>

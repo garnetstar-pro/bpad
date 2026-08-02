@@ -11,6 +11,7 @@ import {
 } from './offlineCache'
 import { translate } from './i18n'
 import { normalizeTags, collectTags } from './tags'
+import { parseImageIds } from './images'
 
 const API_URL = import.meta.env.DEV
   ? 'http://localhost:7071/api/notes'
@@ -175,6 +176,7 @@ export async function createNote(
       headers: headers(),
       body: JSON.stringify({
         ...(await encryptPayload(content, opts.title, tags)),
+        image_ids: parseImageIds(content),
         ...(opts.createdAt ? { created_at: opts.createdAt } : {}),
       }),
     })
@@ -202,13 +204,19 @@ export async function updateNote(id: string, content: string, title?: string, ta
     res = await fetch(`${API_URL}/${id}`, {
       method: 'PUT',
       headers: headers(),
-      body: JSON.stringify(await encryptPayload(content, title, tags)),
+      body: JSON.stringify({
+        ...(await encryptPayload(content, title, tags)),
+        image_ids: parseImageIds(content),
+      }),
     })
   } catch {
     throw new Error(translate('errors.offlineWrite'))
   }
   checkAuth(res)
-  if (!res.ok) throw new Error(translate('errors.saveFailed'))
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || translate('errors.saveFailed'))
+  }
   const enc: EncryptedNote = await res.json()
   const username = getUsername()
   if (username) upsertCachedNote(username, enc)

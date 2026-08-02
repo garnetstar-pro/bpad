@@ -7,3 +7,4 @@ azure-cosmos
 azure-communication-email
 pydantic
 PyJWT
+azure-storage-blob

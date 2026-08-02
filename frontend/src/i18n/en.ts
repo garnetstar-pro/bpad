@@ -16,10 +16,23 @@ export const en = {
     titlePlaceholder: 'derived from the markdown when left empty',
     write: 'Write',
     preview: 'Preview',
+    addImage: 'Add image',
     bodyPlaceholder: 'Write a thought or paste a link…',
     nothingToPreview: 'nothing to preview',
     fileIt: 'File it',
     saveFailed: 'Saving failed. Try again.',
+    imageUploading: 'uploading image…',
+    imageTooLarge: 'that image is too large (max 10 MB)',
+    imageFailed: 'image upload failed, try again',
+    imageLimit: 'a note can hold at most {limit} images',
+  },
+  images: {
+    loading: 'loading image…',
+    failed: 'image unavailable',
+    alt: 'note image',
+    zoom: 'view image larger',
+    zoomNamed: 'view image larger: {alt}',
+    close: 'close image',
   },
   composer: {
     newEntry: '+ New entry…',
@@ -35,6 +48,7 @@ export const en = {
     sortLabel: 'Sort entries by',
     sortCreated: 'created',
     sortModified: 'modified',
+    hasImage: 'Contains an image',
   },
   notes: {
     save: 'Save',
@@ -130,7 +144,7 @@ export const en = {
     feedbackSendAnother: 'Send another',
     backupTitle: 'backup',
     backupIntro:
-      'Download all your notes as a file and keep it somewhere safe — a USB stick, an encrypted drive. If you ever lose both your password and your recovery code, this file is what gets your notes back.',
+      'Download all your notes and the images in them as a single file and keep it somewhere safe — a USB stick, an encrypted drive. If you ever lose both your password and your recovery code, this file is what gets your notes back.',
     backupProtected: 'Protect with a passphrase (recommended)',
     backupPlain: 'Plain, unencrypted file',
     backupPassphrase: 'Backup passphrase',
@@ -142,31 +156,39 @@ export const en = {
     backupPlainWarning: 'I understand anyone who finds this file can read every note in it.',
     backupDownload: 'Download backup',
     backupWorking: 'preparing…',
+    backupImages: 'downloading images {done}/{total}…',
+    backupPacking: 'packing the file…',
     backupEmpty: 'There’s nothing to back up yet.',
-    backupDone: 'Backup downloaded: {count} notes ✓',
+    backupDone: 'Backup downloaded: {count} notes, {images} images ✓',
+    backupImagesMissing:
+      '{count} images couldn’t be downloaded and are missing from the file. The notes were saved anyway.',
     backupRestoreLink: 'Restore from a backup →',
   },
   restore: {
     title: 'Restore from a backup',
     intro:
-      'Open a bpad backup file. Everything happens in this browser — the file is never uploaded.',
+      'Open a bpad backup file — a .zip archive, or an older .json/.bpad file. Everything happens in this browser until you choose to import.',
     pick: 'Choose a backup file',
     passphrase: 'Backup passphrase',
     open: 'Open',
     opening: 'opening…',
     summary: '{count} notes, {from} to {to}',
+    summaryImages: '{count} images in this file.',
     emptyBackup: 'This backup contains no notes.',
     importTitle: 'import into your account',
     importIntro: '{fresh} new, {dupes} already in your account.',
     importNothing: 'Every note in this backup is already in your account.',
     importStart: 'Import {count} notes',
     importProgress: 'importing {done} of {total}…',
+    importImages: 'uploading images {done} of {total}…',
     importDone: '{count} notes imported ✓',
     importPartial: '{count} imported, {failed} failed. Run the import again to retry.',
     importLimited:
       '{count} imported, then your account hit the limit for unverified e-mail. Verify your e-mail and run the import again.',
     importLimitedHard:
       '{count} imported, then your account reached its note limit. Some notes were not imported.',
+    importLimitedImages:
+      '{count} imported, then the image upload limit was reached. Run the import again in a few minutes to finish the rest — nothing gets duplicated.',
     lockedHint: 'Unlock your vault to import these notes into your account.',
     loggedOutHint: 'Log in to import these notes into your account.',
   },
@@ -221,6 +243,9 @@ export const en = {
   lock: {
     title: 'locked',
     sub: 'Idle too long — enter your password to unlock.',
+    // Cold load (reload, a pasted note link, a PWA start): the keys only ever
+    // lived in the page, so they went with it.
+    subReturning: 'Welcome back — enter your password to unlock.',
     password: 'password',
     unlock: 'Unlock',
     unlocking: 'unlocking…',
@@ -318,7 +343,7 @@ Write plain text, or sprinkle in a little Markdown. Toggle **Preview** to see it
 | \`\` \`code\` \`\` | inline \`code\` |
 | \`> quote\` | a blockquote |
 
-Leave a blank line between paragraphs.
+A single Enter breaks the line; a blank line starts a new paragraph.
 
 ## Save a link in one move
 Type \`{host}/\` in the address bar and a full URL right after it:

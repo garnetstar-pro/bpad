@@ -1,7 +1,7 @@
 import logging
 import os
 from typing import Optional, Protocol
-from models import Note, User, Feedback
+from models import Note, User, Feedback, ImageRecord
 
 
 # ---------------------------------------------------------------- notes
@@ -282,6 +282,120 @@ class CosmosFeedbackRepository:
         self._c().create_item(feedback.model_dump(mode="json"))
 
 
+# ---------------------------------------------------------------- images
+
+class ImagesRepository(Protocol):
+    def create_image(self, image: ImageRecord) -> None: ...
+    def get_image(self, user_id: str, image_id: str) -> Optional[ImageRecord]: ...
+    def set_note_id(self, user_id: str, image_id: str, note_id: str) -> None: ...
+    def images_for_note(self, user_id: str, note_id: str) -> list[ImageRecord]: ...
+    def delete_image(self, user_id: str, image_id: str) -> Optional[str]: ...
+    def pending_older_than(self, user_id: str, cutoff) -> list[ImageRecord]: ...
+
+
+class InMemoryImagesRepository:
+    """Temporary in-process image-metadata store (does not survive a restart)."""
+
+    def __init__(self) -> None:
+        self._images: dict[str, ImageRecord] = {}
+
+    def create_image(self, image: ImageRecord) -> None:
+        self._images[image.id] = image
+
+    def get_image(self, user_id: str, image_id: str) -> Optional[ImageRecord]:
+        img = self._images.get(image_id)
+        return img if img and img.user_id == user_id else None
+
+    def set_note_id(self, user_id: str, image_id: str, note_id: str) -> None:
+        img = self.get_image(user_id, image_id)
+        if img is not None:
+            img.note_id = note_id
+
+    def images_for_note(self, user_id: str, note_id: str) -> list[ImageRecord]:
+        return [i for i in self._images.values() if i.user_id == user_id and i.note_id == note_id]
+
+    def delete_image(self, user_id: str, image_id: str) -> Optional[str]:
+        img = self.get_image(user_id, image_id)
+        if img is None:
+            return None
+        del self._images[image_id]
+        return img.blob_path
+
+    def pending_older_than(self, user_id: str, cutoff) -> list[ImageRecord]:
+        return [
+            i for i in self._images.values()
+            if i.user_id == user_id and i.note_id is None and i.created_at < cutoff
+        ]
+
+
+class CosmosImagesRepository:
+    """Persistent image-metadata store in Azure Cosmos DB (partition /user_id)."""
+
+    def __init__(self, connection_string: str, database: str = "bpad", container: str = "images") -> None:
+        self._cs = connection_string
+        self._database_name = database
+        self._container_name = container
+        self._container = None
+
+    def _c(self):
+        if self._container is None:
+            from azure.cosmos import CosmosClient, PartitionKey
+
+            client = CosmosClient.from_connection_string(self._cs)
+            db = client.create_database_if_not_exists(self._database_name)
+            self._container = db.create_container_if_not_exists(
+                id=self._container_name, partition_key=PartitionKey(path="/user_id")
+            )
+        return self._container
+
+    def create_image(self, image: ImageRecord) -> None:
+        self._c().create_item(image.model_dump(mode="json"))
+
+    def get_image(self, user_id: str, image_id: str) -> Optional[ImageRecord]:
+        from azure.cosmos import exceptions
+
+        try:
+            item = self._c().read_item(item=image_id, partition_key=user_id)
+        except exceptions.CosmosResourceNotFoundError:
+            return None
+        return ImageRecord.model_validate(item)
+
+    def set_note_id(self, user_id: str, image_id: str, note_id: str) -> None:
+        rec = self.get_image(user_id, image_id)
+        if rec is None:
+            return
+        rec.note_id = note_id
+        self._c().upsert_item(rec.model_dump(mode="json"))
+
+    def images_for_note(self, user_id: str, note_id: str) -> list[ImageRecord]:
+        items = self._c().query_items(
+            query="SELECT * FROM c WHERE c.user_id = @u AND c.note_id = @n",
+            parameters=[{"name": "@u", "value": user_id}, {"name": "@n", "value": note_id}],
+            partition_key=user_id,
+        )
+        return [ImageRecord.model_validate(i) for i in items]
+
+    def delete_image(self, user_id: str, image_id: str) -> Optional[str]:
+        from azure.cosmos import exceptions
+
+        rec = self.get_image(user_id, image_id)
+        if rec is None:
+            return None
+        try:
+            self._c().delete_item(item=image_id, partition_key=user_id)
+        except exceptions.CosmosResourceNotFoundError:
+            return None
+        return rec.blob_path
+
+    def pending_older_than(self, user_id: str, cutoff) -> list[ImageRecord]:
+        items = self._c().query_items(
+            query="SELECT * FROM c WHERE c.user_id = @u AND (NOT IS_DEFINED(c.note_id) OR c.note_id = null) AND c.created_at < @cut",
+            parameters=[{"name": "@u", "value": user_id}, {"name": "@cut", "value": cutoff.isoformat()}],
+            partition_key=user_id,
+        )
+        return [ImageRecord.model_validate(i) for i in items]
+
+
 # ---------------------------------------------------------------- factory
 
 def _connection_string() -> Optional[str]:
@@ -321,3 +435,14 @@ def get_feedback_repository() -> FeedbackRepository:
         "in-memory store (it will not survive a restart)."
     )
     return InMemoryFeedbackRepository()
+
+
+def get_images_repository() -> ImagesRepository:
+    cs = _connection_string()
+    if cs:
+        return CosmosImagesRepository(cs, database=_database_name())
+    logging.warning(
+        "COSMOS_CONNECTION_STRING is not set - image metadata is stored in a "
+        "temporary in-memory store (it will not survive a restart)."
+    )
+    return InMemoryImagesRepository()

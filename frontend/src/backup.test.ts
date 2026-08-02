@@ -5,11 +5,17 @@ import {
   isEncrypted,
   encryptBackup,
   decryptBackup,
-  notesOf,
+  contentOf,
+  imagePath,
+  newBackupKdf,
+  deriveBackupKey,
+  decryptBackupWithKey,
   diffAgainst,
   BACKUP_VERSION,
   type BackupNote,
+  type BackupImage,
 } from './backup'
+import { encryptBytes } from './crypto'
 import type { Note } from './types'
 
 const note: Note = {
@@ -135,7 +141,7 @@ describe('encryptBackup / decryptBackup', () => {
     expect(enc.encrypted).toBe(true)
     expect(JSON.stringify(enc)).not.toContain('Groceries')
     const back = await decryptBackup(enc, 'correct horse battery staple')
-    expect(back).toEqual(plain.notes)
+    expect(back).toEqual({ notes: plain.notes, images: [] })
   }, 30_000)
 
   it('keeps the header readable in the clear', async () => {
@@ -178,32 +184,122 @@ describe('encryptBackup / decryptBackup', () => {
     const reparsed = parseBackup(JSON.stringify(enc))
     expect(isEncrypted(reparsed)).toBe(true)
     if (isEncrypted(reparsed)) {
-      await expect(decryptBackup(reparsed, 'correct horse battery staple')).resolves.toEqual(
-        plain.notes,
-      )
+      await expect(decryptBackup(reparsed, 'correct horse battery staple')).resolves.toEqual({
+        notes: plain.notes,
+        images: [],
+      })
     }
   }, 30_000)
 })
 
-describe('notesOf', () => {
-  it('returns the notes of a plain backup without a passphrase', async () => {
-    const plain = serializeBackup([note], { username: 'jan' })
-    await expect(notesOf(plain)).resolves.toEqual(plain.notes)
+const image: BackupImage = {
+  id: 'abc-123',
+  content_type: 'image/webp',
+  size_bytes: 48210,
+  path: 'images/abc-123.webp',
+}
+
+describe('contentOf', () => {
+  it('returns notes and images of a plain backup without a passphrase', async () => {
+    const plain = serializeBackup([note], { username: 'jan', images: [image] })
+    await expect(contentOf(plain)).resolves.toEqual({ notes: plain.notes, images: [image] })
   })
 
   it('decrypts an encrypted backup with the passphrase', async () => {
-    const plain = serializeBackup([note], { username: 'jan' })
+    const plain = serializeBackup([note], { username: 'jan', images: [image] })
     const enc = await encryptBackup(plain, 'correct horse battery staple')
-    await expect(notesOf(enc, 'correct horse battery staple')).resolves.toEqual(plain.notes)
+    await expect(contentOf(enc, 'correct horse battery staple')).resolves.toEqual({
+      notes: plain.notes,
+      images: [image],
+    })
   }, 30_000)
 
   it('refuses an encrypted backup with no passphrase', async () => {
-    const enc = await encryptBackup(
-      serializeBackup([note], { username: 'jan' }),
-      'correct horse battery staple',
-    )
-    await expect(notesOf(enc)).rejects.toThrow(/password-protected/i)
+    const enc = await encryptBackup(serializeBackup([note], { username: 'jan' }), 'a passphrase')
+    await expect(contentOf(enc)).rejects.toThrow(/password-protected/i)
   }, 30_000)
+})
+
+describe('version 2 manifest', () => {
+  it('defaults images to an empty array', () => {
+    expect(serializeBackup([note], { username: 'jan' }).images).toEqual([])
+  })
+
+  it('writes version 2', () => {
+    expect(serializeBackup([note], { username: 'jan' }).version).toBe(2)
+  })
+
+  it('round-trips the images array through text', () => {
+    const text = JSON.stringify(serializeBackup([note], { username: 'jan', images: [image] }))
+    const parsed = parseBackup(text)
+    expect(isEncrypted(parsed)).toBe(false)
+    if (!isEncrypted(parsed)) expect(parsed.images).toEqual([image])
+  })
+
+  it('reads a version 1 file as a backup with no images', () => {
+    const v1 = {
+      format: 'bpad-backup',
+      version: 1,
+      exported_at: '2026-07-20T10:00:00Z',
+      username: 'jan',
+      encrypted: false,
+      notes: [{ title: 'T', content: 'c', url: null, created_at: 'x', updated_at: 'x', tags: [] }],
+    }
+    const parsed = parseBackup(JSON.stringify(v1))
+    expect(isEncrypted(parsed)).toBe(false)
+    if (!isEncrypted(parsed)) {
+      expect(parsed.images).toEqual([])
+      expect(parsed.notes).toHaveLength(1)
+    }
+  })
+
+  it('keeps the images array out of the encrypted header', async () => {
+    const plain = serializeBackup([note], { username: 'jan', images: [image] })
+    const enc = await encryptBackup(plain, 'correct horse battery staple')
+    expect(JSON.stringify(enc)).not.toContain('abc-123')
+  }, 30_000)
+
+  it('reads a version 1 encrypted payload that has no images key', async () => {
+    const plain = serializeBackup([note], { username: 'jan' })
+    const kdf = newBackupKdf()
+    const key = await deriveBackupKey('a passphrase here', kdf)
+    // The historical wire shape: version 1 encrypted only ever wrote { notes }.
+    const { iv, ct } = await encryptBytes(
+      new TextEncoder().encode(JSON.stringify({ notes: plain.notes })),
+      key,
+    )
+    const legacy = {
+      format: 'bpad-backup' as const,
+      version: 1,
+      exported_at: plain.exported_at,
+      username: 'jan',
+      encrypted: true as const,
+      kdf,
+      cipher: 'AES-256-GCM' as const,
+      iv,
+      ct,
+    }
+    await expect(decryptBackupWithKey(legacy, key)).resolves.toEqual({
+      notes: plain.notes,
+      images: [],
+    })
+  }, 30_000)
+})
+
+describe('imagePath', () => {
+  it('uses the extension that matches the content type', () => {
+    expect(imagePath('abc', 'image/webp', false)).toBe('images/abc.webp')
+    expect(imagePath('abc', 'image/jpeg', false)).toBe('images/abc.jpg')
+    expect(imagePath('abc', 'image/png', false)).toBe('images/abc.png')
+  })
+
+  it('falls back to .bin for an unknown content type', () => {
+    expect(imagePath('abc', 'application/weird', false)).toBe('images/abc.bin')
+  })
+
+  it('uses .bin for an encrypted archive whatever the content type', () => {
+    expect(imagePath('abc', 'image/webp', true)).toBe('images/abc.bin')
+  })
 })
 
 const incoming = (over: Partial<BackupNote> = {}): BackupNote => ({
@@ -253,5 +349,28 @@ describe('diffAgainst', () => {
 
   it('handles an empty backup', () => {
     expect(diffAgainst([note], [])).toEqual({ toImport: [], duplicates: [] })
+  })
+
+  it('recognises a note whose image ids were rewritten by an earlier import', () => {
+    const stored: Note = {
+      ...note,
+      content: '# Recipe\n![](bpad-img:new-id-from-server)',
+    }
+    const incomingNote = incoming({ content: '# Recipe\n![](bpad-img:id-from-the-file)' })
+    const d = diffAgainst([stored], [incomingNote])
+    expect(d.toImport).toHaveLength(0)
+    expect(d.duplicates).toHaveLength(1)
+  })
+
+  it('still separates notes that differ in more than their image ids', () => {
+    const stored: Note = { ...note, content: '# Recipe\n![](bpad-img:a)' }
+    const incomingNote = incoming({ content: '# Dinner\n![](bpad-img:b)' })
+    expect(diffAgainst([stored], [incomingNote]).toImport).toHaveLength(1)
+  })
+
+  it('separates notes that reference a different number of images', () => {
+    const stored: Note = { ...note, content: 'x ![](bpad-img:a)' }
+    const incomingNote = incoming({ content: 'x ![](bpad-img:a) ![](bpad-img:b)' })
+    expect(diffAgainst([stored], [incomingNote]).toImport).toHaveLength(1)
   })
 })
