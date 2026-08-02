@@ -28,6 +28,7 @@ _VERIFY_TTL = timedelta(hours=24)
 _UNVERIFIED_NOTE_LIMIT = 10  # unverified accounts may have at most this many notes
 _VERIFIED_NOTE_LIMIT = 1000  # hard per-account ceiling (bounds Cosmos storage/RU)
 _PENDING_IMAGE_TTL = timedelta(hours=24)  # lazy GC horizon for unclaimed image uploads
+_DEFAULT_MAX_IMAGES_PER_NOTE = 10  # fallback when the user record can't be read
 
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
 
@@ -372,6 +373,16 @@ def _note_limit_hit(count: int, verified: bool) -> Optional[str]:
     return None
 
 
+def _image_limit(user: Optional[User]) -> int:
+    """The user's images-per-note quota; hand-edited in Cosmos, never via the API."""
+    return user.max_images_per_note if user else _DEFAULT_MAX_IMAGES_PER_NOTE
+
+
+def _image_limit_exceeded(image_ids, limit: int) -> bool:
+    """Distinct ids: the same picture used repeatedly in one note counts once."""
+    return len(set(image_ids)) > limit
+
+
 # ---------------------------------------------------------------- notes
 
 @app.route(route="notes", methods=["GET"])
@@ -405,6 +416,10 @@ def create_note(req: func.HttpRequest) -> func.HttpResponse:
         )
     if hit == "hard":
         return _error("Note limit reached", 403)
+
+    limit = _image_limit(account)
+    if _image_limit_exceeded(data.image_ids, limit):
+        return _error(f"A note can hold at most {limit} images.", 403)
 
     note = Note(
         user_id=user,
@@ -442,6 +457,10 @@ def update_note(req: func.HttpRequest) -> func.HttpResponse:
         data = NoteCreate(**req.get_json())
     except Exception as e:
         return _error(f"Invalid data: {str(e)}", 400)
+
+    limit = _image_limit(users_repo.get_user(user))
+    if _image_limit_exceeded(data.image_ids, limit):
+        return _error(f"A note can hold at most {limit} images.", 403)
 
     note.iv = data.iv
     note.ct = data.ct
