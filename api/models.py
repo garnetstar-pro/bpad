@@ -65,6 +65,10 @@ class User(BaseModel):
     email_verified: bool = False
     # Non-secret UI preference: note-list sort field. "created" (default) | "modified".
     sort_by: str = "created"
+    # Non-secret per-user quota: how many distinct images one note may reference.
+    # Deliberately not writable through any endpoint — change it by hand in the
+    # Cosmos `users` container (Azure Data Explorer).
+    max_images_per_note: int = 10
     verify_token_hash: Optional[str] = None
     verify_expires: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)

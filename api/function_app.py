@@ -340,6 +340,7 @@ def me(req: func.HttpRequest) -> func.HttpResponse:
             "emailVerified": user.email_verified,
             "createdAt": user.created_at.isoformat() if user.created_at else None,
             "sortBy": user.sort_by,
+            "maxImagesPerNote": user.max_images_per_note,
         },
         200,
     )
