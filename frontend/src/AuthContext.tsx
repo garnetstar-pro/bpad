@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { clearSession } from './session'
 import { rememberUser, forgetRememberedUser } from './rememberedUser'
-import { isTouchPrimary } from './device'
+import { getAutoLockPref } from './preferences'
 
 interface AuthState {
   username: string | null
@@ -15,14 +15,12 @@ interface AuthState {
 
 const AuthCtx = createContext<AuthState | null>(null)
 
-// Lock the vault after this much inactivity (desktop only; also re-checked when
-// the tab regains focus, so returning to a backgrounded tab after the timeout
-// locks too).
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null)
   const [locked, setLocked] = useState(false)
+  // Incremented by bpad:lockpref-changed to re-run the idle-lock effect immediately
+  // when the user changes the auto-lock preference from the Account page.
+  const [prefVersion, setPrefVersion] = useState(0)
 
   // When the API hits a 401 (expired token), send the user back to login.
   useEffect(() => {
@@ -34,20 +32,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('bpad:unauthorized', onUnauthorized)
   }, [])
 
-  // Idle lock (desktop only — not on touch devices). Clears the in-memory keys
-  // and shows the lock screen; the username is kept for a quick password re-auth.
-  // Primary trigger: leaving the tab/window (switch tab or app) and coming back
-  // after the timeout. Also locks after the timeout of foreground inactivity.
+  // Re-run idle-lock effect when user changes the preference from Account page.
   useEffect(() => {
-    if (username === null || locked || isTouchPrimary()) return
+    const onPrefChanged = () => setPrefVersion((v) => v + 1)
+    window.addEventListener('bpad:lockpref-changed', onPrefChanged)
+    return () => window.removeEventListener('bpad:lockpref-changed', onPrefChanged)
+  }, [])
+
+  // Idle lock. Works on all devices (desktop + mobile).
+  // Timeout is read from user preference (getAutoLockPref).
+  // null = "never" → no lock installed.
+  // Also re-checked when the tab regains focus, so returning to a backgrounded
+  // tab after the timeout locks too.
+  useEffect(() => {
+    if (username === null || locked) return
+    const autoLockMinutes = getAutoLockPref()
+    if (autoLockMinutes === null) return  // "never" — don't install the timer
+    const timeoutMs = autoLockMinutes * 60_000
+
     let last = Date.now()
     let awayAt: number | null = null
-    const lock = () => {
-      clearSession()
-      setLocked(true)
-    }
+    const lock = () => { clearSession(); setLocked(true) }
     const bump = () => { last = Date.now() }
-    const idleCheck = () => { if (Date.now() - last > IDLE_TIMEOUT_MS) lock() }
+    const idleCheck = () => { if (Date.now() - last > timeoutMs) lock() }
     // Tab hidden or window blurred → remember when we left.
     const leave = () => { if (awayAt === null) awayAt = Date.now() }
     // Back on the tab/window → lock if we were away long enough.
@@ -55,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (awayAt !== null) {
         const away = Date.now() - awayAt
         awayAt = null
-        if (away >= IDLE_TIMEOUT_MS) return lock()
+        if (away >= timeoutMs) return lock()
       }
       last = Date.now() // fresh start; don't lock from a stale foreground timer
     }
@@ -75,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', onVisibility)
       clearInterval(timer)
     }
-  }, [username, locked])
+  }, [username, locked, prefVersion])
 
   const value: AuthState = {
     username,
