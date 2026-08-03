@@ -65,6 +65,9 @@ class User(BaseModel):
     email_verified: bool = False
     # Non-secret UI preference: note-list sort field. "created" (default) | "modified".
     sort_by: str = "created"
+    # Non-secret UI preference: idle-lock timeout in minutes. 0 = never; None = not
+    # set by user yet (device picks its own default: 5 min on desktop, never on mobile).
+    auto_lock_minutes: Optional[int] = None
     # Non-secret per-user quota: how many distinct images one note may reference.
     # Deliberately not writable through any endpoint — change it by hand in the
     # Cosmos `users` container (Azure Data Explorer).
@@ -113,6 +116,9 @@ class ChangePasswordRequest(BaseModel):
 
 class PreferencesRequest(BaseModel):
     sortBy: Literal["created", "modified"]
+    # Optional: only present when the user changes the auto-lock setting.
+    # 0 = never; None = not sent (don't change the stored value); positive int = minutes.
+    autoLockMinutes: Optional[int] = Field(default=None, ge=0)
 
 
 class Feedback(BaseModel):

@@ -352,6 +352,7 @@ def me(req: func.HttpRequest) -> func.HttpResponse:
             "createdAt": user.created_at.isoformat() if user.created_at else None,
             "sortBy": user.sort_by,
             "maxImagesPerNote": user.max_images_per_note,
+            "autoLockMinutes": user.auto_lock_minutes,
         },
         200,
     )
@@ -370,8 +371,10 @@ def update_preferences(req: func.HttpRequest) -> func.HttpResponse:
     if user is None:
         return _error("User not found", 404)
     user.sort_by = data.sortBy
+    if data.autoLockMinutes is not None:
+        user.auto_lock_minutes = data.autoLockMinutes
     users_repo.save_user(user)
-    return _json({"sortBy": user.sort_by}, 200)
+    return _json({"sortBy": user.sort_by, "autoLockMinutes": user.auto_lock_minutes}, 200)
 
 
 def _note_limit_hit(count: int, verified: bool) -> Optional[str]:
