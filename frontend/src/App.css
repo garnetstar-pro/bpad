@@ -897,7 +897,7 @@ body {
   text-align: right;
   word-break: break-word;
 }
-.account-val select {
+select.account-val {
   background: var(--surface-hover);
   color: var(--ink);
   border: 1px solid var(--hairline);
