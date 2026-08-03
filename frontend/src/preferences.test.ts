@@ -1,34 +1,69 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { getSortPref, setSortPref } from './preferences'
 
-// vitest runs in the node environment (no DOM); stub localStorage with a Map,
-// mirroring offlineCache.test.ts.
-const store = new Map<string, string>()
-;(globalThis as unknown as { localStorage: Storage }).localStorage = {
-  getItem: (k: string) => store.get(k) ?? null,
-  setItem: (k: string, v: string) => void store.set(k, v),
-  removeItem: (k: string) => void store.delete(k),
-  clear: () => store.clear(),
-  key: () => null,
-  length: 0,
-} as Storage
+// Stub localStorage (tests run in Node without jsdom).
+const store: Record<string, string> = {}
+const localStorageMock = {
+  getItem: (k: string) => store[k] ?? null,
+  setItem: (k: string, v: string) => { store[k] = v },
+  removeItem: (k: string) => { delete store[k] },
+}
+Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true })
 
+// Stub session username.
 vi.mock('./session', () => ({ getUsername: () => 'alice' }))
 
-describe('sort preference cache', () => {
-  beforeEach(() => store.clear())
+// Stub isTouchPrimary — default: desktop (false).
+let mockIsTouch = false
+vi.mock('./device', () => ({ isTouchPrimary: () => mockIsTouch }))
 
-  it('defaults to "created" when nothing is stored', () => {
-    expect(getSortPref()).toBe('created')
+import {
+  getAutoLockPref,
+  setAutoLockPref,
+  deviceDefaultAutoLock,
+} from './preferences'
+
+beforeEach(() => {
+  Object.keys(store).forEach((k) => delete store[k])
+  mockIsTouch = false
+})
+
+describe('deviceDefaultAutoLock', () => {
+  it('returns 5 on desktop', () => {
+    mockIsTouch = false
+    expect(deviceDefaultAutoLock()).toBe(5)
   })
 
-  it('round-trips a stored value', () => {
-    setSortPref('modified')
-    expect(getSortPref()).toBe('modified')
+  it('returns null on touch device', () => {
+    mockIsTouch = true
+    expect(deviceDefaultAutoLock()).toBeNull()
+  })
+})
+
+describe('getAutoLockPref', () => {
+  it('returns device default when nothing stored', () => {
+    mockIsTouch = false
+    expect(getAutoLockPref()).toBe(5)
   })
 
-  it('falls back to "created" for an unrecognized stored value', () => {
-    localStorage.setItem('bpad.pref.sort.alice', 'garbage')
-    expect(getSortPref()).toBe('created')
+  it('returns stored value when present', () => {
+    setAutoLockPref(30)
+    expect(getAutoLockPref()).toBe(30)
+  })
+
+  it('returns null (never) when 0 stored', () => {
+    setAutoLockPref(0)
+    expect(getAutoLockPref()).toBeNull()
+  })
+})
+
+describe('setAutoLockPref', () => {
+  it('persists minutes to localStorage', () => {
+    setAutoLockPref(15)
+    expect(getAutoLockPref()).toBe(15)
+  })
+
+  it('persists null (never) as sentinel 0', () => {
+    setAutoLockPref(null)
+    expect(getAutoLockPref()).toBeNull()
   })
 })
