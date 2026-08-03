@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from './AuthContext'
-import { getAccount, resendVerification, type Account as AccountData } from './authApi'
+import { getAccount, resendVerification, savePreferences, type Account as AccountData } from './authApi'
 import { getKnownNoteCount } from './api'
 import { MIN_PASSPHRASE_LENGTH } from './backup'
 import { exportBackup, type ExportProgress } from './backupExport'
@@ -10,6 +10,7 @@ import { sendFeedback, FEEDBACK_MAX_LENGTH } from './feedbackApi'
 import { UNVERIFIED_NOTE_LIMIT } from './verifyStatus'
 import { getUsername } from './session'
 import { useTranslation, availableLocales, type Locale } from './i18n'
+import { getAutoLockPref, setAutoLockPref } from './preferences'
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—'
@@ -23,6 +24,7 @@ export default function Account() {
   const [account, setAccount] = useState<AccountData | null>(null)
   const [offline, setOffline] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [autoLock, setAutoLock] = useState<number | null>(() => getAutoLockPref())
   const [resend, setResend] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [feedback, setFeedback] = useState('')
   const [fbState, setFbState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
@@ -57,8 +59,18 @@ export default function Account() {
     }
   }
 
-  function backupValidationError(): string {
-    if (bkMode === 'plain') return ''
+  async function handleAutoLockChange(value: string) {
+    const minutes = value === 'never' ? null : parseInt(value, 10)
+    // Sentinel: null → 0 for server, positive number directly.
+    const serverValue = minutes === null ? 0 : minutes
+    setAutoLock(minutes)
+    setAutoLockPref(minutes)
+    window.dispatchEvent(new Event('bpad:lockpref-changed'))
+    // Best-effort server sync — same pattern as sortBy preference.
+    savePreferences(account?.sortBy ?? 'created', serverValue).catch(() => {})
+  }
+
+  function backupValidationError(): string {    if (bkMode === 'plain') return ''
     if (bkPass.length < MIN_PASSPHRASE_LENGTH) {
       return t('account.backupPassphraseTooShort', { min: MIN_PASSPHRASE_LENGTH })
     }
@@ -134,6 +146,22 @@ export default function Account() {
             </select>
           </div>
         )}
+
+        <div className="account-row">
+          <span className="account-key">{t('account.autoLock')}</span>
+          <select
+            className="account-val"
+            value={autoLock === null ? 'never' : String(autoLock)}
+            onChange={(e) => handleAutoLockChange(e.target.value)}
+          >
+            <option value="never">{t('account.autoLockNever')}</option>
+            <option value="1">{t('account.autoLock1')}</option>
+            <option value="5">{t('account.autoLock5')}</option>
+            <option value="15">{t('account.autoLock15')}</option>
+            <option value="30">{t('account.autoLock30')}</option>
+            <option value="60">{t('account.autoLock60')}</option>
+          </select>
+        </div>
 
         {loading && <div className="empty-state">{t('common.loading')}</div>}
 
