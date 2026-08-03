@@ -16,7 +16,7 @@ import { setSession, getToken } from './session'
 import { cacheAuth, getCachedAuth } from './offlineCache'
 import { solvePow } from './pow'
 import { translate } from './i18n'
-import { setSortPref, type SortField } from './preferences'
+import { setSortPref, setAutoLockPref, type SortField } from './preferences'
 import { setMaxImagesPerNote } from './entitlements'
 
 const AUTH_URL = import.meta.env.DEV ? 'http://localhost:7071/api/auth' : '/api/auth'
@@ -38,6 +38,7 @@ export interface Account {
   createdAt: string | null
   sortBy: SortField
   maxImagesPerNote: number
+  autoLockMinutes: number | null  // null = not set = use device default
 }
 
 export async function getAccount(): Promise<Account> {
@@ -49,15 +50,24 @@ export async function getAccount(): Promise<Account> {
   const account: Account = await res.json()
   setSortPref(account.sortBy)
   setMaxImagesPerNote(account.maxImagesPerNote)
+  // Sync auto-lock preference from server. null = user hasn't set it → keep device default.
+  if (account.autoLockMinutes !== null) {
+    setAutoLockPref(account.autoLockMinutes)
+  }
   return account
 }
 
-export async function savePreferences(sortBy: SortField): Promise<void> {
+export async function savePreferences(
+  sortBy: SortField,
+  autoLockMinutes?: number | null,
+): Promise<void> {
   const token = getToken()
+  const body: Record<string, unknown> = { sortBy }
+  if (autoLockMinutes !== undefined) body.autoLockMinutes = autoLockMinutes
   const res = await fetch(`${AUTH_URL}/preferences`, {
     method: 'PUT',
     headers: { ...JSON_HEADERS, ...(token ? { 'X-Auth-Token': token } : {}) },
-    body: JSON.stringify({ sortBy }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(translate('errors.preferencesSaveFailed'))
 }

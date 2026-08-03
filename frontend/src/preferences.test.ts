@@ -7,7 +7,7 @@ const localStorageMock = {
   setItem: (k: string, v: string) => { store[k] = v },
   removeItem: (k: string) => { delete store[k] },
 }
-Object.defineProperty(global, 'localStorage', { value: localStorageMock, writable: true })
+Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true })
 
 // Stub session username.
 vi.mock('./session', () => ({ getUsername: () => 'alice' }))
