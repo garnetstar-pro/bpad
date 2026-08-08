@@ -6,6 +6,7 @@ export const en = {
     cancel: 'Cancel',
     back: '← back',
     logOut: 'log out',
+    help: 'help',
     loading: 'loading…',
     untitled: '(untitled)',
   },
@@ -66,7 +67,7 @@ export const en = {
     metaUpdated: 'Updated {date}',
   },
   footer: {
-    features: 'Features',
+    features: 'What bpad can do',
     tagline: 'End-to-end encrypted.',
     copyright: '© 2026 bpad',
   },
@@ -119,6 +120,8 @@ export const en = {
   },
   account: {
     title: 'Account',
+    sectionProfile: 'profile',
+    sectionPreferences: 'preferences',
     username: 'username',
     email: 'e-mail',
     notes: 'notes',
@@ -132,7 +135,6 @@ export const en = {
     sending: 'Sending…',
     sent: 'Sent ✓',
     sendFailed: 'Failed, try again',
-    whatCanDo: 'What bpad can do →',
     language: 'language',
     autoLock: 'Auto-lock',
     autoLockNever: 'Never',
@@ -201,6 +203,7 @@ export const en = {
   },
   features: {
     title: 'What bpad can do',
+    intro: 'A full list of everything bpad supports — from writing to security to keeping your data truly yours.',
   },
   tags: {
     placeholder: 'add a tag…',
@@ -324,19 +327,18 @@ export const en = {
     md: `# 👋 Welcome to bpad
 
 This is your first note — edit or delete it freely. **bpad** is an encrypted notebook: only you see the content; the server never does.
-
-## Try it
-- **Markdown** — the first \`# …\` heading becomes the note title. Toggle **Preview** above.
+{image}
+## Try it out
+- **Markdown** — write using standard Markdown syntax. Toggle **Preview** to see it rendered.
+- **Auto-title** — the first \`# …\` heading becomes the note title automatically.
 - **Quick save** — \`Ctrl+Enter\` (Mac \`Cmd+Enter\`) saves from anywhere in the editor.
-- **Search** — above the list; ignores diacritics (\`clanek\` finds "Článek").
-- **Links** open in a new tab: [bpad.pro](https://bpad.pro)
-- **Checklist**:
-  - [x] Create an account
-  - [ ] Save your recovery code
-  - [ ] Install bpad as an app
+- **Tags** — add short tags to notes and filter the list by them with one click.
+- **Images** — paste an image from your clipboard or click **Add image**. Click any image to zoom in.
+- **Search** — above the note list; ignores diacritics (\`clanek\` finds "Článek").
+- **Sort** — switch between sorting by creation date or last modified.
 
 ## Markdown quick guide
-Write plain text, or sprinkle in a little Markdown. Toggle **Preview** to see it rendered.
+Write plain text, or sprinkle in Markdown. Toggle **Preview** to see it rendered.
 
 | You type | You get |
 | --- | --- |
@@ -357,14 +359,32 @@ Type \`{host}/\` in the address bar and a full URL right after it:
 
 \`{host}/https://example.com\`
 
-…and it becomes a new note.
+…and it instantly becomes a new note.
 
-## Privacy
-- Your password and keys **never leave the browser**. Without your password and recovery code, no one — not even us — can read the content.
-- Turn on **biometric unlock** if your device supports it.
-- Works **offline** (reading) and installs as an app.
+## Security & your data
+- Your password and keys **never leave the browser**. Without your password and recovery code, no one — not even us — can read your notes.
+- **Biometric unlock** — enable it in Account settings if your device supports it.
+- **Auto-lock** — the vault locks itself after inactivity (configurable in Account).
+- **Recovery code** — generated at sign-up, shown once. Save it.
+- **Backup** — download all notes and images as a ZIP from Account. Keep it on a USB stick.
+- **Works offline** and installs as an app (PWA) from your browser menu.
 
-Find the full feature list in **Account → What bpad can do**.
+See the full feature list in **Account → What bpad can do**.
+
+## Getting started checklist
+- [x] Create an account
+- [ ] Save your recovery code
+- [ ] Verify your e-mail (removes the note limit)
+- [ ] Install bpad as an app
+`,
+    // Dropped into welcome.md at {image} once the illustration has been
+    // uploaded to the new account. Omitted entirely if that upload fails.
+    imageBlock: `
+## What the server sees
+
+![Your note as you wrote it on the left; the ciphertext the server stores on the right](bpad-img:{id})
+
+Your notes are encrypted before they ever leave this device. Click the picture to open it full-screen — every image you add works the same way.
 `,
   },
 } as const

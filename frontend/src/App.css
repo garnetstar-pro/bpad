@@ -91,6 +91,8 @@ body {
   color: var(--ink-dim);
 }
 
+/* Shared by the header's buttons and its links (help), so they read as one row
+   of equal-weight actions beside the account name. */
 .logout-link {
   background: transparent;
   border: none;
@@ -99,11 +101,39 @@ body {
   font-size: var(--text-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-decoration: none;
   cursor: pointer;
   padding: 0;
   border-bottom: 1px dotted var(--hairline);
 }
 .logout-link:hover { color: var(--accent); }
+
+/* Site-wide footer: the always-available route to the feature overview. */
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+}
+.app-footer-link {
+  color: var(--ink-dim);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--hairline);
+}
+.app-footer-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.app-footer-copy { margin-left: auto; }
+
+@media (max-width: 480px) {
+  .app-footer-copy { margin-left: 0; }
+}
 
 /* ---- Modal (biometric prompt) ---- */
 .modal-overlay {
@@ -522,13 +552,19 @@ body {
 }
 
 /* Note detail */
+/* Used both as a Link and as a button (Features goes back through history). */
 .back-link {
   display: inline-block;
+  font-family: var(--font);
   font-size: var(--text-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-dim);
   text-decoration: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   margin-bottom: 20px;
 }
 
@@ -571,19 +607,6 @@ body {
   gap: 16px;
   font-variant-numeric: tabular-nums;
 }
-.detail-footer-app {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 10px;
-}
-.detail-footer-link {
-  color: var(--ink-dim);
-  text-decoration: none;
-}
-.detail-footer-link:hover { color: var(--accent); }
-.detail-footer-copy { margin-left: auto; }
 
 /* ---- New-entry composer (desktop right pane) ---- */
 /* Collapsed: a slim bar that expands into the full Editor on click. */
@@ -865,6 +888,8 @@ body {
   border-bottom-color: var(--accent);
 }
 
+/* Restore reuses .account-card / .account-title; the Account page itself is
+   built from .account-panel, sharing the panel language of the Features page. */
 .account-card {
   background: var(--surface);
   border: 1px solid var(--hairline);
@@ -876,14 +901,95 @@ body {
   font-size: 18px;
   color: var(--ink);
 }
-.account-row {
+
+.account-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.account-page-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.account-panel {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.account-panel-title {
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  padding: 12px 18px;
+  margin: 0;
+  border-bottom: 1px solid var(--hairline);
+}
+/* Free-form panel content: a column of controls that keep their natural width,
+   so buttons never stretch edge to edge. Inputs opt back in with width: 100%. */
+.account-panel-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  font-size: var(--text-md);
+}
+/* Key/value listings manage their own spacing through .account-row. */
+.account-panel-body.is-rows {
+  display: block;
+  padding: 2px 18px;
+}
+/* Prose keeps a readable measure; the panel itself stays full width. */
+.account-panel-body .account-note,
+.account-panel-body .backup-choice {
+  margin-top: 0;
+  max-width: 68ch;
+}
+.account-panel-body .backup-input,
+.account-panel-body .feedback-input {
+  max-width: 46ch;
+}
+/* Trailing strip for whatever follows the panel's main content: a related link,
+   a nudge to act. Tinted so it reads as a footer, not another content row. */
+.account-panel-foot {
+  padding: 12px 18px;
+  border-top: 1px solid var(--hairline);
+  background: rgba(238, 242, 250, 0.03);
+}
+.account-panel-foot .account-note,
+.account-panel-foot .account-link {
+  margin-top: 0;
+}
+.account-footer {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+}
+.account-footer .account-link {
+  margin-top: 0;
+}
+
+/* Label and value sit side by side rather than at opposite edges — over a wide
+   card, space-between strands the value too far from what it answers. */
+.account-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
   align-items: baseline;
-  gap: 16px;
+  gap: 6px 16px;
   padding: 11px 0;
   border-bottom: 1px solid var(--hairline);
-  font-size: 14px;
+  font-size: var(--text-md);
+}
+.account-panel-body.is-rows .account-row:last-child {
+  border-bottom: none;
 }
 .account-key {
   font-size: var(--text-xs);
@@ -894,10 +1000,10 @@ body {
 }
 .account-val {
   color: var(--ink);
-  text-align: right;
   word-break: break-word;
 }
 select.account-val {
+  justify-self: start;
   background: var(--surface-hover);
   color: var(--ink);
   border: 1px solid var(--hairline);
@@ -931,9 +1037,6 @@ select.account-val {
   font-size: 13px;
   color: var(--ink-dim);
 }
-.account-logout {
-  margin-top: 18px;
-}
 .account-link {
   display: inline-block;
   margin-top: 16px;
@@ -946,29 +1049,89 @@ select.account-val {
   text-decoration: underline;
 }
 
+/* Narrow screens can't hold the label column — stack the value under its key. */
+@media (max-width: 480px) {
+  .account-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Feature overview (What bpad can do) */
+.features-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.features-page-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+}
+
+.features-page-intro {
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.feature-category {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.feature-category-title {
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  padding: 12px 18px;
+  margin: 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
 .feature-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
+
 .feature-item {
-  padding: 12px 0;
+  padding: 14px 18px;
   border-bottom: 1px solid var(--hairline);
+  border-right: 1px solid var(--hairline);
 }
+
+/* Remove border-bottom from the last row. Works for both 1- and 2-col grids. */
 .feature-item:last-child {
   border-bottom: none;
 }
+
+/* In a 2-col grid the second-to-last item also sits in the last row. */
+@media (min-width: 540px) {
+  .feature-item:nth-last-child(2):nth-child(odd) {
+    border-bottom: none;
+  }
+}
+
 .feature-name {
   color: var(--ink);
   font-weight: 700;
   font-size: 14px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
+
 .feature-desc {
   color: var(--ink-dim);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* Public landing page (pre-registration) */
@@ -1367,12 +1530,6 @@ select.account-val {
   color: var(--accent);
   border-color: var(--accent);
   background: rgba(34, 177, 131, 0.12);
-}
-
-.account-feedback {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 .feedback-input {
