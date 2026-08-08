@@ -129,250 +129,271 @@ export default function Account() {
     <div className="detail-page">
       <Link to="/" className="back-link">{t('common.back')}</Link>
 
-      <div className="account-card">
-        <h2 className="account-title">{t('account.title')}</h2>
+      <div className="account-page">
+        <h2 className="account-page-title">{t('account.title')}</h2>
 
-        {availableLocales().length > 1 && (
-          <div className="account-row">
-            <span className="account-key">{t('account.language')}</span>
-            <select
-              className="account-val"
-              value={locale}
-              onChange={(e) => setLocale(e.target.value as Locale)}
-            >
-              {availableLocales().map((l) => (
-                <option key={l} value={l}>{l.toUpperCase()}</option>
-              ))}
-            </select>
-          </div>
-        )}
+        <section className="account-panel">
+          <h3 className="account-panel-title">{t('account.sectionProfile')}</h3>
 
-        <div className="account-row">
-          <span className="account-key">{t('account.autoLock')}</span>
-          <select
-            className="account-val"
-            value={autoLock === null ? 'never' : String(autoLock)}
-            onChange={(e) => handleAutoLockChange(e.target.value)}
-          >
-            <option value="never">{t('account.autoLockNever')}</option>
-            <option value="1">{t('account.autoLock1')}</option>
-            <option value="5">{t('account.autoLock5')}</option>
-            <option value="15">{t('account.autoLock15')}</option>
-            <option value="30">{t('account.autoLock30')}</option>
-            <option value="60">{t('account.autoLock60')}</option>
-          </select>
-        </div>
+          {loading && <div className="account-panel-body">{t('common.loading')}</div>}
 
-        {loading && <div className="empty-state">{t('common.loading')}</div>}
-
-        {!loading && offline && (
-          <>
-            <div className="account-row">
-              <span className="account-key">{t('account.username')}</span>
-              <span className="account-val">{getUsername() ?? '—'}</span>
-            </div>
-            <div className="account-note">{t('account.emailOffline')}</div>
-          </>
-        )}
-
-        {!loading && account && (
-          <>
-            <div className="account-row">
-              <span className="account-key">{t('account.username')}</span>
-              <span className="account-val">{account.username}</span>
-            </div>
-            <div className="account-row">
-              <span className="account-key">{t('account.email')}</span>
-              <span className="account-val">
-                {account.email ?? '—'}{' '}
-                <span className={verified ? 'account-badge is-ok' : 'account-badge'}>
-                  {verified ? t('account.verified') : t('account.unverified')}
-                </span>
-              </span>
-            </div>
-            <div className="account-row">
-              <span className="account-key">{t('account.notes')}</span>
-              <span className="account-val">
-                {noteCount ?? '—'}
-                {!verified && noteCount !== null && ` ${t('account.ofLimit', { limit: UNVERIFIED_NOTE_LIMIT })}`}
-              </span>
-            </div>
-            <div className="account-row">
-              <span className="account-key">{t('account.joined')}</span>
-              <span className="account-val">{formatDate(account.createdAt)}</span>
-            </div>
-
-            {!verified && (
-              <div className="account-note">
-                {t('account.verifyCta')}{' '}
-                {resend === 'sent' ? (
-                  <span className="verify-sent">{t('account.sent')}</span>
-                ) : (
-                  <button
-                    className="verify-resend"
-                    type="button"
-                    disabled={resend === 'sending'}
-                    onClick={() => {
-                      setResend('sending')
-                      resendVerification()
-                        .then(() => setResend('sent'))
-                        .catch(() => setResend('error'))
-                    }}
-                  >
-                    {resend === 'sending'
-                      ? t('account.sending')
-                      : resend === 'error'
-                        ? t('account.sendFailed')
-                        : t('account.sendLink')}
-                  </button>
-                )}
-              </div>
-            )}
-          </>
-        )}
-
-        <div>
-          <Link to="/features" className="account-link">{t('account.whatCanDo')}</Link>
-        </div>
-
-        <div className="account-backup">
-          <span className="account-key">{t('account.backupTitle')}</span>
-          <div className="account-note">{t('account.backupIntro')}</div>
-
-          <label className="backup-choice">
-            <input
-              type="radio"
-              name="backup-mode"
-              checked={bkMode === 'protected'}
-              onChange={() => {
-                setBkMode('protected')
-                setBkState('idle')
-              }}
-            />
-            {t('account.backupProtected')}
-          </label>
-          <label className="backup-choice">
-            <input
-              type="radio"
-              name="backup-mode"
-              checked={bkMode === 'plain'}
-              onChange={() => {
-                setBkMode('plain')
-                setBkState('idle')
-              }}
-            />
-            {t('account.backupPlain')}
-          </label>
-
-          {bkMode === 'protected' ? (
+          {!loading && offline && (
             <>
-              <input
-                className="backup-input"
-                type="password"
-                autoComplete="new-password"
-                placeholder={t('account.backupPassphrase')}
-                value={bkPass}
-                onChange={(e) => {
-                  setBkPass(e.target.value)
-                  if (bkState === 'error') setBkState('idle')
-                }}
-              />
-              <input
-                className="backup-input"
-                type="password"
-                autoComplete="new-password"
-                placeholder={t('account.backupPassphraseAgain')}
-                value={bkPass2}
-                onChange={(e) => {
-                  setBkPass2(e.target.value)
-                  if (bkState === 'error') setBkState('idle')
-                }}
-              />
-              <div className="account-note">{t('account.backupPassphraseHint')}</div>
+              <div className="account-panel-body is-rows">
+                <div className="account-row">
+                  <span className="account-key">{t('account.username')}</span>
+                  <span className="account-val">{getUsername() ?? '—'}</span>
+                </div>
+              </div>
+              <div className="account-panel-foot">
+                <div className="account-note">{t('account.emailOffline')}</div>
+              </div>
             </>
-          ) : (
-            <label className="backup-choice">
-              <input
-                type="checkbox"
-                checked={bkAck}
-                onChange={(e) => setBkAck(e.target.checked)}
-              />
-              {t('account.backupPlainWarning')}
-            </label>
           )}
 
-          <button
-            className="ghost-btn"
-            type="button"
-            disabled={bkState === 'working' || (bkMode === 'plain' && !bkAck)}
-            onClick={downloadBackupFile}
-          >
-            {backupButtonLabel()}
-          </button>
-
-          {bkState === 'done' && (
+          {!loading && account && (
             <>
-              <div className="verify-sent">
-                {t('account.backupDone', { count: bkCount, images: bkImages })}
+              <div className="account-panel-body is-rows">
+                <div className="account-row">
+                  <span className="account-key">{t('account.username')}</span>
+                  <span className="account-val">{account.username}</span>
+                </div>
+                <div className="account-row">
+                  <span className="account-key">{t('account.email')}</span>
+                  <span className="account-val">
+                    {account.email ?? '—'}{' '}
+                    <span className={verified ? 'account-badge is-ok' : 'account-badge'}>
+                      {verified ? t('account.verified') : t('account.unverified')}
+                    </span>
+                  </span>
+                </div>
+                <div className="account-row">
+                  <span className="account-key">{t('account.notes')}</span>
+                  <span className="account-val">
+                    {noteCount ?? '—'}
+                    {!verified && noteCount !== null && ` ${t('account.ofLimit', { limit: UNVERIFIED_NOTE_LIMIT })}`}
+                  </span>
+                </div>
+                <div className="account-row">
+                  <span className="account-key">{t('account.joined')}</span>
+                  <span className="account-val">{formatDate(account.createdAt)}</span>
+                </div>
               </div>
-              {bkMissing > 0 && (
-                <div className="account-note">
-                  {t('account.backupImagesMissing', { count: bkMissing })}
+
+              {!verified && (
+                <div className="account-panel-foot">
+                  <div className="account-note">
+                    {t('account.verifyCta')}{' '}
+                    {resend === 'sent' ? (
+                      <span className="verify-sent">{t('account.sent')}</span>
+                    ) : (
+                      <button
+                        className="verify-resend"
+                        type="button"
+                        disabled={resend === 'sending'}
+                        onClick={() => {
+                          setResend('sending')
+                          resendVerification()
+                            .then(() => setResend('sent'))
+                            .catch(() => setResend('error'))
+                        }}
+                      >
+                        {resend === 'sending'
+                          ? t('account.sending')
+                          : resend === 'error'
+                            ? t('account.sendFailed')
+                            : t('account.sendLink')}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </>
           )}
-          {bkState === 'error' && <div className="account-note">{bkError}</div>}
+        </section>
 
-          <div>
-            <Link to="/restore" className="account-link">{t('account.backupRestoreLink')}</Link>
-          </div>
-        </div>
+        <section className="account-panel">
+          <h3 className="account-panel-title">{t('account.sectionPreferences')}</h3>
+          <div className="account-panel-body is-rows">
+            {availableLocales().length > 1 && (
+              <div className="account-row">
+                <span className="account-key">{t('account.language')}</span>
+                <select
+                  className="account-val"
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as Locale)}
+                >
+                  {availableLocales().map((l) => (
+                    <option key={l} value={l}>{l.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-        <div className="account-feedback">
-          <span className="account-key">{t('account.feedbackTitle')}</span>
-          <div className="account-note">{t('account.feedbackIntro')}</div>
-          {fbState === 'sent' ? (
-            <>
-              <div className="verify-sent">{t('account.feedbackThanks')}</div>
-              <button
-                className="ghost-btn"
-                type="button"
-                onClick={() => setFbState('idle')}
+            <div className="account-row">
+              <span className="account-key">{t('account.autoLock')}</span>
+              <select
+                className="account-val"
+                value={autoLock === null ? 'never' : String(autoLock)}
+                onChange={(e) => handleAutoLockChange(e.target.value)}
               >
-                {t('account.feedbackSendAnother')}
-              </button>
-            </>
-          ) : (
-            <>
-              <textarea
-                className="feedback-input"
-                rows={4}
-                value={feedback}
-                maxLength={FEEDBACK_MAX_LENGTH}
-                placeholder={t('account.feedbackPlaceholder')}
-                onChange={(e) => {
-                  setFeedback(e.target.value)
-                  if (fbState === 'error') setFbState('idle')
+                <option value="never">{t('account.autoLockNever')}</option>
+                <option value="1">{t('account.autoLock1')}</option>
+                <option value="5">{t('account.autoLock5')}</option>
+                <option value="15">{t('account.autoLock15')}</option>
+                <option value="30">{t('account.autoLock30')}</option>
+                <option value="60">{t('account.autoLock60')}</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section className="account-panel">
+          <h3 className="account-panel-title">{t('account.backupTitle')}</h3>
+          <div className="account-panel-body">
+            <div className="account-note">{t('account.backupIntro')}</div>
+
+            <label className="backup-choice">
+              <input
+                type="radio"
+                name="backup-mode"
+                checked={bkMode === 'protected'}
+                onChange={() => {
+                  setBkMode('protected')
+                  setBkState('idle')
                 }}
               />
-              <div className="account-note">{t('account.feedbackNotEncrypted')}</div>
-              <button
-                className="ghost-btn"
-                type="button"
-                disabled={fbState === 'sending' || feedback.trim() === ''}
-                onClick={submitFeedback}
-              >
-                {fbState === 'sending' ? t('account.feedbackSending') : t('account.feedbackSend')}
-              </button>
-              {fbState === 'error' && <div className="account-note">{fbError}</div>}
-            </>
-          )}
-        </div>
+              {t('account.backupProtected')}
+            </label>
+            <label className="backup-choice">
+              <input
+                type="radio"
+                name="backup-mode"
+                checked={bkMode === 'plain'}
+                onChange={() => {
+                  setBkMode('plain')
+                  setBkState('idle')
+                }}
+              />
+              {t('account.backupPlain')}
+            </label>
 
-        <button className="ghost-btn account-logout" onClick={logout} type="button">
-          {t('common.logOut')}
-        </button>
+            {bkMode === 'protected' ? (
+              <>
+                <input
+                  className="backup-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={t('account.backupPassphrase')}
+                  value={bkPass}
+                  onChange={(e) => {
+                    setBkPass(e.target.value)
+                    if (bkState === 'error') setBkState('idle')
+                  }}
+                />
+                <input
+                  className="backup-input"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={t('account.backupPassphraseAgain')}
+                  value={bkPass2}
+                  onChange={(e) => {
+                    setBkPass2(e.target.value)
+                    if (bkState === 'error') setBkState('idle')
+                  }}
+                />
+                <div className="account-note">{t('account.backupPassphraseHint')}</div>
+              </>
+            ) : (
+              <label className="backup-choice">
+                <input
+                  type="checkbox"
+                  checked={bkAck}
+                  onChange={(e) => setBkAck(e.target.checked)}
+                />
+                {t('account.backupPlainWarning')}
+              </label>
+            )}
+
+            <button
+              className="ghost-btn"
+              type="button"
+              disabled={bkState === 'working' || (bkMode === 'plain' && !bkAck)}
+              onClick={downloadBackupFile}
+            >
+              {backupButtonLabel()}
+            </button>
+
+            {bkState === 'done' && (
+              <>
+                <div className="verify-sent">
+                  {t('account.backupDone', { count: bkCount, images: bkImages })}
+                </div>
+                {bkMissing > 0 && (
+                  <div className="account-note">
+                    {t('account.backupImagesMissing', { count: bkMissing })}
+                  </div>
+                )}
+              </>
+            )}
+            {bkState === 'error' && <div className="account-note">{bkError}</div>}
+          </div>
+
+          <div className="account-panel-foot">
+            <Link to="/restore" className="account-link">{t('account.backupRestoreLink')}</Link>
+          </div>
+        </section>
+
+        <section className="account-panel">
+          <h3 className="account-panel-title">{t('account.feedbackTitle')}</h3>
+          <div className="account-panel-body">
+            <div className="account-note">{t('account.feedbackIntro')}</div>
+            {fbState === 'sent' ? (
+              <>
+                <div className="verify-sent">{t('account.feedbackThanks')}</div>
+                <button
+                  className="ghost-btn"
+                  type="button"
+                  onClick={() => setFbState('idle')}
+                >
+                  {t('account.feedbackSendAnother')}
+                </button>
+              </>
+            ) : (
+              <>
+                <textarea
+                  className="feedback-input"
+                  rows={4}
+                  value={feedback}
+                  maxLength={FEEDBACK_MAX_LENGTH}
+                  placeholder={t('account.feedbackPlaceholder')}
+                  onChange={(e) => {
+                    setFeedback(e.target.value)
+                    if (fbState === 'error') setFbState('idle')
+                  }}
+                />
+                <div className="account-note">{t('account.feedbackNotEncrypted')}</div>
+                <button
+                  className="ghost-btn"
+                  type="button"
+                  disabled={fbState === 'sending' || feedback.trim() === ''}
+                  onClick={submitFeedback}
+                >
+                  {fbState === 'sending' ? t('account.feedbackSending') : t('account.feedbackSend')}
+                </button>
+                {fbState === 'error' && <div className="account-note">{fbError}</div>}
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* The feature overview is reachable from the header and the app footer
+            on every page, so it no longer needs a slot here. */}
+        <div className="account-footer">
+          <button className="ghost-btn" onClick={logout} type="button">
+            {t('common.logOut')}
+          </button>
+        </div>
       </div>
     </div>
   )

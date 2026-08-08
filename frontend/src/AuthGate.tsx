@@ -5,6 +5,7 @@ import { canAutofocus } from './device'
 import * as authApi from './authApi'
 import { createNote } from './api'
 import { welcomeNoteMarkdown } from './welcomeNote'
+import { uploadWelcomeImage } from './welcomeImage'
 import { useTranslation } from './i18n'
 
 export type Mode = 'login' | 'register' | 'recover'
@@ -172,8 +173,15 @@ function RegisterForm({ onMode }: { onMode: (m: Mode) => void }) {
       const code = await authApi.register(
         username.trim(), email.trim(), password, () => setSolving(true),
       )
-      // Welcome demo note (encrypted, best-effort — must not block registration).
-      createNote(welcomeNoteMarkdown(window.location.host)).catch(() => {})
+      // Welcome demo note (encrypted, best-effort — must not block
+      // registration). Its illustration is uploaded first so the note can
+      // reference it; a failed upload yields null and the note goes out
+      // without the picture.
+      uploadWelcomeImage()
+        .then((imageId) =>
+          createNote(welcomeNoteMarkdown(window.location.host, imageId ?? undefined)),
+        )
+        .catch(() => {})
       setRecoveryCode(code)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.errRegister'))

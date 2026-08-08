@@ -15,6 +15,7 @@ import { getEmailVerified, resendVerification } from './authApi'
 import { getKnownNoteCount } from './api'
 import { verifyBannerMessage } from './verifyStatus'
 import BpadMark from './BpadMark'
+import AppFooter from './AppFooter'
 import NotesLayout from './NotesLayout'
 import DetailPlaceholder from './DetailPlaceholder'
 import NoteDetail from './NoteDetail'
@@ -114,6 +115,7 @@ function App() {
         </Link>
         <div className="app-meta">
           <Link to="/account" className="app-user-link">{username}</Link>
+          <Link to="/features" className="logout-link">{t('common.help')}</Link>
           {canOfferBio && (
             <button
               className="logout-link"
@@ -171,6 +173,8 @@ function App() {
         {/* Catch-all: captures dev.bpad.pro/https://… or falls back home */}
         <Route path="*" element={<Capture />} />
       </Routes>
+
+      <AppFooter />
 
       {showEnroll && username && (
         <BiometricEnrollPrompt
