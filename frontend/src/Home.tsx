@@ -14,6 +14,7 @@ import { savePreferences, getAccount } from './authApi'
 import { useWideLayout } from './device'
 import { shouldAutoOpenTop } from './noteSelection'
 import { hasImageRef } from './imageRefs'
+import { NEW_NOTE_SLOT } from './draftStore'
 
 function Home() {
   const { t } = useTranslation()
@@ -163,7 +164,12 @@ function Home() {
           moves to the right pane (NotesLayout) so the list starts with the
           entries. */}
       {!wide && !isOfflineReadOnly() && (
-        <Editor submitLabel={t('editor.fileIt')} onSubmit={handleCreate} resetOnSuccess />
+        <Editor
+          submitLabel={t('editor.fileIt')}
+          onSubmit={handleCreate}
+          resetOnSuccess
+          draftSlot={NEW_NOTE_SLOT}
+        />
       )}
 
       <div className="section-head">

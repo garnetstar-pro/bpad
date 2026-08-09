@@ -26,6 +26,8 @@ export const en = {
     imageTooLarge: 'that image is too large (max 10 MB)',
     imageFailed: 'image upload failed, try again',
     imageLimit: 'a note can hold at most {limit} images',
+    draftRestored: 'Restored what you were writing.',
+    draftDiscard: 'discard',
   },
   images: {
     loading: 'loading image…',
@@ -249,6 +251,10 @@ export const en = {
     saving: 'saving link…',
     failed: 'Saving the link failed',
     home: '← home',
+  },
+  share: {
+    saving: 'saving what you shared…',
+    failed: 'Saving the shared item failed',
   },
   lock: {
     title: 'locked',
