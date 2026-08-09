@@ -7,6 +7,14 @@ export function canAutofocus(): boolean {
   return window.matchMedia('(hover: hover) and (pointer: fine)').matches
 }
 
+// Whether to show keyboard hints. Same signal as canAutofocus — a device with
+// hover and a fine pointer has a physical keyboard — but named for its own
+// purpose, because on a phone a "press n" chip is noise for a key that
+// isn't there.
+export function hasKeyboard(): boolean {
+  return canAutofocus()
+}
+
 // True on phones/tablets (coarse primary pointer). Used to skip the idle lock
 // on mobile — locks on any non-touch device rather than requiring hover+fine,
 // which some desktops don't report.

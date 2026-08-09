@@ -5,6 +5,8 @@ import { createNote, getKnownNoteCount } from './api'
 import { shouldStartExpanded } from './composer'
 import { useTranslation } from './i18n'
 import { NEW_NOTE_SLOT } from './draftStore'
+import { NEW_ENTRY_EVENT, CLOSE_EVENT } from './KeyboardShortcuts'
+import { KeyHint } from './KeyHint'
 
 // Desktop-only new-entry composer, pinned above the note detail in the right
 // pane. Collapsed to a slim bar by default; clicking it expands the full Editor.
@@ -36,6 +38,26 @@ export default function NewEntryComposer() {
     return () => window.removeEventListener('bpad:notes-changed', sync)
   }, [])
 
+  // "n" opens the composer, Escape closes it again. Expanding mounts the
+  // Editor, which autofocuses itself on desktop — so "n" lands the caret in
+  // the textarea without this needing a ref into the editor.
+  useEffect(() => {
+    const open = () => {
+      userToggled.current = true
+      setExpanded(true)
+    }
+    const close = () => {
+      userToggled.current = true
+      setExpanded(false)
+    }
+    window.addEventListener(NEW_ENTRY_EVENT, open)
+    window.addEventListener(CLOSE_EVENT, close)
+    return () => {
+      window.removeEventListener(NEW_ENTRY_EVENT, open)
+      window.removeEventListener(CLOSE_EVENT, close)
+    }
+  }, [])
+
   const open = () => {
     userToggled.current = true
     setExpanded(true)
@@ -57,6 +79,7 @@ export default function NewEntryComposer() {
     return (
       <button type="button" className="composer-bar" onClick={open}>
         {t('composer.newEntry')}
+        <KeyHint keys="n" />
       </button>
     )
   }

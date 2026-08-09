@@ -7,10 +7,9 @@ describe('translate', () => {
   })
 
   it('interpolates {params}', () => {
-    // editor.saveHint = 'ctrl+enter or click “{label}”'
-    expect(translate('editor.saveHint', { label: 'File it' })).toBe(
-      'ctrl+enter or click “File it”',
-    )
+    // editor.saveHint = 'or click “{label}”' — the key combo moved out of the
+    // string into a <kbd> chip (KeyHint), the interpolation is what matters here.
+    expect(translate('editor.saveHint', { label: 'File it' })).toBe('or click “File it”')
   })
 
   it('returns the key itself when missing', () => {

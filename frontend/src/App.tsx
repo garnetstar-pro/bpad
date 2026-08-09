@@ -23,6 +23,7 @@ import Account from './Account'
 import Features from './Features'
 import Capture from './Capture'
 import ShareTarget from './ShareTarget'
+import KeyboardShortcuts from './KeyboardShortcuts'
 import Restore from './Restore'
 import LockScreen from './LockScreen'
 import './App.css'
@@ -106,6 +107,7 @@ function App() {
 
   return (
     <div className="app">
+      <KeyboardShortcuts />
       <header className="app-header">
         <Link to="/" className="app-brand">
           <BpadMark size={40} />
