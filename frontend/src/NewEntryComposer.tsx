@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Editor from './Editor'
 import { createNote, getKnownNoteCount } from './api'
 import { shouldStartExpanded } from './composer'
 import { useTranslation } from './i18n'
+import { NEW_NOTE_SLOT } from './draftStore'
 
 // Desktop-only new-entry composer, pinned above the note detail in the right
 // pane. Collapsed to a slim bar by default; clicking it expands the full Editor.
@@ -12,10 +13,18 @@ import { useTranslation } from './i18n'
 export default function NewEntryComposer() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [expanded, setExpanded] = useState(() => shouldStartExpanded(getKnownNoteCount()))
+  // The manifest shortcut (long-press the installed icon) lands on /?new=1 and
+  // means exactly one thing: open the composer. Mobile needs no equivalent —
+  // Home keeps the composer pinned above the list there.
+  const [params] = useSearchParams()
+  const openRequested = params.get('new') === '1'
+  const [expanded, setExpanded] = useState(
+    () => openRequested || shouldStartExpanded(getKnownNoteCount()),
+  )
   // Once the user opens or closes the bar themselves, stop letting the note
-  // count drive the initial-expanded rule (below).
-  const userToggled = useRef(false)
+  // count drive the initial-expanded rule (below). The shortcut counts as the
+  // user having opened it, so an arriving note count can't snap it shut.
+  const userToggled = useRef(openRequested)
 
   // An account that loads empty resolves its count from null → 0 after mount;
   // open the composer then, unless the user has already taken over.
@@ -54,7 +63,12 @@ export default function NewEntryComposer() {
 
   return (
     <div className="composer-open">
-      <Editor submitLabel={t('editor.fileIt')} onSubmit={handleCreate} onCancel={collapse} />
+      <Editor
+        submitLabel={t('editor.fileIt')}
+        onSubmit={handleCreate}
+        onCancel={collapse}
+        draftSlot={NEW_NOTE_SLOT}
+      />
     </div>
   )
 }

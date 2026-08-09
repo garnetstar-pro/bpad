@@ -22,6 +22,7 @@ import NoteDetail from './NoteDetail'
 import Account from './Account'
 import Features from './Features'
 import Capture from './Capture'
+import ShareTarget from './ShareTarget'
 import Restore from './Restore'
 import LockScreen from './LockScreen'
 import './App.css'
@@ -170,6 +171,10 @@ function App() {
         </Route>
         <Route path="/account" element={<Account />} />
         <Route path="/features" element={<Features />} />
+        {/* Android share sheet target (manifest share_target). Must be listed
+            before the catch-all would swallow it — Capture only understands a
+            URL in the path, not a share payload in the query. */}
+        <Route path="/share" element={<ShareTarget />} />
         {/* Catch-all: captures dev.bpad.pro/https://… or falls back home */}
         <Route path="*" element={<Capture />} />
       </Routes>

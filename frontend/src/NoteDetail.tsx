@@ -10,6 +10,7 @@ import Editor from './Editor'
 import { useTranslation, translate } from './i18n'
 import { TagPills } from './TagPills'
 import { toWhatsApp } from './whatsapp'
+import { noteSlot } from './draftStore'
 import DetailFooter from './DetailFooter'
 
 function NoteDetail() {
@@ -112,6 +113,7 @@ function NoteDetail() {
           initialTags={note.tags}
           editableTitle
           onCancel={() => setEditing(false)}
+          draftSlot={noteSlot(note.id)}
         />
       ) : (
         <article className="note-detail">

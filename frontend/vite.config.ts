@@ -30,6 +30,25 @@ export default defineConfig({
           { src: '/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // Puts bpad in the Android share sheet — the mobile counterpart of the
+        // bpad.pro/https://… address-bar trick, handled by ShareTarget.tsx.
+        // GET (not POST) on purpose: text and links need no service worker,
+        // while sharing a file would. Android only offers this to an installed
+        // PWA, and iOS has no Web Share Target at all.
+        share_target: {
+          action: '/share',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
+        // Long-press the installed icon → straight into an open composer.
+        shortcuts: [
+          {
+            name: 'New note',
+            short_name: 'New',
+            url: '/?new=1',
+            icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
