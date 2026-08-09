@@ -6,15 +6,18 @@ import { LanguageProvider } from './i18n'
 import './index.css'
 import App from './App.tsx'
 import UpdatePrompt from './UpdatePrompt'
+import UndoDeleteToast from './UndoDeleteToast'
 
 // UpdatePrompt registers the service worker (the app runs offline / can be
-// installed) and watches for a new version.
+// installed) and watches for a new version. UndoDeleteToast sits at the root
+// because deleting a note navigates away from the route that triggered it.
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LanguageProvider>
       <BrowserRouter>
         <AuthProvider>
           <UpdatePrompt />
+          <UndoDeleteToast />
           <App />
         </AuthProvider>
       </BrowserRouter>

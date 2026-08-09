@@ -11,6 +11,7 @@ import { useTranslation, translate } from './i18n'
 import { TagPills } from './TagPills'
 import { toWhatsApp } from './whatsapp'
 import { noteSlot } from './draftStore'
+import { schedulePendingDelete } from './pendingDelete'
 import DetailFooter from './DetailFooter'
 
 function NoteDetail() {
@@ -21,7 +22,6 @@ function NoteDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [copied, setCopied] = useState(false)
   // The detail flows with the page (it has no inner scroll), so when the open
   // note changes, reset the window to the top — otherwise a long note you
@@ -78,16 +78,13 @@ function NoteDetail() {
     setEditing(false)
   }
 
-  const handleDelete = async () => {
-    if (!id || !window.confirm(t('notes.deleteConfirm'))) return
-    try {
-      setDeleting(true)
-      await deleteNote(id)
-      navigate('/')
-    } catch {
-      setError(t('notes.deleteFailed'))
-      setDeleting(false)
-    }
+  // No confirm dialog: the note disappears immediately and the API call is
+  // deferred, so the undo toast is the safety net (see pendingDelete.ts). That
+  // is a stronger guard than a modal people click through without reading.
+  const handleDelete = () => {
+    if (!id || !note) return
+    schedulePendingDelete(id, note.title, deleteNote)
+    navigate('/')
   }
 
   if (loading) return <div className="detail-page"><div className="empty-state">{t('common.loading')}</div></div>
@@ -152,13 +149,8 @@ function NoteDetail() {
             <button className="save-btn" onClick={() => setEditing(true)} type="button">
               {t('notes.edit')}
             </button>
-            <button
-              className="ghost-btn danger"
-              onClick={handleDelete}
-              disabled={deleting}
-              type="button"
-            >
-              {deleting ? t('notes.deleting') : t('notes.delete')}
+            <button className="ghost-btn danger" onClick={handleDelete} type="button">
+              {t('notes.delete')}
             </button>
           </div>
           )}

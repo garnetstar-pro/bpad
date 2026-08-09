@@ -1501,6 +1501,101 @@ select.account-val {
 .tag-suggest-item:hover { background: var(--surface-hover); color: var(--accent); }
 .tag-nudge { font-size: var(--text-sm); color: var(--ink-dim); margin: 4px 2px 0; }
 
+/* Keyboard hints. Shown inline wherever a shortcut applies (KeyHint.tsx) and
+   as the authoritative list on the help page. */
+.key-cap {
+  font-family: var(--font);
+  font-size: var(--text-xs);
+  line-height: 1;
+  color: var(--ink-dim);
+  background: var(--surface-hover);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+.key-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.key-hint-plus {
+  color: var(--ink-dim);
+  font-size: var(--text-xs);
+  margin: 0 2px;
+}
+/* Parked at the right edge of the search box, out of the text's way. */
+.search-key-hint {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.composer-bar .key-hint { margin-left: 8px; }
+
+.shortcut-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shortcut-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.shortcut-row .key-cap {
+  flex-shrink: 0;
+  min-width: 64px;
+  text-align: center;
+}
+.shortcut-desc {
+  font-size: var(--text-sm);
+  color: var(--ink-dim);
+}
+
+/* Undo affordance after deleting a note. Fixed to the bottom so it is visible
+   wherever the delete navigated to, and above the layout's stacking contexts. */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  padding: 10px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-size: var(--text-sm);
+  color: var(--ink);
+}
+.undo-toast-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.undo-toast-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 /* Shown when an unsaved draft was recovered (idle lock, closed tab, crash). */
 .draft-banner {
   display: flex;

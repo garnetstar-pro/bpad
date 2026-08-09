@@ -10,7 +10,20 @@ nejvíc mění pocit z aplikace na desktopu.
 
 ---
 
-## 3. Mazání nemá záchrannou brzdu
+## 3. Mazání nemá záchrannou brzdu — ✅ HOTOVO (2026-08-09, varianta 1)
+
+Implementováno jako **undo toast** (`pendingDelete.ts`, `UndoDeleteToast.tsx`).
+`window.confirm` zmizel úplně: poznámka se schová hned, DELETE odejde teprve po
+zavření undo okna (5 s), a undo znamená, že se request nepošle vůbec — není co
+obnovovat, protože se nic nezničilo. Druhé smazání během okna to první ihned
+potvrdí. Zavření tabu uprostřed okna smazání zahodí a poznámka zůstane, což je
+bezpečný směr selhání; proto se nic nepersistuje.
+
+Varianta 2 (soft delete) zůstává neimplementovaná — popis níže platí, kdyby o ni
+někdo požádal.
+
+<details>
+<summary>Původní zadání</summary>
 
 **Problém.** `NoteDetail.tsx` potvrzuje smazání přes `window.confirm`, server pak
 dělá tvrdé `delete_item` plus kaskádu na bloby obrázků
@@ -35,6 +48,8 @@ skutečně požádá.
 
 **Pozor:** ať se zvolí cokoli, `backupExport` musí dál exportovat jen živé
 poznámky, jinak se smazané vzkřísí při prvním restore.
+
+</details>
 
 ---
 
@@ -76,7 +91,24 @@ o obrázcích do toho nemá smysl jít.
 
 ---
 
-## 5. Klávesové zkratky a stav uložení
+## 5. Klávesové zkratky — ✅ HOTOVO (2026-08-09)
+
+Implementováno v `shortcuts.ts` (tabulka + resolver), `KeyboardShortcuts.tsx`
+(globální listener uvnitř přihlášeného stromu) a `KeyHint.tsx` (keycap).
+Vazby: `n` nová poznámka, `/` skok do hledání, `Esc` zavřít editor / vyčistit
+hledání, `?` nápověda. `Ctrl/⌘+Enter` zůstává v editoru.
+
+Tabulka v `shortcuts.ts` je **jediný zdroj pravdy** — handler z ní dispatchuje
+a stránka nápovědy z ní renderuje seznam, takže se popis nemůže rozejít
+s chováním (hlídá to i test). Nápovědy jsou i in-place: `/` v hledacím poli,
+`n` na sbalené liště composeru, `Ctrl/⌘+Enter` a `Esc` v patičce editoru;
+`KeyHint` se na dotykových zařízeních sám skryje (`device.hasKeyboard`).
+
+Zbývá z původního zadání: **indikace „koncept uložen"** v editoru se
+neimplementovala.
+
+<details>
+<summary>Původní zadání</summary>
 
 **Problém.** Jediná zkratka v aplikaci je `Ctrl/Cmd+Enter` v editoru
 (`Editor.tsx:handleKeyDown`). Na desktopu, kde je layout dvousloupcový a člověk
@@ -99,6 +131,8 @@ pojistce uživatel neví a nemůže jí věřit.
 
 **Pozor:** `n` a `/` se nesmí chytat, když je otevřený lightbox obrázku
 (`ImageLightbox.tsx`) — ten už `Esc` používá.
+
+</details>
 
 ---
 

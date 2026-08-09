@@ -11,6 +11,7 @@ import { processImage, uploadImage } from './images'
 import { parseImageIds } from './imageRefs'
 import { getMaxImagesPerNote } from './entitlements'
 import { insertAt } from './textInsert'
+import { KeyHint } from './KeyHint'
 import { getDataKey, getUsername } from './session'
 import {
   saveDraft,
@@ -280,6 +281,13 @@ function Editor({
       e.preventDefault()
       submit()
     }
+    // Escape backs out of the editor. Handled here rather than by the global
+    // shortcut so it works from inside the fields too — and the draft survives,
+    // because cancelling never clears it (see draftStore.ts).
+    if (e.key === 'Escape' && onCancel && !submitting) {
+      e.preventDefault()
+      onCancel()
+    }
   }
 
   // Upload an image and insert ![](bpad-img:ID) at the caret. Shared by the paste
@@ -441,11 +449,21 @@ function Editor({
 
       <div className="capture-footer">
         <span className="capture-hint">
-          {uploading
-            ? t('editor.imageUploading')
-            : submitting
-              ? t('editor.saving')
-              : t('editor.saveHint', { label: submitLabel })}
+          {uploading ? (
+            t('editor.imageUploading')
+          ) : submitting ? (
+            t('editor.saving')
+          ) : (
+            <>
+              <KeyHint keys="Ctrl/⌘ + Enter" /> {t('editor.saveHint', { label: submitLabel })}
+              {onCancel && (
+                <>
+                  {' · '}
+                  <KeyHint keys="Esc" /> {t('editor.cancelHint')}
+                </>
+              )}
+            </>
+          )}
         </span>
         <div className="capture-actions">
           {onCancel && (

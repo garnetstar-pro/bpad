@@ -15,6 +15,9 @@ import { useWideLayout } from './device'
 import { shouldAutoOpenTop } from './noteSelection'
 import { hasImageRef } from './imageRefs'
 import { NEW_NOTE_SLOT } from './draftStore'
+import { PENDING_DELETE_EVENT, isPendingDelete } from './pendingDelete'
+import { FOCUS_SEARCH_EVENT, CLOSE_EVENT } from './KeyboardShortcuts'
+import { KeyHint } from './KeyHint'
 
 function Home() {
   const { t } = useTranslation()
@@ -22,6 +25,7 @@ function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
   const [sortBy, setSortBy] = useState<SortField>(() => getSortPref())
   // Set once the user picks a sort field, so the async server seed below never
   // overwrites a choice the user has already made this session.
@@ -103,6 +107,32 @@ function Home() {
     return () => window.removeEventListener('bpad:notes-mutated', refetch)
   }, [fetchNotes])
 
+  // A scheduled (or undone) delete changes what the list shows without
+  // touching the server, so it needs a re-render rather than a refetch.
+  const [, bumpPending] = useState(0)
+  useEffect(() => {
+    const sync = () => bumpPending((n) => n + 1)
+    window.addEventListener(PENDING_DELETE_EVENT, sync)
+    return () => window.removeEventListener(PENDING_DELETE_EVENT, sync)
+  }, [])
+
+  // "/" focuses the search box; Escape inside it clears the query, and only
+  // then gives the field up — one press to undo the filter, a second to leave.
+  useEffect(() => {
+    const focus = () => searchRef.current?.focus()
+    const close = () => {
+      if (document.activeElement !== searchRef.current) return
+      if (query) setQuery('')
+      else searchRef.current?.blur()
+    }
+    window.addEventListener(FOCUS_SEARCH_EVENT, focus)
+    window.addEventListener(CLOSE_EVENT, close)
+    return () => {
+      window.removeEventListener(FOCUS_SEARCH_EVENT, focus)
+      window.removeEventListener(CLOSE_EVENT, close)
+    }
+  }, [query])
+
   // Seed the sort preference from the server (source of truth) so it follows the
   // user across devices, not just from the local cache. Best-effort: if the fetch
   // fails (e.g. offline) we keep the cached/default value. getAccount() also
@@ -130,7 +160,10 @@ function Home() {
   }
 
   const stamp = (n: Note) => (sortBy === 'modified' ? n.updated_at : n.created_at)
-  const filtered = [...filterByTags(filterNotes(notes, query), selected, untaggedOnly)].sort(
+  // A note awaiting its deferred delete is gone as far as the user is
+  // concerned — until they hit undo, which puts it straight back.
+  const live = notes.filter((n) => !isPendingDelete(n.id))
+  const filtered = [...filterByTags(filterNotes(live, query), selected, untaggedOnly)].sort(
     (a, b) => new Date(stamp(b)).getTime() - new Date(stamp(a)).getTime(),
   )
   const searching = query.trim().length > 0
@@ -221,12 +254,14 @@ function Home() {
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
         <input
+          ref={searchRef}
           className="search-input"
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('home.searchPlaceholder')}
         />
+        {!searching && <KeyHint keys="/" className="search-key-hint" />}
         {searching && (
           <button
             className="search-clear"

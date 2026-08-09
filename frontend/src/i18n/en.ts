@@ -11,7 +11,8 @@ export const en = {
     untitled: '(untitled)',
   },
   editor: {
-    saveHint: 'ctrl+enter or click “{label}”',
+    saveHint: 'or click “{label}”',
+    cancelHint: 'cancel',
     saving: 'saving…',
     title: 'title',
     titlePlaceholder: 'derived from the markdown when left empty',
@@ -59,9 +60,10 @@ export const en = {
     delete: 'Delete',
     copyWa: 'Copy for WhatsApp',
     copied: 'Copied ✓',
-    deleting: 'deleting…',
-    deleteConfirm: 'Delete this note?',
-    deleteFailed: 'Delete failed. Try again.',
+    // Deleting is deferred behind an undo window (pendingDelete.ts), so there
+    // is no confirm dialog and no in-flight "deleting…" state any more.
+    deletedToast: 'Deleted “{title}”',
+    undo: 'Undo',
     notFound: 'Note not found',
     back: '← back to list',
     selectPrompt: 'Select a note to read it here.',
@@ -255,6 +257,15 @@ export const en = {
   share: {
     saving: 'saving what you shared…',
     failed: 'Saving the shared item failed',
+  },
+  shortcuts: {
+    title: 'Keyboard shortcuts',
+    new: 'Start a new note',
+    search: 'Jump to search',
+    close: 'Close the editor, or clear the search',
+    help: 'Open this page',
+    save: 'Save the note you are writing',
+    note: 'Shortcuts stand down while you are typing, so the keys still type. Escape always works.',
   },
   lock: {
     title: 'locked',
