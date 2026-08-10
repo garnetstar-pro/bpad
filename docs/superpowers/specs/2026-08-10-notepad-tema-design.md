@@ -181,6 +181,15 @@ už existujícího `--font` a škály `--text-xs/sm/md`. Závazný seznam je vž
 `contract.css`; tenhle odstavec je jen odhad rozsahu. Držet ho co nejkratší —
 každý token je závazek pro všechna budoucí témata.
 
+**Doplněno 2026-08-10** (`2026-08-10-ubuntu-console-tema-design.md`): contract
+narostl o dalších pět tokenů na zhruba 38 — `--radius-shell`, `--open`,
+`--close`, `--prompt`, `--caret-w`. `--radius-shell` je skutečná díra, kterou
+Notepad sám neodhalil: má okno i vnitřek hranatý, takže mu `--radius` stačil.
+V `notepad.css` jsou všechny tyto tokeny neutrální (`0`, prázdné řetězce,
+`1px`). Zároveň odtud platí pravidlo, kam se dál kreslí hranice: **řetězec je
+hodnota, viditelnost je struktura** — `content:` patří do tokenu, přepínání
+`display` do strukturálního pravidla.
+
 `--note-size` v dossier tématu musí zůstat 16px. Velikost obsahu poznámky je
 dnes vědomě mimo škálu `--text-*` (viz komentář v `:root`) a krok 1 nesmí nic
 posunout.
