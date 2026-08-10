@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import BpadMark from './BpadMark'
 import { useTranslation } from './i18n'
 import { FEATURES } from './featuresData'
@@ -17,7 +18,10 @@ export default function Landing({
     <div className="landing">
       <header className="landing-hero">
         <BpadMark size={72} />
-        <h1 className="landing-title">bpad</h1>
+        {/* Descriptive h1 for SEO — "bpad" alone tells crawlers nothing about
+            what the product is. The brand name appears in the logo mark and
+            the page title tag; the h1 should describe the product. */}
+        <h1 className="landing-title">{t('landing.h1')}</h1>
         <p className="landing-tagline">{t('landing.tagline')}</p>
         <p className="landing-intro">{t('landing.intro')}</p>
         <div className="landing-cta">
@@ -49,6 +53,15 @@ export default function Landing({
           {t('landing.getStarted')}
         </button>
       </section>
+
+      <nav className="landing-seo-nav" aria-label="Learn more about bpad">
+        <ul>
+          <li><Link to="/private-notes">{t('landing.seoPrivate')}</Link></li>
+          <li><Link to="/encrypted-notes">{t('landing.seoEncrypted')}</Link></li>
+          <li><Link to="/markdown-notes">{t('landing.seoMarkdown')}</Link></li>
+          <li><Link to="/developer-notes">{t('landing.seoDev')}</Link></li>
+        </ul>
+      </nav>
 
       <footer className="landing-footer">{t('landing.footer')}</footer>
     </div>

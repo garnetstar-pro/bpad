@@ -1248,6 +1248,33 @@ select.account-val {
   padding-top: 28px;
 }
 
+/* SEO internal-link nav at the bottom of the landing page.
+   Small, unobtrusive — purely for crawlers and curious visitors. */
+.landing-seo-nav {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+.landing-seo-nav ul {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+.landing-seo-nav a {
+  color: var(--ink-dim);
+  font-size: var(--text-xs);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--hairline);
+}
+.landing-seo-nav a:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 /* Floating "back" from the auth form to the landing */
 .landing-back {
   position: fixed;
