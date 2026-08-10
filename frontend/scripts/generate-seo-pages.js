@@ -10,7 +10,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const distDir = path.join(__dirname, '..', 'dist')
 
 // Read the Vite-generated index.html to extract asset tags
-const distHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8')
+let distHtml
+try {
+  distHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf8')
+} catch {
+  console.error('generate-seo-pages: dist/index.html not found — run `npm run build` first.')
+  process.exit(1)
+}
 
 // Extract all <link rel="stylesheet" ...> tags
 const cssLinks = [...distHtml.matchAll(/<link rel="stylesheet"[^>]*>/g)]
@@ -19,7 +25,11 @@ const cssLinks = [...distHtml.matchAll(/<link rel="stylesheet"[^>]*>/g)]
 
 // Extract the <script type="module" ...></script> tag
 const scriptMatch = distHtml.match(/<script type="module"[^>]*src="[^"]*"[^>]*><\/script>/)
-const scriptTag = scriptMatch ? scriptMatch[0] : ''
+if (!scriptMatch) {
+  console.error('generate-seo-pages: could not find the Vite module script tag in dist/index.html.')
+  process.exit(1)
+}
+const scriptTag = scriptMatch[0]
 
 /**
  * Build a full HTML page from the given parameters.
