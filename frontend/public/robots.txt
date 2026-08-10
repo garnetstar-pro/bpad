@@ -6,6 +6,7 @@ Allow: /developer-notes
 Allow: /assets/
 Disallow: /notes/
 Disallow: /account
+Disallow: /features
 Disallow: /verify
 Disallow: /restore
 Disallow: /share
