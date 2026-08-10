@@ -216,6 +216,7 @@ export const en = {
     overLimit: '{count} tags on your account — free accounts get {limit}. Premium will lift this.',
   },
   landing: {
+    h1: 'Private Markdown Notes',
     tagline: 'An encrypted notebook only you can read.',
     intro: 'Notes are encrypted in your browser — the server never sees them, and neither do we.',
     getStarted: 'Create account',
@@ -225,6 +226,10 @@ export const en = {
     privacyBody:
       'Your password and keys never leave the browser. Without your password and recovery code, no one — not even us — can read your notes.',
     footer: 'bpad · encrypted notebook',
+    seoPrivate: 'Private notes — how bpad keeps your data private',
+    seoEncrypted: 'Zero-knowledge encryption — technical details',
+    seoMarkdown: 'Markdown features — editor, images, tags, search',
+    seoDev: 'For developers — code blocks, links, privacy',
   },
   offline: {
     banner: 'Offline · read-only — changes can’t be saved',
