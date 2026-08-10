@@ -262,6 +262,78 @@ const pages = [
   },
 ]
 
+// -----------------------------------------------------------------------
+// Homepage: inject a visible <main> into dist/index.html so crawlers see
+// real product copy instead of an empty body. Without this the page looks
+// like a phishing template to Safe Browsing heuristics: "blank page that
+// shows a login form after JS".
+// -----------------------------------------------------------------------
+const homepageMain = `<main>
+  <h1>Private Markdown Notes</h1>
+  <p>bpad is a privacy-focused Markdown note-taking app. Notes are encrypted in your browser — the server never reads them.</p>
+
+  <h2>Zero-knowledge encryption</h2>
+  <p>Your password and encryption keys never leave your device. bpad uses Argon2id key derivation and AES-256-GCM encryption entirely in the browser. The server stores only ciphertext and cannot read your notes.</p>
+
+  <h2>What you get</h2>
+  <ul>
+    <li>Markdown editor with rendered preview</li>
+    <li>Tags, full-text search, and per-note URLs</li>
+    <li>Images encrypted with the same zero-knowledge key</li>
+    <li>Offline access and PWA installation</li>
+    <li>Encrypted and plain ZIP backups</li>
+    <li>Biometric unlock and configurable auto-lock</li>
+  </ul>
+
+  <p><a href="/#create-account">Create a free account</a> or <a href="/#login">log in to bpad</a>.</p>
+
+  <nav aria-label="Learn more">
+    <ul>
+      <li><a href="/private-notes">Private notes — how bpad keeps your data private</a></li>
+      <li><a href="/encrypted-notes">Zero-knowledge encryption — technical details</a></li>
+      <li><a href="/markdown-notes">Markdown features — editor, images, tags, search</a></li>
+      <li><a href="/developer-notes">For developers — code blocks, links, privacy</a></li>
+    </ul>
+  </nav>
+</main>`
+
+// Also add WebSite + Organization JSON-LD to the homepage for entity identity.
+// This helps Google understand that bpad.pro is a known legitimate service
+// and that the login form belongs to this entity — reducing phishing false positives.
+const websiteJsonLd = `<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "bpad",
+    "url": "https://bpad.pro/",
+    "description": "Privacy-focused Markdown note-taking with zero-knowledge encryption.",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://bpad.pro/"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "bpad",
+    "url": "https://bpad.pro/",
+    "logo": "https://bpad.pro/icon-512.png"
+  }
+  </script>`
+
+// Inject <main> before <div id="root"> and add WebSite/Organization JSON-LD before </head>
+let updatedIndex = distHtml
+  .replace('<div id="root"></div>', `${homepageMain}\n    <div id="root"></div>`)
+  .replace('</head>', `  ${websiteJsonLd}\n  </head>`)
+
+fs.writeFileSync(path.join(distDir, 'index.html'), updatedIndex)
+console.log(`updated dist/index.html with homepage <main> and entity JSON-LD`)
+
+// -----------------------------------------------------------------------
+// SEO subpages
+// -----------------------------------------------------------------------
 for (const page of pages) {
   const dir = path.join(distDir, page.slug)
   fs.mkdirSync(dir, { recursive: true })
