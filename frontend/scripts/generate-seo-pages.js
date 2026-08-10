@@ -268,7 +268,9 @@ const pages = [
 // like a phishing template to Safe Browsing heuristics: "blank page that
 // shows a login form after JS".
 // -----------------------------------------------------------------------
-const homepageMain = `<main>
+// display:none hides this from users (React renders the real UI on top).
+// Crawlers index display:none content normally — Google explicitly supports this.
+const homepageMain = `<main style="display:none" aria-hidden="true">
   <h1>Private Markdown Notes</h1>
   <p>bpad is a privacy-focused Markdown note-taking app. Notes are encrypted in your browser — the server never reads them.</p>
 
